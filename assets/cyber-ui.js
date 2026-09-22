@@ -28,7 +28,7 @@
     const actions=element('div','hud-actions'); const battle=element('a','hud-battle');battle.href=routes.battle;
     battle.append(icon('swords'),element('span','',page==='battle'?'배틀룸':'배틀룸 입장'));actions.append(battle);const evidence=element('a','hud-battle');evidence.href='/stitch_screens/11_evidence_library.html';evidence.textContent='근거 자료';actions.prepend(evidence);hud.append(brand,actions);header.append(hud);
     const notice=document.querySelector('body > aside[role=status]');
-    if(notice) {notice.removeAttribute('style');notice.className='preview-notice';notice.textContent='미리보기 · 실제 인증과 학습 기록은 연결 전입니다.';header.after(notice);}
+    if(notice) {notice.removeAttribute('style');notice.className='preview-notice';notice.textContent='서비스 연결 상태를 확인하고 있습니다.';header.after(notice);}
   }
   const main=document.querySelector('main'); if(!main)return;
   main.id='main-content';main.setAttribute('tabindex','-1');
@@ -52,8 +52,8 @@
     stateHeading.textContent='CONNECTING';stateMessage.textContent='학습 서비스 상태를 확인하고 있습니다.';
     try {
       const res=await fetch('/api/health',{signal:AbortSignal.timeout(5000)});if(!res.ok)throw new Error('Unavailable');
-      const info=await res.json();if(info.authentication==='firebase_session'){const me=await fetch('/api/auth/me');if(me.ok){const data=await me.json();signedIn=true;stateHeading.textContent='CONNECTED';stateMessage.textContent=(data.user.name||'사용자')+'님 · '+(data.user.role==='teacher'?'교사':'학생')+' 세션으로 연결되었습니다.';}else{stateHeading.textContent='SIGN IN REQUIRED';stateMessage.textContent='AI 분석과 기록 저장을 사용하려면 로그인하세요.';}}
-      else{stateHeading.textContent='PREVIEW MODE';stateMessage.textContent='글 작성과 타이머를 둘러볼 수 있어요. Firebase Authentication 활성화 후 로그인과 기록 저장을 사용할 수 있습니다.';}
+      const info=await res.json();if(info.authentication==='firebase_session'){const me=await fetch('/api/auth/me');if(me.ok){const data=await me.json();signedIn=true;stateHeading.textContent='CONNECTED';stateMessage.textContent=(data.user.name||'사용자')+'님 · '+(data.user.role==='teacher'?'교사':'학생')+' 세션으로 연결되었습니다.';if(notice)notice.textContent='운영 서비스 연결됨 · 학습 기록이 안전하게 저장됩니다.';}else{stateHeading.textContent='SIGN IN REQUIRED';stateMessage.textContent='AI 분석과 기록 저장을 사용하려면 로그인하세요.';if(notice)notice.textContent='운영 서비스 연결됨 · Google 로그인 후 AI 분석과 기록 저장을 사용할 수 있습니다.';}}
+      else{stateHeading.textContent='PREVIEW MODE';stateMessage.textContent='글 작성과 타이머를 둘러볼 수 있어요. Firebase Authentication 활성화 후 로그인과 기록 저장을 사용할 수 있습니다.';if(notice)notice.textContent='미리보기 · 실제 인증과 학습 기록은 연결 전입니다.';}
     } catch {stateHeading.textContent=navigator.onLine?'CONNECTION ERROR':'OFFLINE';stateMessage.textContent='서버에 연결하지 못했습니다. 작성 중인 내용은 이 화면에 유지됩니다. 연결 후 다시 확인해 주세요.';}
     finally{retry.disabled=false;state.removeAttribute('aria-busy');checking=false;}
   }
@@ -62,7 +62,7 @@
   function inform(message) {toast.textContent=message;toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toast.hidden=true;},6500);}
   const protectedActions=new Set(['request-eval-btn','submit-essay-btn','send-msg-btn','finish-debate-btn','save-obs-btn','final-submit-badge-btn']);
   document.addEventListener('click',event=>{const b=event.target.closest('button');if(b&&protectedActions.has(b.id)&&!signedIn){
-    event.preventDefault();event.stopImmediatePropagation();inform('인증 연결 전에는 AI 분석·전송·저장을 사용할 수 없습니다. 입력 내용은 이 화면에 유지됩니다.');
+    event.preventDefault();event.stopImmediatePropagation();inform('로그인 후 AI 분석·전송·저장을 사용할 수 있습니다. 입력 내용은 이 화면에 유지됩니다.');
   }},true);
   document.querySelectorAll('.material-symbols-outlined').forEach(i=>i.setAttribute('aria-hidden','true'));
   document.querySelectorAll('button').forEach(b=>{if(!b.getAttribute('aria-label')&&!b.textContent.replace(/\s/g,'').replace(/^[a-z_]+$/,'').length)b.setAttribute('aria-label',b.title||'추가 정보');});
