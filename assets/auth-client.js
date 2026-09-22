@@ -19,12 +19,13 @@
   const form = legacyForm.cloneNode(false);
   legacyForm.replaceWith(form);
 
+  const demoPanel = document.getElementById('quick-student-btn')?.closest('.mb-space-md');
   document.querySelectorAll('#quick-student-btn,#quick-teacher-btn').forEach(element => { element.hidden = true; });
   const roleRow = document.getElementById('role-student-btn')?.parentElement?.parentElement;
   const credentialDivider = [...document.querySelectorAll('span')].find(element => element.textContent.includes('성명 · 학번'))?.parentElement;
   const badgeTitle = [...document.querySelectorAll('span')].find(element => element.textContent.trim() === '활동 인증 내역 뱃지');
   const badgePanel = badgeTitle?.closest('aside');
-  [roleRow, credentialDivider, badgePanel, document.getElementById('teacher-panel')].forEach(element => { if (element) element.hidden = true; });
+  [demoPanel, roleRow, credentialDivider, badgePanel, document.getElementById('teacher-panel'), document.querySelector('.connection-state')].forEach(element => { if (element) element.hidden = true; });
 
   googleButton.querySelector('span.font-label-lg').textContent = 'Google 계정으로 학생 가입';
   const recommendation = googleButton.querySelector('span.font-label-sm');
