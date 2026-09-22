@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.pdf
+*.hwp
+data/*
+!data/topics.json
+!data/curriculum_corpus.example.json
+reports/
+*.log
