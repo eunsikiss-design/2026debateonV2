@@ -1,0 +1,22 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "presence": {
+      "$roomId": {
+        "$uid": {
+          ".read": "auth != null && auth.token.roomIds != null && auth.token.roomIds[$roomId] == true",
+          ".write": "auth != null && auth.uid == $uid && auth.token.roomIds != null && auth.token.roomIds[$roomId] == true",
+          ".validate": "newData.hasOnly(['online','lastSeen']) && newData.child('online').isBoolean() && newData.child('lastSeen').isNumber()"
+        }
+      }
+    },
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null && auth.token.roomIds != null && auth.token.roomIds[$roomId] == true",
+        ".write": false
+      }
+    }
+  }
+}
+

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>통합사회 토론논술 플랫폼 (디베이트온) - Stitch Screens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#00288e',
+            'primary-container': '#1e40af',
+            secondary: '#00687a',
+            'secondary-container': '#57dffe',
+            surface: '#f8f9ff',
+            'surface-card': '#ffffff',
+            'surface-dim': '#cbdbf5'
+          },
+          fontFamily: {
+            sans: ['"Noto Sans KR"', '"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Plus Jakarta Sans"', '"Noto Sans KR"', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #f8f9ff;
+      color: #0b1c30;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 p-4 md:p-8">
+  <div class="max-w-6xl mx-auto space-y-8">
+    
+    <!-- Header -->
+    <header class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div class="space-y-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-800 text-xs font-semibold">
+          <span class="material-symbols-outlined text-sm">school</span>
+          예시고등학교 1학년 통합사회2
+        </div>
+        <h1 class="text-3xl md:text-4xl font-extrabold text-blue-950 font-display">
+          통합사회 토론논술 플랫폼 (디베이트온)
+        </h1>
+        <p class="text-slate-600 text-sm md:text-base">
+          Stitch 프로젝트 ID: <code class="bg-slate-100 px-2 py-0.5 rounded text-blue-700 font-mono text-xs">11388682352965099543</code>
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="01_design_system.md" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-900 text-white font-semibold text-sm hover:bg-blue-800 transition shadow">
+          <span class="material-symbols-outlined text-base">palette</span>
+          디자인 시스템 명세 (MD)
+        </a>
+        <a href="01_design_system.json" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-800 font-semibold text-sm hover:bg-slate-200 transition border border-slate-200">
+          <span class="material-symbols-outlined text-base">data_object</span>
+          토큰 (JSON)
+        </a>
+      </div>
+    </header>
+
+    <!-- 3D Mascot Avatars -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+          <span class="material-symbols-outlined text-blue-600">face</span>
+          예시고 3D 마스코트 아바타 (통합사회2)
+        </h2>
+        <span class="text-xs text-slate-500">1024x1024 Pixar/Disney 3D Render</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Boy Mascot -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition space-y-4">
+          <div class="aspect-square w-full rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
+            <img src="02_avatar_boy_ansan_gangseo.png" alt="예시고 남학생 캐릭터" class="w-full h-full object-cover">
+          </div>
+          <div class="space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-900 text-base">예시고 남학생 아바타 (Screen #2)</span>
+              <span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-mono">11cfd8457bd24395af0bb59354655075</span>
+            </div>
+            <p class="text-xs text-slate-600 line-clamp-2">
+              예시고 정통 네이비 블레이저 교복, 학교 흉장 자수, '통합사회2' 교과서를 손에 든 3D 캐릭터 마스코트
+            </p>
+          </div>
+          <div class="pt-2">
+            <a href="02_avatar_boy_ansan_gangseo.png" target="_blank" class="w-full block text-center py-2 rounded-lg bg-slate-100 hover:bg-slate-200 font-medium text-xs text-slate-700">
+              고해상도 이미지 보기
+            </a>
+          </div>
+        </div>
+
+        <!-- Girl Mascot -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition space-y-4">
+          <div class="aspect-square w-full rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
+            <img src="03_avatar_girl_ansan_gangseo.png" alt="예시고 여학생 캐릭터" class="w-full h-full object-cover">
+          </div>
+          <div class="space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-900 text-base">예시고 여학생 아바타 (Screen #3)</span>
+              <span class="text-xs bg-pink-50 text-pink-700 px-2 py-0.5 rounded font-mono">0caa88d25ef34da08a3e8be57dbb5809</span>
+            </div>
+            <p class="text-xs text-slate-600 line-clamp-2">
+              예시고 정복 재킷과 리본 타이, 회색 니트 조끼 및 플리츠 스커트 착용, 태블릿을 든 3D 에듀테크 캐릭터
+            </p>
+          </div>
+          <div class="pt-2">
+            <a href="03_avatar_girl_ansan_gangseo.png" target="_blank" class="w-full block text-center py-2 rounded-lg bg-slate-100 hover:bg-slate-200 font-medium text-xs text-slate-700">
+              고해상도 이미지 보기
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Platform Screens (Code & Previews) -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+          <span class="material-symbols-outlined text-blue-600">devices</span>
+          주요 화면 (스크린샷 & HTML 인터랙티브 코드)
+        </h2>
+        <span class="text-xs text-slate-500">HTML 및 스크린샷 렌더링</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Screen 4 -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="h-64 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+              <img src="04_login_signup.png" alt="로그인 및 회원가입" class="w-full h-full object-cover object-top">
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-900 text-sm">4. 로그인 및 회원가입</span>
+                <span class="text-[11px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">0f2dc67be4ad4570bb6f8adc580dc60b</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">
+                카카오/네이버/구글 간편 로그인 및 예시고 교육과정 연동 선택
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-2 pt-2 border-t border-slate-100">
+            <a href="04_login_signup.html" target="_blank" class="flex-1 text-center py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold text-xs transition">
+              HTML 실행
+            </a>
+            <a href="04_login_signup.png" target="_blank" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition">
+              스크린샷
+            </a>
+          </div>
+        </div>
+
+        <!-- Screen 5 -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="h-64 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+              <img src="05_ai_basic_practice.png" alt="AI 기초 연습실" class="w-full h-full object-cover object-top">
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-900 text-sm">5. AI 기초 연습실 (말하기)</span>
+                <span class="text-[11px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">57b3ec5a1dd2473794aa04e7754fccb2</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">
+                2~3문장 짧은 논술 및 음성 녹음 발화 훈련, 소크라 AI 즉각 코칭
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-2 pt-2 border-t border-slate-100">
+            <a href="05_ai_basic_practice.html" target="_blank" class="flex-1 text-center py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold text-xs transition">
+              HTML 실행
+            </a>
+            <a href="05_ai_basic_practice.png" target="_blank" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition">
+              스크린샷
+            </a>
+          </div>
+        </div>
+
+        <!-- Screen 6 -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="h-64 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+              <img src="06_ai_advanced_practice.png" alt="AI 심화 연습실" class="w-full h-full object-cover object-top">
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-900 text-sm">6. AI 심화 연습실 (문단별 논술)</span>
+                <span class="text-[11px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">644aa189cb6743b3be0721c20a2bd02b</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">
+                주장-이유-근거 구조화 작성, 반론 대비 및 다문단 완성 논술 코칭
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-2 pt-2 border-t border-slate-100">
+            <a href="06_ai_advanced_practice.html" target="_blank" class="flex-1 text-center py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold text-xs transition">
+              HTML 실행
+            </a>
+            <a href="06_ai_advanced_practice.png" target="_blank" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition">
+              스크린샷
+            </a>
+          </div>
+        </div>
+
+        <!-- Screen 7 -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="h-64 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+              <img src="07_competency_report.png" alt="역량 분석 & 성장 기록 리포트" class="w-full h-full object-cover object-top">
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-900 text-sm">7. 역량 분석 & 성장 리포트</span>
+                <span class="text-[11px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">cff83d2f6f3643b389bbaf1dc67a8690</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">
+                논리성·비판적사고·어휘력 레이더 차트 및 생기부 연계 성장 피드백
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-2 pt-2 border-t border-slate-100">
+            <a href="07_competency_report.html" target="_blank" class="flex-1 text-center py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold text-xs transition">
+              HTML 실행
+            </a>
+            <a href="07_competency_report.png" target="_blank" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition">
+              스크린샷
+            </a>
+          </div>
+        </div>
+
+        <!-- Screen 8 -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="h-64 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+              <img src="08_speech_timer_training.png" alt="스피치 타이머 설정 & 훈련" class="w-full h-full object-cover object-top">
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-900 text-sm">8. 스피치 타이머 & 훈련실</span>
+                <span class="text-[11px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">b2560675a4c948df8e056780d69a0ef7</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">
+                토론 형식별(CEDA/칼포퍼 등) 라운드 타이머, 실시간 STT 및 음성 분석
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-2 pt-2 border-t border-slate-100">
+            <a href="08_speech_timer_training.html" target="_blank" class="flex-1 text-center py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold text-xs transition">
+              HTML 실행
+            </a>
+            <a href="08_speech_timer_training.png" target="_blank" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition">
+              스크린샷
+            </a>
+          </div>
+        </div>
+
+        <!-- Screen 9 -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="h-64 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+              <img src="09_class_debate_battle.png" alt="학급 실시간 토론 배틀룸" class="w-full h-full object-cover object-top">
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-900 text-sm">9. 실시간 토론 배틀룸</span>
+                <span class="text-[11px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">fdd5fb9b46c54372b8ec0b7fbfb9728c</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">
+                찬반 실시간 발언 릴레이, 청중 실시간 투표 및 AI 판정 인터랙티브 룸
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-2 pt-2 border-t border-slate-100">
+            <a href="09_class_debate_battle.html" target="_blank" class="flex-1 text-center py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold text-xs transition">
+              HTML 실행
+            </a>
+            <a href="09_class_debate_battle.png" target="_blank" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition">
+              스크린샷
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Activity Certification Badges (활동 인증 내역 뱃지) -->
+    <section class="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+        <div>
+          <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500 text-2xl" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+            활동 인증 내역 뱃지 (예시고 공식 인증)
+          </h3>
+          <p class="text-xs text-slate-500 mt-1">
+            예시고등학교 1학년 통합사회2 교과 연계 토론·논술 훈련 이수 및 역량 평가 공식 인증 뱃지
+          </p>
+        </div>
+        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          학생부 과세특 연동 완료
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        
+        <!-- Badge 1 -->
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-amber-50/80 via-white to-amber-50/30 border border-amber-200/80 shadow-xs hover:shadow-md transition-all group">
+          <div class="flex items-start justify-between">
+            <div class="w-12 h-12 rounded-2xl bg-amber-100/90 text-amber-700 flex items-center justify-center shadow-xs border border-amber-300/60 group-hover:scale-105 transition-transform">
+              <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300/40">
+              최우수 (Gold)
+            </span>
+          </div>
+          <div class="mt-3">
+            <h4 class="text-sm font-bold text-slate-900">통합사회2 정규 토론 완주 뱃지</h4>
+            <p class="text-xs text-slate-600 mt-1 line-clamp-2">
+              1학기 교과 연계 토론 10차시 전 과정 출석 및 찬반 입론·반론 훈련 완주
+            </p>
+          </div>
+          <div class="mt-3 pt-3 border-t border-amber-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+            <span>인증: 예시고 통합사회과</span>
+            <span class="text-amber-700 font-bold">발급 완료</span>
+          </div>
+        </div>
+
+        <!-- Badge 2 -->
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-blue-50/80 via-white to-blue-50/30 border border-blue-200/80 shadow-xs hover:shadow-md transition-all group">
+          <div class="flex items-start justify-between">
+            <div class="w-12 h-12 rounded-2xl bg-blue-100/90 text-blue-700 flex items-center justify-center shadow-xs border border-blue-300/60 group-hover:scale-105 transition-transform">
+              <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">history_edu</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-300/40">
+              CRE A+ 등급
+            </span>
+          </div>
+          <div class="mt-3">
+            <h4 class="text-sm font-bold text-slate-900">소크라 AI 논술 마스터 뱃지</h4>
+            <p class="text-xs text-slate-600 mt-1 line-clamp-2">
+              주장-이유-근거(CRE) 구조화 완성도 92점 돌파 및 논리적 오류 0건 인증
+            </p>
+          </div>
+          <div class="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+            <span>인증: 소크라 AI 논증평가원</span>
+            <span class="text-blue-700 font-bold">발급 완료</span>
+          </div>
+        </div>
+
+        <!-- Badge 3 -->
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-cyan-50/80 via-white to-cyan-50/30 border border-cyan-200/80 shadow-xs hover:shadow-md transition-all group">
+          <div class="flex items-start justify-between">
+            <div class="w-12 h-12 rounded-2xl bg-cyan-100/90 text-cyan-700 flex items-center justify-center shadow-xs border border-cyan-300/60 group-hover:scale-105 transition-transform">
+              <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">timer</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-300/40">
+              정밀 준수 98%
+            </span>
+          </div>
+          <div class="mt-3">
+            <h4 class="text-sm font-bold text-slate-900">3분 실전 스피치 골든 타이머 뱃지</h4>
+            <p class="text-xs text-slate-600 mt-1 line-clamp-2">
+              토론 규정 시간(180초) 오차 ±3초 이내 발화 및 안정적 WPM 페이스 달성
+            </p>
+          </div>
+          <div class="mt-3 pt-3 border-t border-cyan-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+            <span>인증: 스피치 훈련 연구소</span>
+            <span class="text-cyan-700 font-bold">발급 완료</span>
+          </div>
+        </div>
+
+        <!-- Badge 4 -->
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-purple-50/80 via-white to-purple-50/30 border border-purple-200/80 shadow-xs hover:shadow-md transition-all group">
+          <div class="flex items-start justify-between">
+            <div class="w-12 h-12 rounded-2xl bg-purple-100/90 text-purple-700 flex items-center justify-center shadow-xs border border-purple-300/60 group-hover:scale-105 transition-transform">
+              <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">gavel</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-300/40">
+              베스트 디베이터
+            </span>
+          </div>
+          <div class="mt-3">
+            <h4 class="text-sm font-bold text-slate-900">학급 실시간 토론 배틀 우수 뱃지</h4>
+            <p class="text-xs text-slate-600 mt-1 line-clamp-2">
+              학급 실시간 토론 배틀 청중 실시간 투표 득표율 1위 및 핵심 반론 선정
+            </p>
+          </div>
+          <div class="mt-3 pt-3 border-t border-purple-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+            <span>인증: 1학년 3반 열린법정</span>
+            <span class="text-purple-700 font-bold">발급 완료</span>
+          </div>
+        </div>
+
+        <!-- Badge 5 -->
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 border border-emerald-200/80 shadow-xs hover:shadow-md transition-all group sm:col-span-2 lg:col-span-2">
+          <div class="flex items-start justify-between">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-100/90 text-emerald-700 flex items-center justify-center shadow-xs border border-emerald-300/60 group-hover:scale-105 transition-transform">
+              <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">verified</span>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300/40">
+              NEIS 나이스 등록 완료
+            </span>
+          </div>
+          <div class="mt-3">
+            <h4 class="text-sm font-bold text-slate-900">학교생활기록부 교과세특 공식 연계 인증서</h4>
+            <p class="text-xs text-slate-600 mt-1">
+              경기도교육청 2022 개정 교육과정 기준: 논리성·비판적사고·어휘력·반박대응력·윤리적다각도분석 5대 역량 종합 성취도 87.6점 공식 포트폴리오 생성 완료
+            </p>
+          </div>
+          <div class="mt-3 pt-3 border-t border-emerald-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+            <span>문서번호: AG-SOC-2026-10001-01</span>
+            <span class="text-emerald-700 font-bold">포트폴리오 다운로드 가능</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-slate-500 pt-4 pb-8">
+      예시고등학교 통합사회2 토론·논술 교육 플랫폼 '디베이트온' • Stitch MCP Asset Extractor
+    </footer>
+
+  </div>
+</body>
+</html>
+

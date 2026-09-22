@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function me() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function teacher() { return signedIn() && me().data.role == 'teacher'; }
+    function sameClass(data) {
+      return teacher() && data.schoolId == me().data.schoolId
+        && data.grade == me().data.grade && data.classId == me().data.classId;
+    }
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || sameClass(resource.data));
+      allow write: if false;
+    }
+    match /practiceSessions/{id} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || sameClass(resource.data));
+      allow write: if false;
+    }
+    match /studentBadges/{id} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || sameClass(resource.data));
+      allow write: if false;
+    }
+    match /classSettings/{id} {
+      allow read: if signedIn() && sameClass(resource.data);
+      allow write: if false;
+    }
+    match /teacherObservations/{id} {
+      allow read: if teacher() && sameClass(resource.data);
+      allow write: if false;
+    }
+    match /topics/{id} { allow read: if true; allow write: if false; }
+    match /evidenceCards/{id} { allow read: if true; allow write: if false; }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
+

@@ -1,0 +1,7 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const root=__dirname;
+const server=fs.readFileSync(path.join(root,'server.js'),'utf8');const storage=fs.readFileSync(path.join(root,'services','storageService.js'),'utf8');const client=fs.readFileSync(path.join(root,'assets','battle-live.js'),'utf8');const html=fs.readFileSync(path.join(root,'stitch_screens','09_class_debate_battle.html'),'utf8');
+test('battle engine streams room, presence and messages over authenticated SSE',()=>{assert.match(server,/text\/event-stream/);assert.match(server,/broadcastDebate\(roomId, 'message'/);assert.match(client,/new EventSource/);for(const event of ['room','presence','message'])assert.match(client,new RegExp(`addEventListener\\('${event}'`));});
+test('new battle rooms contain no fabricated participants, messages or summaries',()=>{assert.match(storage,/participants: \{ teamA: \[\], teamB: \[\] \}/);assert.match(storage,/messages: \[\]/);assert.match(storage,/aiSummary: null/);assert.doesNotMatch(storage,/msg_init_/);});
+test('only verified debate data is returned to clients',()=>{assert.match(storage,/dataOrigin === 'verified'/);assert.match(storage,/dataOrigin:'verified'/);});
+test('battle screen and finish analysis contain no named demo students',()=>{for(const name of ['예시학생1','예시학생3','예시학생4']){assert.doesNotMatch(html,new RegExp(name));assert.doesNotMatch(server,new RegExp(name));}});
+

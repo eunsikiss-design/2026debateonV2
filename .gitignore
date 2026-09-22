@@ -7,5 +7,7 @@ node_modules/
 data/*
 !data/topics.json
 !data/curriculum_corpus.example.json
+!data/curriculum_corpus.json
 reports/
 *.log
+
