@@ -10,7 +10,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const STORE_PATH = path.join(__dirname, '..', 'data', 'store.json');
+const STORE_PATH = process.env.DATA_STORE_PATH
+  ? path.resolve(process.env.DATA_STORE_PATH)
+  : path.join(__dirname, '..', 'data', 'store.json');
 
 // 기본 시드 데이터
 const INITIAL_STORE = {

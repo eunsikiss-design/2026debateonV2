@@ -10,4 +10,5 @@ data/*
 !data/curriculum_corpus.json
 reports/
 *.log
+.tmp/
 

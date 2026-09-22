@@ -102,7 +102,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/health' && req.method === 'GET') {
     sendJSON(res, 200, { success: true, mode: firebaseAuth.isConfigured() ? 'authenticated' : 'preview',
       authentication: firebaseAuth.isConfigured() ? 'firebase_session' : 'firebase_setup_required',
-      storage: 'local-json-migration-pending', firebase: firebaseAuth.serverConfigured() ? 'admin_configured' : 'not_connected', sheets: 'not_connected',
+      storage: process.env.DATA_STORE_PATH ? 'persistent-volume' : 'local-json-migration-pending', firebase: firebaseAuth.serverConfigured() ? 'admin_configured' : 'not_connected', sheets: 'not_connected',
       gemini: process.env.GEMINI_API_KEY ? 'configured_not_verified' : 'not_configured', evidenceCount: knowledgeService.cards.length }); return;
   }
   if (pathname === '/api/auth/config' && req.method === 'GET') {
