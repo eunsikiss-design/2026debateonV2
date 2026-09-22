@@ -119,7 +119,16 @@ const server = http.createServer(async (req, res) => {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Authentication 설정이 완료되지 않았습니다.'});return;}
     try{req.auth=await firebaseAuth.authenticate(req);}catch{req.auth=null;}
     if(!req.auth){sendJSON(res,401,{success:false,error:'AUTH_REQUIRED',message:'로그인이 필요합니다.'});return;}
-    if(!['GET','HEAD'].includes(req.method)){const origin=req.headers.origin;if(origin&&!['http://127.0.0.1:'+PORT,'http://localhost:'+PORT].includes(origin)){sendJSON(res,403,{success:false,error:'ORIGIN_FORBIDDEN'});return;}}
+    if(!['GET','HEAD'].includes(req.method)){
+      const origin=req.headers.origin;
+      const allowedOrigins=new Set([
+        'http://127.0.0.1:'+PORT,
+        'http://localhost:'+PORT,
+        process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '',
+        ...String(process.env.APP_ORIGIN || '').split(',').map(value=>value.trim()).filter(Boolean)
+      ].filter(Boolean));
+      if(origin&&!allowedOrigins.has(origin)){sendJSON(res,403,{success:false,error:'ORIGIN_FORBIDDEN'});return;}
+    }
     if((pathname.startsWith('/api/teacher/')||pathname.startsWith('/api/sync/')||pathname==='/api/debate/room/init'||pathname==='/api/debate/finish')&&req.auth.role!=='teacher'){sendJSON(res,403,{success:false,error:'TEACHER_REQUIRED'});return;}
   }
   const queryParams = new URLSearchParams(urlParts[1] || '');
