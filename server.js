@@ -26,6 +26,7 @@ const geminiService = require('./services/geminiService');
 const knowledgeService = require('./services/knowledgeService');
 const sheetSyncQueue = require('./services/sheetSyncQueue');
 const firebaseAuth = require('./services/firebaseAuth');
+const socialAuth = require('./services/socialAuth');
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const ROOT = path.resolve(__dirname);
@@ -108,6 +109,21 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/auth/config' && req.method === 'GET') {
     const config=firebaseAuth.publicConfig();if(!config){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Web 설정과 Authentication 활성화가 필요합니다.'});return;}
     sendJSON(res,200,{success:true,firebase:config});return;
+  }
+  if (pathname === '/api/auth/providers' && req.method === 'GET') {
+    sendJSON(res,200,{success:true,providers:{google:firebaseAuth.clientConfigured(),naver:socialAuth.configured('naver'),kakao:socialAuth.configured('kakao')},studentDefault:true,adminLogin:Boolean(process.env.ADMIN_EMAIL)});return;
+  }
+  if (pathname === '/api/auth/admin' && req.method === 'POST') {
+    if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED'});return;}
+    try{const body=await parseRequestBody(req);const created=await firebaseAuth.signInAdmin(body.username,body.password);res.setHeader('Set-Cookie',firebaseAuth.cookie(created.session,created.maxAgeSeconds));sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(created.profile)});}catch{sendJSON(res,401,{success:false,error:'INVALID_ADMIN_CREDENTIALS',message:'관리자 아이디 또는 비밀번호를 확인하세요.'});}return;
+  }
+  const socialStart = pathname.match(/^\/api\/auth\/(naver|kakao)\/start$/);
+  if (socialStart && req.method === 'GET') {
+    try{const started=socialAuth.start(socialStart[1]);res.setHeader('Set-Cookie',started.cookie);res.writeHead(302,{Location:started.url});res.end();}catch{sendJSON(res,503,{success:false,error:'SOCIAL_PROVIDER_NOT_CONFIGURED',message:'간편가입 제공자 설정이 아직 완료되지 않았습니다.'});}return;
+  }
+  const socialCallback = pathname.match(/^\/api\/auth\/(naver|kakao)\/callback$/);
+  if (socialCallback && req.method === 'GET') {
+    try{const params=new URLSearchParams(urlParts[1]||'');const profile=await socialAuth.complete(socialCallback[1],params.get('code'),params.get('state'),req.headers.cookie);const created=await firebaseAuth.createSocialSession({provider:socialCallback[1],...profile});res.setHeader('Set-Cookie',[socialAuth.stateCookie(socialCallback[1],'',0),firebaseAuth.cookie(created.session,created.maxAgeSeconds)]);res.writeHead(302,{Location:'/stitch_screens/05_ai_basic_practice.html'});res.end();}catch{res.writeHead(302,{Location:'/stitch_screens/04_login_signup.html?error=social_login_failed'});res.end();}return;
   }
   if (pathname === '/api/auth/session' && req.method === 'POST') {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Authentication 설정이 완료되지 않았습니다.'});return;}

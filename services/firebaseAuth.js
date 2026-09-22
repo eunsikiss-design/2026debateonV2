@@ -40,14 +40,72 @@ function cookie(value, maxAgeSeconds) {
   return `${COOKIE_NAME}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeSeconds}${secure}`;
 }
 async function profileFor(decoded) {
+  const ref = getFirestore(getApp()).collection('users').doc(decoded.uid);
   let data = {};
-  try { const snap = await getFirestore(getApp()).collection('users').doc(decoded.uid).get(); data = snap.exists ? snap.data() : {}; }
-  catch (error) { if (!decoded.role) throw error; }
+  try {
+    const snap = await ref.get();
+    data = snap.exists ? snap.data() : {};
+    if (!data.role) {
+      data = {
+        name: decoded.name || decoded.email?.split('@')[0] || '학생',
+        email: decoded.email || null,
+        role: 'student',
+        authProvider: decoded.firebase?.sign_in_provider || decoded.sourceProvider || 'unknown',
+        createdAt: new Date().toISOString()
+      };
+      await ref.set(data, { merge: true });
+    }
+  } catch (error) {
+    data = decoded.role ? {} : {
+      name: decoded.name || decoded.email?.split('@')[0] || '학생',
+      email: decoded.email || null,
+      role: 'student',
+      authProvider: decoded.firebase?.sign_in_provider || decoded.sourceProvider || 'unknown'
+    };
+  }
   const role = data.role || decoded.role;
   if (!['student','teacher'].includes(role)) throw Object.assign(new Error('승인된 역할 정보가 없습니다.'), { code:'ROLE_NOT_ASSIGNED' });
+  if (role === 'teacher' && decoded.admin !== true) throw Object.assign(new Error('관리자 권한이 없습니다.'), { code:'ADMIN_REQUIRED' });
   return { uid: decoded.uid, email: decoded.email || null, name: data.name || decoded.name || null, role,
     schoolId: data.schoolId || decoded.schoolId || null, grade: Number(data.grade ?? decoded.grade) || null,
     classId: Number(data.classId ?? decoded.classId) || null, studentNumber: data.studentNumber || null };
+}
+async function exchangeIdentityToolkit(path, body) {
+  if (!process.env.FIREBASE_WEB_API_KEY) throw new Error('Firebase Web API key is missing');
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/${path}?key=${encodeURIComponent(process.env.FIREBASE_WEB_API_KEY)}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  const data = await response.json();
+  if (!response.ok || !data.idToken) throw Object.assign(new Error('Firebase sign-in failed'), { code: data.error?.message || 'FIREBASE_SIGN_IN_FAILED' });
+  return data.idToken;
+}
+async function signInAdmin(username, password) {
+  if (username !== 'admin' || !process.env.ADMIN_EMAIL || !password) throw new Error('Invalid admin credentials');
+  const idToken = await exchangeIdentityToolkit('accounts:signInWithPassword', {
+    email: process.env.ADMIN_EMAIL, password, returnSecureToken: true
+  });
+  return createSession(idToken);
+}
+async function createSocialSession({ provider, providerUserId, email, name }) {
+  const digest = require('crypto').createHash('sha256').update(String(providerUserId)).digest('hex').slice(0, 40);
+  const uid = `${provider}_${digest}`;
+  const auth = getAuth(getApp());
+  try { await auth.getUser(uid); }
+  catch (error) {
+    if (error.code !== 'auth/user-not-found') throw error;
+    await auth.createUser({ uid, displayName: name || undefined });
+  }
+  try {
+    await getFirestore(getApp()).collection('users').doc(uid).set({
+      name: name || '학생', email: email || null, role: 'student', authProvider: provider,
+      providerUserId: String(providerUserId), updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (error) {
+    if (!/PERMISSION_DENIED|disabled/i.test(String(error?.message))) throw error;
+  }
+  const customToken = await auth.createCustomToken(uid, { sourceProvider: provider });
+  const idToken = await exchangeIdentityToolkit('accounts:signInWithCustomToken', { token: customToken, returnSecureToken: true });
+  return createSession(idToken);
 }
 async function createSession(idToken) {
   const decoded = await getAuth(getApp()).verifyIdToken(idToken, true);
@@ -66,5 +124,5 @@ function sameClass(user, schoolId, grade, classId) {
 }
 function safeProfile(user) { const { uid,email,name,role,schoolId,grade,classId,studentNumber }=user;return {uid,email,name,role,schoolId,grade,classId,studentNumber}; }
 
-module.exports={COOKIE_NAME,isConfigured,serverConfigured,clientConfigured,publicConfig,cookie,createSession,authenticate,sameClass,safeProfile};
+module.exports={COOKIE_NAME,isConfigured,serverConfigured,clientConfigured,publicConfig,cookie,createSession,signInAdmin,createSocialSession,authenticate,sameClass,safeProfile};
 

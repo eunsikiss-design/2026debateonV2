@@ -8,3 +8,5 @@ Node.js 22 이상이 필요합니다. `npm ci` 후 `.env.example`을 `.env.local
 
 현재 데이터 저장은 로컬 파일을 사용합니다. 배포 시 영구 디스크와 백업이 필요하며 저장소 업로드 자체가 서비스 배포 완료를 뜻하지 않습니다.
 
+학생은 Google 계정으로 최초 로그인하면 학생 프로필이 자동 생성됩니다. 네이버와 카카오는 각 개발자 콘솔에서 앱을 만든 뒤 `.env.example`의 OAuth 값을 등록하면 활성화됩니다. 교사 관리자 계정은 `ADMIN_EMAIL`과 `ADMIN_INITIAL_PASSWORD`를 환경변수로 지정하고 `npm run auth:provision-admin`으로 Firebase에 생성합니다. 초기 비밀번호는 Git에 저장하지 마세요.
+
