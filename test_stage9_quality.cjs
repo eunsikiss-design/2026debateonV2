@@ -5,6 +5,7 @@ const {EvidenceReviewStore,fingerprint}=require('./services/evidenceReviewStore'
 const {SemanticSearch}=require('./services/semanticSearch');const {MODEL,REVISION}=require('./services/localEmbedding');
 const {validateGrounding}=require('./services/groundingValidation');
 const teacher={uid:'teacher-real',role:'teacher'};
+const knowledgeRoot=process.env.KNOWLEDGE_ROOT?path.resolve(process.env.KNOWLEDGE_ROOT):__dirname;
 const card={cardId:'a',sourceHash:'source-v1',detail:'사회 보험은 질병이나 실업 등 사회적 위험에 대비하는 제도이다.',audience:'student',unitId:'p1',keyConcepts:['사회 보험']};
 function withTemp(fn){const root=fs.mkdtempSync(path.join(os.tmpdir(),'debateon-review-'));return Promise.resolve().then(()=>fn(root)).finally(()=>{assert.ok(path.resolve(root).startsWith(path.resolve(os.tmpdir())+path.sep+'debateon-review-'));fs.rmSync(root,{recursive:true,force:true});});}
 test('review requires teacher, original comparison, and persists identity and revision',()=>withTemp(root=>{
@@ -19,7 +20,7 @@ test('review requires teacher, original comparison, and persists identity and re
 }));
 test('rejected excerpts disappear from student retrieval and grounding',()=>withTemp(async root=>{
  const actual=require('./services/knowledgeService'),source=actual.sources.find(s=>s.audience==='student'),sample=actual.cards.find(c=>c.sourceId===source.sourceId);
- fs.copyFileSync(path.join(__dirname,source.fileName),path.join(root,source.fileName));
+ fs.copyFileSync(path.join(knowledgeRoot,source.fileName),path.join(root,source.fileName));
  const knowledge=new actual.KnowledgeService({root,corpus:{schemaVersion:1,sources:[{...source}],cards:[{...sample}]}});
  knowledge.reviewCard(sample.cardId,{status:'rejected',revision:0,note:'원문 맥락 재확인',originalChecked:false},teacher);
  assert.equal(knowledge.getEvidenceCards().length,0);assert.equal(knowledge.getCardById(sample.cardId),null);

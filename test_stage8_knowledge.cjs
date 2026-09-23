@@ -3,7 +3,8 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto'),vm=require('node:vm');
 const {Writable}=require('node:stream');
 const knowledge=require('./services/knowledgeService');
-const corpus=JSON.parse(fs.readFileSync(path.join(__dirname,'data/curriculum_corpus.json'),'utf8'));
+const knowledgeRoot=process.env.KNOWLEDGE_ROOT?path.resolve(process.env.KNOWLEDGE_ROOT):__dirname;
+const corpus=JSON.parse(fs.readFileSync(path.join(knowledgeRoot,'data/curriculum_corpus.json'),'utf8'));
 test('every citation resolves to an exact source excerpt and valid physical location',()=>{
   assert.equal(corpus.sources.length,9);assert.ok(corpus.cards.length>200);assert.deepEqual(corpus.failures,[]);
   assert.equal(new Set(corpus.cards.map(c=>c.cardId)).size,corpus.cards.length);

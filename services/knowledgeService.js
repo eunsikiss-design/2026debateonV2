@@ -94,6 +94,9 @@ class KnowledgeService {
     return {retrievalMode:result.retrievalMode,references:result.cards.map(c=>({cardId:c.cardId,source:c.source,page:c.page,sourceUrl:c.sourceUrl,reviewStatus:c.reviewStatus})),context:JSON.stringify(result.cards.map(c=>({id:c.cardId,source:c.source,text:c.detail,reviewStatus:c.reviewStatus})))};
   }
 }
-module.exports = new KnowledgeService();
+const configuredRoot = process.env.KNOWLEDGE_ROOT
+  ? path.resolve(process.env.KNOWLEDGE_ROOT)
+  : path.join(__dirname, '..');
+module.exports = new KnowledgeService({root: configuredRoot});
 module.exports.KnowledgeService = KnowledgeService;
 
