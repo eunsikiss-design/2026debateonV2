@@ -67,6 +67,15 @@ class StorageService {
     return store.users[uid] || null;
   }
 
+  getUsers() {
+    return Object.values(this._read().users);
+  }
+
+  findUserByStudentNumber(studentNumber) {
+    const number = String(studentNumber || '').trim();
+    return Object.values(this._read().users).find(user => String(user.studentNumber || '').trim() === number) || null;
+  }
+
   findUserByNameAndStudentId(name, studentNumber, grade = 1, classId = 3) {
     const store = this._read();
     const parsedNum = parseInt(studentNumber, 10);
@@ -79,9 +88,12 @@ class StorageService {
   saveUser(userData) {
     const store = this._read();
     const uid = userData.uid || `user_${Date.now()}`;
+    const previous = store.users[uid] || {};
     const user = {
+      ...previous,
       ...userData,
       uid,
+      createdAt: previous.createdAt || userData.createdAt || new Date().toISOString(),
       lastLoginAt: new Date().toISOString()
     };
     store.users[uid] = user;

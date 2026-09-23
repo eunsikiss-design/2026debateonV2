@@ -68,7 +68,7 @@ test('Gemini receives real student excerpts and server-owned reference IDs',asyn
 let handler;
 const forbidden=new Proxy({},{get(){throw Error('Unexpected private service access');}});
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'server.js'),'utf8'),{
-  require:name=>name==='http'?{createServer:fn=>{handler=fn;return {listen(){}};}}:name==='fs'?fs:name==='path'?path:name.includes('knowledgeService')?knowledge:name.includes('firebaseAuth')?{
+  require:name=>name==='http'?{createServer:fn=>{handler=fn;return {listen(){}};}}:name==='fs'?fs:name==='path'?path:name.includes('knowledgeService')?knowledge:name.includes('studentRoster')?{students:[],registrationStatus:()=>[]}:name.includes('firebaseAuth')?{
     isConfigured:()=>true,authenticate:async req=>req.headers.cookie?{uid:'test',role:req.headers.cookie==='teacher'?'teacher':'student'}:null
   }:forbidden,
   __dirname,process:{env:{},loadEnvFile(){}},console:{log(){},warn(){}},URLSearchParams,Buffer

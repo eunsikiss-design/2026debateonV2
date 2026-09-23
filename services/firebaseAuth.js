@@ -51,6 +51,7 @@ async function profileFor(decoded) {
         email: decoded.email || null,
         role: 'student',
         authProvider: decoded.firebase?.sign_in_provider || decoded.sourceProvider || 'unknown',
+        onboardingComplete: false,
         createdAt: new Date().toISOString()
       };
       await ref.set(data, { merge: true });
@@ -68,7 +69,10 @@ async function profileFor(decoded) {
   if (role === 'teacher' && decoded.admin !== true) throw Object.assign(new Error('관리자 권한이 없습니다.'), { code:'ADMIN_REQUIRED' });
   return { uid: decoded.uid, email: decoded.email || null, name: data.name || decoded.name || null, role,
     schoolId: data.schoolId || decoded.schoolId || null, grade: Number(data.grade ?? decoded.grade) || null,
-    classId: Number(data.classId ?? decoded.classId) || null, studentNumber: data.studentNumber || null };
+    classId: Number(data.classId ?? decoded.classId) || null, studentNumber: data.studentNumber || null,
+    authProvider: data.authProvider || decoded.firebase?.sign_in_provider || decoded.sourceProvider || 'unknown',
+    onboardingComplete: role === 'teacher' || data.onboardingComplete === true,
+    privacyConsentAt: data.privacyConsentAt || null };
 }
 async function exchangeIdentityToolkit(path, body) {
   if (!process.env.FIREBASE_WEB_API_KEY) throw new Error('Firebase Web API key is missing');
@@ -96,10 +100,11 @@ async function createSocialSession({ provider, providerUserId, email, name }) {
     await auth.createUser({ uid, displayName: name || undefined });
   }
   try {
-    await getFirestore(getApp()).collection('users').doc(uid).set({
-      name: name || '학생', email: email || null, role: 'student', authProvider: provider,
-      providerUserId: String(providerUserId), updatedAt: new Date().toISOString()
-    }, { merge: true });
+    const ref=getFirestore(getApp()).collection('users').doc(uid),snap=await ref.get(),existing=snap.exists?snap.data():{};
+    const update={ email: email || null, role: 'student', authProvider: provider,
+      providerUserId: String(providerUserId), onboardingComplete:existing.onboardingComplete===true,updatedAt: new Date().toISOString() };
+    if(!existing.onboardingComplete)update.name=name||'학생';
+    await ref.set(update, { merge: true });
   } catch (error) {
     if (!/PERMISSION_DENIED|disabled/i.test(String(error?.message))) throw error;
   }
@@ -113,6 +118,14 @@ async function createSession(idToken) {
   const session = await getAuth(getApp()).createSessionCookie(idToken, { expiresIn: SESSION_MAX_AGE_MS });
   return { session, profile, maxAgeSeconds: Math.floor(SESSION_MAX_AGE_MS/1000) };
 }
+async function completeStudentProfile(user, input) {
+  if (!user?.uid || user.role !== 'student') throw Object.assign(new Error('학생 계정이 필요합니다.'), { code:'STUDENT_REQUIRED' });
+  const data={ name:input.name, role:'student', schoolId:input.schoolId, grade:Number(input.grade), classId:Number(input.classId),
+    studentNumber:String(input.studentNumber), onboardingComplete:true, privacyConsentAt:input.privacyConsentAt,
+    privacyConsentVersion:input.privacyConsentVersion, updatedAt:new Date().toISOString() };
+  await getFirestore(getApp()).collection('users').doc(user.uid).set(data,{merge:true});
+  return {...user,...data};
+}
 async function authenticate(req) {
   const token = cookies(req.headers.cookie)[COOKIE_NAME];
   if (!token) return null;
@@ -122,7 +135,7 @@ async function authenticate(req) {
 function sameClass(user, schoolId, grade, classId) {
   return Boolean(user && user.schoolId && user.schoolId === schoolId && Number(user.grade) === Number(grade) && Number(user.classId) === Number(classId));
 }
-function safeProfile(user) { const { uid,email,name,role,schoolId,grade,classId,studentNumber }=user;return {uid,email,name,role,schoolId,grade,classId,studentNumber}; }
+function safeProfile(user) { const { uid,email,name,role,schoolId,grade,classId,studentNumber,authProvider,onboardingComplete,privacyConsentAt }=user;return {uid,email,name,role,schoolId,grade,classId,studentNumber,authProvider,onboardingComplete,privacyConsentAt}; }
 
-module.exports={COOKIE_NAME,isConfigured,serverConfigured,clientConfigured,publicConfig,cookie,createSession,signInAdmin,createSocialSession,authenticate,sameClass,safeProfile};
+module.exports={COOKIE_NAME,isConfigured,serverConfigured,clientConfigured,publicConfig,cookie,createSession,signInAdmin,createSocialSession,completeStudentProfile,authenticate,sameClass,safeProfile};
 

@@ -27,6 +27,7 @@ const knowledgeService = require('./services/knowledgeService');
 const sheetSyncQueue = require('./services/sheetSyncQueue');
 const firebaseAuth = require('./services/firebaseAuth');
 const socialAuth = require('./services/socialAuth');
+const studentRoster = require('./services/studentRoster');
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const ROOT = path.resolve(__dirname);
@@ -104,7 +105,8 @@ const server = http.createServer(async (req, res) => {
     sendJSON(res, 200, { success: true, mode: firebaseAuth.isConfigured() ? 'authenticated' : 'preview',
       authentication: firebaseAuth.isConfigured() ? 'firebase_session' : 'firebase_setup_required',
       storage: process.env.DATA_STORE_PATH ? 'persistent-volume' : 'local-json-migration-pending', firebase: firebaseAuth.serverConfigured() ? 'admin_configured' : 'not_connected', sheets: 'not_connected',
-      gemini: process.env.GEMINI_API_KEY ? 'configured_not_verified' : 'not_configured', evidenceCount: knowledgeService.cards.length }); return;
+      gemini: process.env.GEMINI_API_KEY ? 'configured_not_verified' : 'not_configured', evidenceCount: knowledgeService.cards.length,
+      rosterCount: studentRoster.students.length }); return;
   }
   if (pathname === '/api/auth/config' && req.method === 'GET') {
     const config=firebaseAuth.publicConfig();if(!config){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Web 설정과 Authentication 활성화가 필요합니다.'});return;}
@@ -123,7 +125,7 @@ const server = http.createServer(async (req, res) => {
   }
   const socialCallback = pathname.match(/^\/api\/auth\/(naver|kakao)\/callback$/);
   if (socialCallback && req.method === 'GET') {
-    try{const params=new URLSearchParams(urlParts[1]||'');const profile=await socialAuth.complete(socialCallback[1],params.get('code'),params.get('state'),req.headers.cookie);const created=await firebaseAuth.createSocialSession({provider:socialCallback[1],...profile});res.setHeader('Set-Cookie',[socialAuth.stateCookie(socialCallback[1],'',0),firebaseAuth.cookie(created.session,created.maxAgeSeconds)]);res.writeHead(302,{Location:'/stitch_screens/05_ai_basic_practice.html'});res.end();}catch{res.writeHead(302,{Location:'/stitch_screens/04_login_signup.html?error=social_login_failed'});res.end();}return;
+    try{const params=new URLSearchParams(urlParts[1]||'');const profile=await socialAuth.complete(socialCallback[1],params.get('code'),params.get('state'),req.headers.cookie);const created=await firebaseAuth.createSocialSession({provider:socialCallback[1],...profile});res.setHeader('Set-Cookie',[socialAuth.stateCookie(socialCallback[1],'',0),firebaseAuth.cookie(created.session,created.maxAgeSeconds)]);res.writeHead(302,{Location:created.profile.onboardingComplete?'/stitch_screens/05_ai_basic_practice.html':'/stitch_screens/04_login_signup.html?onboarding=1'});res.end();}catch{res.writeHead(302,{Location:'/stitch_screens/04_login_signup.html?error=social_login_failed'});res.end();}return;
   }
   if (pathname === '/api/auth/session' && req.method === 'POST') {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Authentication 설정이 완료되지 않았습니다.'});return;}
@@ -135,6 +137,9 @@ const server = http.createServer(async (req, res) => {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Authentication 설정이 완료되지 않았습니다.'});return;}
     try{req.auth=await firebaseAuth.authenticate(req);}catch{req.auth=null;}
     if(!req.auth){sendJSON(res,401,{success:false,error:'AUTH_REQUIRED',message:'로그인이 필요합니다.'});return;}
+    if(req.auth.role==='student'&&req.auth.onboardingComplete===false&&!['/api/auth/me','/api/auth/onboarding'].includes(pathname)){
+      sendJSON(res,403,{success:false,error:'ONBOARDING_REQUIRED',message:'학번·성명 확인과 개인정보 이용 동의를 완료해 주세요.'});return;
+    }
     if(!['GET','HEAD'].includes(req.method)){
       const origin=req.headers.origin;
       const allowedOrigins=new Set([
@@ -158,6 +163,24 @@ const server = http.createServer(async (req, res) => {
 
   // 2. Current verified session.
   if (req.method === 'GET' && pathname === '/api/auth/me') { sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(req.auth)});return; }
+
+  if (req.method === 'POST' && pathname === '/api/auth/onboarding') {
+    try {
+      if(req.auth.role!=='student'){sendJSON(res,403,{success:false,error:'STUDENT_REQUIRED',message:'학생 계정에서만 가입할 수 있습니다.'});return;}
+      if(!studentRoster.students.length){sendJSON(res,503,{success:false,error:'ROSTER_NOT_CONFIGURED',message:'학생 명단이 아직 등록되지 않았습니다.'});return;}
+      const body=await parseRequestBody(req);
+      if(body.privacyConsent!==true){sendJSON(res,400,{success:false,error:'PRIVACY_CONSENT_REQUIRED',message:'개인정보 이용 동의가 필요합니다.'});return;}
+      const verified=studentRoster.verify(body.studentNumber,body.name),claimed=storageService.findUserByStudentNumber(verified.studentNumber);
+      if(claimed&&claimed.uid!==req.auth.uid){sendJSON(res,409,{success:false,error:'STUDENT_NUMBER_ALREADY_REGISTERED',message:'이미 가입에 사용된 학번입니다. 교사에게 문의해 주세요.'});return;}
+      const now=new Date().toISOString(),profile=await firebaseAuth.completeStudentProfile(req.auth,{name:verified.verifiedName,
+        schoolId:process.env.STUDENT_SCHOOL_ID||process.env.ADMIN_SCHOOL_ID||'school',grade:verified.grade,classId:verified.classId,
+        studentNumber:verified.studentNumber,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1'});
+      storageService.saveUser({...profile,studentNumber:verified.studentNumber,name:verified.verifiedName,grade:verified.grade,classId:verified.classId,
+        onboardingComplete:true,transferSlot:verified.transferSlot,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1',registeredAt:claimed?.registeredAt||now,dataOrigin:'verified'});
+      sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(profile)});
+    } catch(error){sendJSON(res,error.status||500,{success:false,error:error.code||'ONBOARDING_FAILED',message:error.status?error.message:'학생 가입 정보를 저장하지 못했습니다.'});}
+    return;
+  }
 
   // 3. 토론 논제 목록 조회: GET /api/topics
   if (req.method === 'GET' && pathname === '/api/topics') {
@@ -332,6 +355,12 @@ const server = http.createServer(async (req, res) => {
     const students = storageService.getClassStudentsStatus(schoolId, grade, classId);
     sendJSON(res, 200, { success: true, students });
     return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/teacher/registration-status') {
+    res.setHeader('Cache-Control','private, no-store');
+    const registrations=studentRoster.registrationStatus(storageService.getUsers());
+    sendJSON(res,200,{success:true,total:registrations.length,registered:registrations.filter(item=>item.registered).length,registrations});return;
   }
 
   // 8-1. 교사용 학생 배틀룸 참가 특별 예외 승인/해제: POST /api/teacher/student-override (지시서 제17조)
@@ -800,7 +829,7 @@ const server = http.createServer(async (req, res) => {
   // [STATIC FILE SERVING]
   // ==========================================
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
-  const reqUrl = pathname === '/' ? '/stitch_screens/05_ai_basic_practice.html' : pathname;
+  const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
   const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html']);
   const allowed = reqUrl === '/index.html' || ['/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||

@@ -8,10 +8,11 @@ const root = __dirname;
 let handler;
 // No real network, credentials, application storage, or AI calls are used.
 const knowledge = require('./services/knowledgeService');
+const roster={students:[{}],registrationStatus:()=>[]};
 const forbiddenService = new Proxy({}, {get(){throw new Error('Private service accessed without authentication');}});
 vm.runInNewContext(fs.readFileSync(path.join(root,'server.js'),'utf8'), {
   require: name => name === 'http' ? {createServer: fn => {handler=fn;return {listen(){}};}} :
-    name === 'fs' ? fs : name === 'path' ? path : name.includes('knowledgeService') ? knowledge : name.includes('firebaseAuth') ? {isConfigured(){return false},serverConfigured(){return false},publicConfig(){return null}} : forbiddenService,
+    name === 'fs' ? fs : name === 'path' ? path : name.includes('knowledgeService') ? knowledge : name.includes('studentRoster') ? roster : name.includes('firebaseAuth') ? {isConfigured(){return false},serverConfigured(){return false},publicConfig(){return null}} : forbiddenService,
   __dirname: root, process: {env:{},loadEnvFile(){}}, console: {log(){},warn(){}}, URLSearchParams, Buffer
 });
 function request(url, method='GET') {
