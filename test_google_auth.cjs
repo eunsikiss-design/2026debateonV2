@@ -43,3 +43,11 @@ test('teacher login uses a dedicated administrator endpoint', () => {
   assert.doesNotMatch(html, /123456789!/);
 });
 
+test('learning screens show the authenticated student identity and no demo student is submitted',()=>{
+  const shell=fs.readFileSync(path.join(root,'assets','cyber-ui.js'),'utf8');
+  const advanced=fs.readFileSync(path.join(root,'stitch_screens','06_ai_advanced_practice.html'),'utf8');
+  assert.match(shell,/성명/);assert.match(shell,/학번/);assert.match(shell,/이메일/);assert.match(shell,/계정 변경/);
+  assert.doesNotMatch(advanced,/userId:\s*["']demo_student_1/);
+  assert.doesNotMatch(advanced,/답안 구성 완성도 94% 진단됨/);
+});
+

@@ -440,7 +440,6 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: "demo_student_1",
           topicId: "topic_justice_basic_income",
           paragraphLevel: activeParagraphLevel,
           stance: "pro",
@@ -479,19 +478,15 @@
         }
       }
     } catch (e) {
-      console.warn('Advanced essay submit fallback:', e);
-      document.getElementById('completion-rate-text').textContent = "답안 구성 완성도 94% 진단됨";
-      document.getElementById('overall-level-badge').textContent = "성취수준: A+";
-      document.getElementById('rubric-claim-grade').textContent = "A+";
-      document.getElementById('rubric-claim-desc').textContent = "주장과 근거 간 논리 비약이 없으며, 인과관계가 자연스럽게 정립되어 있습니다.";
-      document.getElementById('rubric-concept-grade').textContent = "A+";
-      document.getElementById('rubric-concept-desc').textContent = "'기회비용', '재정건전성', '차등적 안심소득' 개념이 정확하게 적용되었습니다.";
-      document.getElementById('rubric-rebuttal-grade').textContent = "A";
-      document.getElementById('rubric-rebuttal-desc').innerHTML = "💡 <strong>코치 제안:</strong> \"재정적 한계와 취약계층 보호를 절충한 대안 제시가 매우 탁월합니다!\"";
-      document.getElementById('badge-title').textContent = "심화 논술 구성 뱃지";
-      document.getElementById('badge-desc').textContent = "다각적 관점과 교과 개념을 반영한 심화 논술 작성을 성공적으로 완수했습니다.";
-      document.getElementById('badge-modal').classList.remove('hidden');
-      document.getElementById('badge-modal').classList.add('flex');
+      console.warn('Advanced essay submit failed:', e);
+      document.getElementById('completion-rate-text').textContent = "분석 결과를 불러오지 못했습니다";
+      document.getElementById('overall-level-badge').textContent = "재시도 필요";
+      document.getElementById('rubric-claim-grade').textContent = "—";
+      document.getElementById('rubric-claim-desc').textContent = "서버 연결을 확인한 뒤 다시 제출해 주세요.";
+      document.getElementById('rubric-concept-grade').textContent = "—";
+      document.getElementById('rubric-concept-desc').textContent = "분석이 완료되지 않았습니다.";
+      document.getElementById('rubric-rebuttal-grade').textContent = "—";
+      document.getElementById('rubric-rebuttal-desc').textContent = "작성한 내용은 이 화면에 유지됩니다.";
     } finally {
       btnText.textContent = "AI 정밀 종합 첨삭 제출";
       btn.disabled = false;

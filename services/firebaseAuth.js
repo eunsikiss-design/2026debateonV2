@@ -126,10 +126,26 @@ async function completeStudentProfile(user, input) {
   await getFirestore(getApp()).collection('users').doc(user.uid).set(data,{merge:true});
   return {...user,...data};
 }
-async function authenticate(req) {
+async function authenticate(req, findStoredProfile) {
   const token = cookies(req.headers.cookie)[COOKIE_NAME];
   if (!token) return null;
   const decoded = await getAuth(getApp()).verifySessionCookie(token, true);
+  const stored = typeof findStoredProfile === 'function' ? findStoredProfile(decoded.uid) : null;
+  if (stored?.role === 'student' && stored.onboardingComplete === true) {
+    return {
+      uid: decoded.uid,
+      email: stored.email || decoded.email || null,
+      name: stored.name || decoded.name || null,
+      role: 'student',
+      schoolId: stored.schoolId || null,
+      grade: Number(stored.grade) || null,
+      classId: Number(stored.classId) || null,
+      studentNumber: stored.studentNumber || null,
+      authProvider: stored.authProvider || decoded.firebase?.sign_in_provider || decoded.sourceProvider || 'unknown',
+      onboardingComplete: true,
+      privacyConsentAt: stored.privacyConsentAt || null
+    };
+  }
   return profileFor(decoded);
 }
 function sameClass(user, schoolId, grade, classId) {

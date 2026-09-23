@@ -45,6 +45,8 @@ body > header {position:sticky!important;top:0!important;width:100%;padding:0!im
 .hud-brand b {color:var(--neon-cyan)}
 .hud-brand small {font:9px/1.6 var(--font-tech);letter-spacing:2px;color:var(--text-secondary);margin-top:5px}
 .hud-actions {display:flex;align-items:center;gap:8px}
+.hud-identity {display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 10px;min-width:0;padding:7px 10px;border:1px solid var(--hud-border);border-radius:var(--radius-sm);color:var(--text-secondary);font-size:10px;line-height:1.35}
+.hud-identity strong {color:var(--text-primary);font-size:11px}.hud-account-switch {min-height:30px;min-width:auto;padding:3px 7px;border:0;border-radius:6px;background:rgb(var(--rgb-cyan)/.08);color:var(--neon-cyan);font:10px var(--font-body)}
 .hud-battle,.neon-button {display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:8px 12px;border:1px solid rgb(var(--rgb-cyan)/.5);border-radius:var(--radius-sm);background:rgb(var(--rgb-cyan)/.06);color:var(--neon-cyan);font-size:12px;font-weight:700;text-decoration:none}
 .hud-battle:hover,.neon-button:hover {box-shadow:var(--glow-active);background:rgb(var(--rgb-cyan)/.1)}
 .legacy-header {display:none!important}
@@ -110,6 +112,7 @@ body[data-screen=growth] .empty-growth {margin:0 20px 20px}
 @media (max-width:599px) {
   .intro-index {display:none}
   .hud-header {padding:12px 16px}
+  .hud-header {flex-wrap:wrap}.hud-identity {order:3;width:100%}.hud-actions {margin-left:auto}
   .page-intro {padding:22px 16px 16px}
   .page-intro h1 {font-size:26px}
   main .px-margin,main .px-gutter {padding-left:16px!important;padding-right:16px!important}

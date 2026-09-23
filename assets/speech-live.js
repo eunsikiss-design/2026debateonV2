@@ -125,7 +125,7 @@
         body:JSON.stringify({ topicId:'topic_ai_judge', transcript, durationSeconds, targetDurationSeconds:targetSeconds })
       });
       const data = await response.json();
-      if (response.status === 401) throw new Error('분석 결과를 저장하려면 Google 로그인이 필요합니다.');
+      if (response.status === 401) throw new Error('분석 결과를 저장하려면 학생 계정 로그인이 필요합니다.');
       if (!response.ok) throw new Error(data.message || data.error || '스피치 분석에 실패했습니다.');
       setState('COMPLETE');
       const evaluation = data.evaluation || {};

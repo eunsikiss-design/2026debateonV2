@@ -151,7 +151,7 @@ const server = http.createServer(async (req, res) => {
   const publicReads = new Set(['/api/topics']);
   if (pathname.startsWith('/api/') && !(req.method==='GET'&&publicReads.has(pathname))) {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Authentication 설정이 완료되지 않았습니다.'});return;}
-    try{req.auth=restoreStoredStudentProfile(await firebaseAuth.authenticate(req));}catch{req.auth=null;}
+    try{req.auth=restoreStoredStudentProfile(await firebaseAuth.authenticate(req,uid=>storageService.getUser(uid)));}catch{req.auth=null;}
     if(!req.auth){sendJSON(res,401,{success:false,error:'AUTH_REQUIRED',message:'로그인이 필요합니다.'});return;}
     if(req.auth.role==='student'&&req.auth.onboardingComplete===false&&!['/api/auth/me','/api/auth/onboarding'].includes(pathname)){
       sendJSON(res,403,{success:false,error:'ONBOARDING_REQUIRED',message:'학번·성명 확인과 개인정보 이용 동의를 완료해 주세요.'});return;
