@@ -80,11 +80,14 @@ function request(url,cookie){return new Promise((resolve,reject)=>{
   Promise.resolve(handler({url,method:'GET',headers:cookie?{cookie}:{}},res)).catch(reject);
 });}
 test('HTTP sources and search use authenticated role and are never cached publicly',async()=>{
-  for(const [role,count] of [[undefined,2],['student',2],['teacher',9]]){
+  for(const url of ['/api/evidence/sources','/api/evidence/cards','/api/evidence/search?q='+encodeURIComponent('롤스'),'/api/evidence/glossary']){
+    assert.equal((await request(url)).status,401,url);
+  }
+  for(const [role,count] of [['student',2],['teacher',9]]){
     const res=await request('/api/evidence/sources',role);assert.equal(res.status,200);assert.equal(JSON.parse(res.body).sources.length,count);assert.equal(res.headers['Cache-Control'],'private, no-store');
   }
-  const res=await request('/api/evidence/search?mode=keyword&q='+encodeURIComponent('롤스'));assert.ok(JSON.parse(res.body).cards.length>0);
-  assert.equal((await request('/api/evidence/search?q='+'x'.repeat(201))).status,400);
+  const res=await request('/api/evidence/search?mode=keyword&q='+encodeURIComponent('롤스'),'student');assert.ok(JSON.parse(res.body).cards.length>0);
+  assert.equal((await request('/api/evidence/search?q='+'x'.repeat(201),'student')).status,400);
 });
 test('HTTP original files require login and protect teacher documents',async()=>{
   const student=corpus.sources.find(s=>s.audience==='student'),teacher=corpus.sources.find(s=>s.audience==='teacher');

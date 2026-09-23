@@ -130,7 +130,7 @@ const server = http.createServer(async (req, res) => {
     try{const body=await parseRequestBody(req);if(!body.idToken)throw new Error('ID token required');const created=await firebaseAuth.createSession(body.idToken);res.setHeader('Set-Cookie',firebaseAuth.cookie(created.session,created.maxAgeSeconds));sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(created.profile)});}catch{sendJSON(res,401,{success:false,error:'INVALID_ID_TOKEN',message:'로그인 정보를 확인할 수 없습니다.'});}return;
   }
   if (pathname === '/api/auth/logout' && req.method === 'POST') {res.setHeader('Set-Cookie',firebaseAuth.cookie('',0));sendJSON(res,200,{success:true});return;}
-  const publicReads = new Set(['/api/topics','/api/evidence/cards','/api/evidence/search','/api/evidence/glossary','/api/evidence/sources']);
+  const publicReads = new Set(['/api/topics']);
   if (pathname.startsWith('/api/') && !(req.method==='GET'&&publicReads.has(pathname))) {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Authentication 설정이 완료되지 않았습니다.'});return;}
     try{req.auth=await firebaseAuth.authenticate(req);}catch{req.auth=null;}

@@ -49,7 +49,7 @@ test('health explicitly describes unconnected services',async()=>{
 });
 test('extracted evidence is not claimed teacher verified',async()=>{
   assert.ok(knowledge.cards.length>0);assert.ok(knowledge.cards.every(c=>c.verificationStatus==='source_extracted'&&c.reviewStatus==='pending'));
-  const r=await request('/api/evidence/cards');assert.equal(r.status,200);
+  const r=await request('/api/evidence/cards');assert.equal(r.status,503);assert.equal(JSON.parse(r.body).error,'AUTH_NOT_CONFIGURED');
 });
 test('example contains no nonempty credential values',()=>{
   for(const line of fs.readFileSync(path.join(root,'.env.example'),'utf8').split(/\r?\n/)){
