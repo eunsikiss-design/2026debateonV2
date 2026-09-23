@@ -8,12 +8,14 @@ const teacher={uid:'teacher-real',role:'teacher'};
 const knowledgeRoot=process.env.KNOWLEDGE_ROOT?path.resolve(process.env.KNOWLEDGE_ROOT):__dirname;
 const card={cardId:'a',sourceHash:'source-v1',detail:'사회 보험은 질병이나 실업 등 사회적 위험에 대비하는 제도이다.',audience:'student',unitId:'p1',keyConcepts:['사회 보험']};
 function withTemp(fn){const root=fs.mkdtempSync(path.join(os.tmpdir(),'debateon-review-'));return Promise.resolve().then(()=>fn(root)).finally(()=>{assert.ok(path.resolve(root).startsWith(path.resolve(os.tmpdir())+path.sep+'debateon-review-'));fs.rmSync(root,{recursive:true,force:true});});}
-test('review requires teacher, original comparison, and persists identity and revision',()=>withTemp(root=>{
- const store=new EvidenceReviewStore(root),input={status:'approved',revision:0,note:'원문 대조',originalChecked:true,reviewerUid:'spoofed'};
+test('review requires teacher, original comparison, and persists corrected excerpt, identity and revision',()=>withTemp(root=>{
+ const correctedDetail='사회 보험은 질병이나 실업 같은 사회적 위험에 공동으로 대비하는 제도이다.';
+ const store=new EvidenceReviewStore(root),input={status:'approved',revision:0,note:'원문 대조',correctedDetail,originalChecked:true,reviewerUid:'spoofed'};
  assert.throws(()=>store.save(card,input,{uid:'s',role:'student'}),e=>e.status===403);
  assert.throws(()=>store.save(card,{...input,originalChecked:false},teacher),e=>e.status===400);
- assert.equal(store.save(card,input,teacher).reviewStatus,'approved');
+ const approved=store.save(card,input,teacher);assert.equal(approved.reviewStatus,'approved');assert.equal(approved.detail,correctedDetail);assert.equal(approved.extractedDetail,card.detail);
  const restored=new EvidenceReviewStore(root);assert.equal(restored.state(card).reviewerUid,teacher.uid);assert.equal(restored.data.history.length,1);
+ assert.equal(restored.decorate(card,'student').detail,correctedDetail);assert.equal(restored.decorate(card,'student').extractedDetail,undefined);
  assert.throws(()=>restored.save(card,input,teacher),e=>e.status===409);
  assert.equal(restored.state({...card,detail:card.detail+' 변경'}).status,'pending');
  assert.throws(()=>restored.save(card,{status:'rejected',revision:1,note:''},teacher),e=>e.status===400);

@@ -21,7 +21,7 @@ class SemanticSearch {
   if(!this.index||this.index.version!==1||this.index.dimensions!==384||this.index.model!==MODEL||this.index.revision!==REVISION)return fallback('INDEX_UNAVAILABLE');
   const candidates=knowledge.getEvidenceCards(null,null,options.role||'student').filter(c=>(!options.sourceId||c.sourceId===options.sourceId)&&c.reviewStatus!=='rejected');
   if(!candidates.length)return {cards:[],retrievalMode:'local-semantic-hybrid'};
-  if(candidates.some(c=>this.entries.get(c.cardId)?.fingerprint!==fingerprint(c)))return fallback('INDEX_STALE');
+  if(candidates.some(c=>this.entries.get(c.cardId)?.fingerprint!==(c.sourceFingerprint||fingerprint(c))))return fallback('INDEX_STALE');
   try{
    const vector=await this.queryVector(query);const lexical=new Map(knowledge.searchEvidence(query,{...options,limit:30}).map(c=>[c.cardId,c.retrievalScore]));
    const dot=stored=>{if(stored.length!==vector.length||stored.some(n=>!Number.isFinite(n)))throw Error('INVALID_INDEX');return stored.reduce((sum,n,i)=>sum+n*vector[i],0);};

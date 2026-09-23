@@ -13,15 +13,15 @@ async function fixture(role='teacher'){
  const fetch=async(url,options)=>{
   let data;if(url==='/api/auth/me')data={user:{role}};
   else if(url==='/api/evidence/sources')data={sources:[]};
-  else if(options?.body){const body=JSON.parse(options.body);writes.push(body);if(conflict)return {ok:false,json:async()=>({message:'다른 검수 내용이 저장됐습니다. 목록을 새로 불러오세요.'})};data={card:{reviewRevision:body.revision+1,reviewStatus:body.status}};}
-  else data={total:1,cards:[{cardId:'test-only',source:'가상 검수 자료',sourceUrl:'/test-source',detail:'가상 자료 문장',reviewStatus:'pending',reviewRevision:0}]};
+  else if(options?.body){const body=JSON.parse(options.body);writes.push(body);if(conflict)return {ok:false,json:async()=>({message:'다른 검수 내용이 저장됐습니다. 목록을 새로 불러오세요.'})};data={card:{reviewRevision:body.revision+1,reviewStatus:body.status,correctedDetail:body.correctedDetail}};}
+  else data={total:1,cards:[{cardId:'test-only',source:'가상 검수 자료',sourceUrl:'/test-source',detail:'가상 원문에서 추출한 충분히 긴 자료 문장입니다.',extractedDetail:'가상 원문에서 추출한 충분히 긴 자료 문장입니다.',correctedDetail:'가상 원문에서 추출한 충분히 긴 자료 문장입니다.',reviewStatus:'pending',reviewRevision:0}]};
   return {ok:true,json:async()=>data};
  };
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'assets/evidence-review.js'),'utf8'),{document,fetch,URLSearchParams});await settle();if(role==='teacher')assert.equal(ids['review-cards'].children.length,1,ids['review-status'].textContent);return {ids,writes,setConflict:()=>conflict=true};
 }
-test('review UI requires original check and hold reason, updates status and revision after save',async()=>{
- const f=await fixture(),panel=f.ids['review-cards'].children[0],buttons=panel.querySelectorAll('button'),check=panel.querySelectorAll('input')[0],note=panel.querySelectorAll('textarea')[0];
- await buttons[0].click();assert.equal(f.writes.length,0);check.checked=true;await buttons[0].click();assert.equal(f.writes[0].status,'approved');assert.equal(panel.children[1].textContent,'승인');
+test('review UI edits the excerpt, requires original check and hold reason, updates status and revision after save',async()=>{
+ const f=await fixture(),panel=f.ids['review-cards'].children[0],buttons=panel.querySelectorAll('button'),check=panel.querySelectorAll('input')[0],[correction,note]=panel.querySelectorAll('textarea');
+ correction.value='원문과 대조하여 바로잡은 가상 자료 문장';await buttons[0].click();assert.equal(f.writes.length,0);check.checked=true;await buttons[0].click();assert.equal(f.writes[0].status,'approved');assert.equal(f.writes[0].correctedDetail,correction.value);assert.equal(panel.children[1].textContent,'승인');
  await buttons[1].click();assert.equal(f.writes.length,1);note.value='맥락 확인 필요';await buttons[1].click();assert.equal(f.writes[1].revision,1);assert.equal(panel.children[1].textContent,'보류');
  await buttons[2].click();assert.equal(f.writes[2].revision,2);assert.equal(panel.children[1].textContent,'검수 전');
 });

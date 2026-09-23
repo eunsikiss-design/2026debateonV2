@@ -55,7 +55,7 @@ class KnowledgeService {
     if (!terms.length) return [];
     const full=compact(query), candidates=this.getEvidenceCards(null,null,role).filter(c=>!sourceId||c.sourceId===sourceId);
     const scored=candidates.map(card=>{
-      const text=this.index.get(card.cardId), heading=compact(card.title+' '+card.keyConcepts.join(' '));
+      const text=compact(card.detail), heading=compact(card.title+' '+card.keyConcepts.join(' '));
       let matched=0, score=0;
       for (const term of terms) {
         const key=compact(term), found=text.includes(key);
