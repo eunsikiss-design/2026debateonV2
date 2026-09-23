@@ -15,6 +15,11 @@ test('student signup defaults to Google and supports configured Naver and Kakao'
   assert.doesNotMatch(client, /accounts:signInWithPassword/);
 });
 
+test('social sign-in requests only the provider identity needed before roster verification', () => {
+  const social=fs.readFileSync(path.join(root,'services','socialAuth.js'),'utf8');
+  assert.doesNotMatch(social,/account_email|profile_nickname/);
+});
+
 test('Google ID token is exchanged for an HttpOnly server session', () => {
   assert.match(client, /credential\.user\.getIdToken/);
   assert.match(client, /\/api\/auth\/session/);

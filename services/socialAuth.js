@@ -46,7 +46,6 @@ function start(provider) {
   const nonce = crypto.randomBytes(24).toString('base64url');
   const state = `${nonce}.${sign(`${provider}.${nonce}`)}`;
   const params = new URLSearchParams({ response_type: 'code', client_id: process.env[item.clientId], redirect_uri: callbackUrl(provider), state });
-  if (provider === 'kakao') params.set('scope', 'profile_nickname account_email');
   return { url: `${item.authorizeUrl}?${params}`, cookie: stateCookie(provider, state) };
 }
 function verifyState(provider, state, cookieHeader) {
