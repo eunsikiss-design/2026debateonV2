@@ -28,7 +28,7 @@
       <div id="signed-account" class="account-chip"></div>
       <form id="onboarding-form" class="onboarding">
         <div class="field"><label for="student-number">학번 5자리</label><input id="student-number" name="studentNumber" inputmode="numeric" autocomplete="off" maxlength="5" pattern="[0-9]{5}" placeholder="예: 10315" required></div>
-        <div class="field"><label for="student-name">성명</label><input id="student-name" name="name" autocomplete="name" maxlength="30" placeholder="학교 명단에 등록된 이름" required></div>
+        <div class="field"><label for="student-name">성명</label><input id="student-name" name="name" autocomplete="name" maxlength="30" placeholder="학교 명단에 등록된 이름" required><small style="color:#8fa3bd;line-height:1.5">명단에서 성명이 비어 있는 전입생 학번은 현재 이름을 입력하면 됩니다.</small></div>
         <section class="privacy" aria-labelledby="privacy-title"><h2 id="privacy-title">개인정보 이용 안내</h2><p>이 서비스는 교사가 수업을 운영하고 논술·토론 학습 과정을 지도하기 위해 사용합니다. 학번·성명, 로그인 식별정보, 작성·연습·토론 기록을 교육 목적으로 처리합니다. AI 분석은 교사의 교육적 판단을 돕는 참고 자료이며 성적을 자동으로 확정하지 않습니다.</p><label class="consent"><input id="privacy-consent" name="privacyConsent" type="checkbox" required><span>위 내용을 확인했으며 교육 목적의 개인정보 이용에 동의합니다.</span></label></section>
         <button id="complete-signup-btn" class="primary" type="submit">가입 완료하고 시작하기</button>
       </form>

@@ -33,6 +33,22 @@ const PORT = parseInt(process.env.PORT, 10) || 3000;
 const ROOT = path.resolve(__dirname);
 const debateStreams = new Map();
 
+function restoreStoredStudentProfile(profile) {
+  if (!profile || profile.role !== 'student') return profile;
+  const stored = storageService.getUser(profile.uid);
+  if (!stored?.onboardingComplete) return profile;
+  return {
+    ...profile,
+    name: stored.name || profile.name,
+    schoolId: stored.schoolId || profile.schoolId,
+    grade: Number(stored.grade) || profile.grade,
+    classId: Number(stored.classId) || profile.classId,
+    studentNumber: String(stored.studentNumber || profile.studentNumber || ''),
+    onboardingComplete: true,
+    privacyConsentAt: stored.privacyConsentAt || profile.privacyConsentAt
+  };
+}
+
 function broadcastDebate(roomId, event, payload) {
   const clients = debateStreams.get(roomId);
   if (!clients) return;
@@ -125,17 +141,17 @@ const server = http.createServer(async (req, res) => {
   }
   const socialCallback = pathname.match(/^\/api\/auth\/(naver|kakao)\/callback$/);
   if (socialCallback && req.method === 'GET') {
-    try{const params=new URLSearchParams(urlParts[1]||'');const profile=await socialAuth.complete(socialCallback[1],params.get('code'),params.get('state'),req.headers.cookie);const created=await firebaseAuth.createSocialSession({provider:socialCallback[1],...profile});res.setHeader('Set-Cookie',[socialAuth.stateCookie(socialCallback[1],'',0),firebaseAuth.cookie(created.session,created.maxAgeSeconds)]);res.writeHead(302,{Location:created.profile.onboardingComplete?'/stitch_screens/05_ai_basic_practice.html':'/stitch_screens/04_login_signup.html?onboarding=1'});res.end();}catch{res.writeHead(302,{Location:'/stitch_screens/04_login_signup.html?error=social_login_failed'});res.end();}return;
+    try{const params=new URLSearchParams(urlParts[1]||'');const profile=await socialAuth.complete(socialCallback[1],params.get('code'),params.get('state'),req.headers.cookie);const created=await firebaseAuth.createSocialSession({provider:socialCallback[1],...profile}),restored=restoreStoredStudentProfile(created.profile);res.setHeader('Set-Cookie',[socialAuth.stateCookie(socialCallback[1],'',0),firebaseAuth.cookie(created.session,created.maxAgeSeconds)]);res.writeHead(302,{Location:restored.onboardingComplete?'/stitch_screens/05_ai_basic_practice.html':'/stitch_screens/04_login_signup.html?onboarding=1'});res.end();}catch{res.writeHead(302,{Location:'/stitch_screens/04_login_signup.html?error=social_login_failed'});res.end();}return;
   }
   if (pathname === '/api/auth/session' && req.method === 'POST') {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Authentication 설정이 완료되지 않았습니다.'});return;}
-    try{const body=await parseRequestBody(req);if(!body.idToken)throw new Error('ID token required');const created=await firebaseAuth.createSession(body.idToken);res.setHeader('Set-Cookie',firebaseAuth.cookie(created.session,created.maxAgeSeconds));sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(created.profile)});}catch{sendJSON(res,401,{success:false,error:'INVALID_ID_TOKEN',message:'로그인 정보를 확인할 수 없습니다.'});}return;
+    try{const body=await parseRequestBody(req);if(!body.idToken)throw new Error('ID token required');const created=await firebaseAuth.createSession(body.idToken),restored=restoreStoredStudentProfile(created.profile);res.setHeader('Set-Cookie',firebaseAuth.cookie(created.session,created.maxAgeSeconds));sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(restored)});}catch{sendJSON(res,401,{success:false,error:'INVALID_ID_TOKEN',message:'로그인 정보를 확인할 수 없습니다.'});}return;
   }
   if (pathname === '/api/auth/logout' && req.method === 'POST') {res.setHeader('Set-Cookie',firebaseAuth.cookie('',0));sendJSON(res,200,{success:true});return;}
   const publicReads = new Set(['/api/topics']);
   if (pathname.startsWith('/api/') && !(req.method==='GET'&&publicReads.has(pathname))) {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Authentication 설정이 완료되지 않았습니다.'});return;}
-    try{req.auth=await firebaseAuth.authenticate(req);}catch{req.auth=null;}
+    try{req.auth=restoreStoredStudentProfile(await firebaseAuth.authenticate(req));}catch{req.auth=null;}
     if(!req.auth){sendJSON(res,401,{success:false,error:'AUTH_REQUIRED',message:'로그인이 필요합니다.'});return;}
     if(req.auth.role==='student'&&req.auth.onboardingComplete===false&&!['/api/auth/me','/api/auth/onboarding'].includes(pathname)){
       sendJSON(res,403,{success:false,error:'ONBOARDING_REQUIRED',message:'학번·성명 확인과 개인정보 이용 동의를 완료해 주세요.'});return;
@@ -172,11 +188,13 @@ const server = http.createServer(async (req, res) => {
       if(body.privacyConsent!==true){sendJSON(res,400,{success:false,error:'PRIVACY_CONSENT_REQUIRED',message:'개인정보 이용 동의가 필요합니다.'});return;}
       const verified=studentRoster.verify(body.studentNumber,body.name),claimed=storageService.findUserByStudentNumber(verified.studentNumber);
       if(claimed&&claimed.uid!==req.auth.uid){sendJSON(res,409,{success:false,error:'STUDENT_NUMBER_ALREADY_REGISTERED',message:'이미 가입에 사용된 학번입니다. 교사에게 문의해 주세요.'});return;}
-      const now=new Date().toISOString(),profile=await firebaseAuth.completeStudentProfile(req.auth,{name:verified.verifiedName,
+      const now=new Date().toISOString(),profileData={name:verified.verifiedName,
         schoolId:process.env.STUDENT_SCHOOL_ID||process.env.ADMIN_SCHOOL_ID||'school',grade:verified.grade,classId:verified.classId,
-        studentNumber:verified.studentNumber,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1'});
+        studentNumber:verified.studentNumber,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1'},profile={...req.auth,...profileData,onboardingComplete:true};
       storageService.saveUser({...profile,studentNumber:verified.studentNumber,name:verified.verifiedName,grade:verified.grade,classId:verified.classId,
         onboardingComplete:true,transferSlot:verified.transferSlot,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1',registeredAt:claimed?.registeredAt||now,dataOrigin:'verified'});
+      try{Object.assign(profile,await firebaseAuth.completeStudentProfile(req.auth,profileData));}
+      catch(error){console.warn('Firebase student profile sync deferred:',error?.code||error?.name||'unknown');}
       sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(profile)});
     } catch(error){sendJSON(res,error.status||500,{success:false,error:error.code||'ONBOARDING_FAILED',message:error.status?error.message:'학생 가입 정보를 저장하지 못했습니다.'});}
     return;
