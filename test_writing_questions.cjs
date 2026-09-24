@@ -2,6 +2,25 @@
 const test=require('node:test'),assert=require('node:assert/strict'),path=require('node:path'),os=require('node:os');
 const {recommend}=require('./assets/writing-plan'),questions=require('./services/writingQuestions'),learning=require('./services/learningService'),coach=require('./services/geminiService');
 const user={uid:'fixture',schoolId:'fixture-school',role:'student'};
+test('Gemini retries transient failures, then uses configured question fallback with one deadline',async()=>{
+ const {generate}=require('./services/geminiTransport'),calls=[],pauses=[];let cancelled=0;
+ const response=await generate({apiKey:'fixture',modelName:'coach',fallbackModel:'light',body:{contents:[]}},
+ {fetchImpl:async(url,options)=>{calls.push({url,options});return calls.length<3?{ok:false,status:503,body:{cancel:async()=>cancelled++}}:{ok:true,json:async()=>({answer:'ok'})};},sleep:async ms=>pauses.push(ms),random:()=>0});
+ assert.equal(response.model,'light');assert.equal(response.data.answer,'ok');assert.equal(cancelled,2);
+ assert.deepEqual(pauses,[1000,2000]);assert.match(calls[0].url,/models\/coach:/);assert.match(calls[2].url,/models\/light:/);
+ assert.equal(calls[0].options.signal,calls[2].options.signal);assert.ok(!calls[0].url.includes('fixture'));
+});
+test('Gemini stops after three failures and does not retry authentication or quota errors',async()=>{
+ const {generate}=require('./services/geminiTransport');
+ for(const status of [400,401,403,429,503]){
+  let count=0;
+  await assert.rejects(generate({apiKey:'fixture',modelName:'coach',body:{}},{fetchImpl:async()=>{count++;return {ok:false,status,body:{cancel:async()=>{}}};},sleep:async()=>{},random:()=>0}),new RegExp('HTTP '+status));
+  assert.equal(count,status===503?3:1);
+ }
+ let attempts=0;
+ await assert.rejects(generate({apiKey:'fixture',modelName:'coach',body:{}},{timeoutMs:1,fetchImpl:async(url,{signal})=>{attempts++;await new Promise(resolve=>setTimeout(resolve,5));signal.throwIfAborted();}}),{name:'TimeoutError'});
+ assert.equal(attempts,1);
+});
 test('length recommendation connects characters, sentences and paragraphs',()=>{
  assert.deepEqual(recommend('chars',300),{targetChars:300,targetSentences:6,targetParagraphs:2});
  assert.deepEqual(recommend('paragraphs',1),{targetChars:200,targetSentences:4,targetParagraphs:1});
