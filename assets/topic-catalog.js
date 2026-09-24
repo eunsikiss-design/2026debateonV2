@@ -20,7 +20,17 @@
         const index=topics.findIndex(t=>t.topicId===id);if(index>=0)topics[index]=current;
 
         try{sessionStorage.setItem('debateon-topic',id);}catch{}history.replaceState(null,'',location.pathname+'?topic='+encodeURIComponent(id));copy.replaceChildren();
-        if(hub){copy.className='learning-topic-copy';copy.append(ui.node('p','토론 논제','learning-section-title'),ui.node('h3',current.question,'learning-question'),ui.node('p','논술 주제','learning-section-title'),ui.node('p',current.essayPrompt||current.question,'learning-question'),ui.node('h3','핵심 개념'),ui.node('p','단어를 누르면 쉬운 뜻풀이가 열립니다.'),ui.concepts(current.conceptDefinitions),ui.node('p',current.textbookRef,'source-note'));activities.replaceChildren(ui.node('span','다음 활동','learning-kicker'),ui.node('h2','이 주제로 무엇을 해 볼까요?'),ui.node('p','활동을 고르면 소크라AI가 질문과 도움말로 함께합니다. 내 생각을 먼저 쓰거나 말한 뒤 피드백을 받아 보세요.'),ui.activityCards(lesson));}
+        if(hub){
+          copy.className='learning-topic-copy';
+          const pair=ui.node('div',undefined,'learning-topic-pair');
+          for(const [label,value] of [['토론 논제',current.question],['논술 주제',current.essayPrompt||current.question]]){
+            const card=ui.node('section',undefined,'learning-topic-card');
+            card.append(ui.node('h3',label,'learning-section-title'),ui.node('p',value,'learning-question'));
+            pair.append(card);
+          }
+          copy.append(pair,ui.node('h3','핵심 개념'),ui.node('p','단어를 누르면 쉬운 뜻풀이가 열립니다.'),ui.concepts(current.conceptDefinitions),ui.node('p',current.textbookRef,'source-note'));
+          activities.replaceChildren(ui.node('span','다음 활동','learning-kicker'),ui.node('h2','이 주제로 무엇을 해 볼까요?'),ui.node('p','활동을 고르면 소크라AI가 질문과 도움말로 함께합니다. 내 생각을 먼저 쓰거나 말한 뒤 피드백을 받아 보세요.'),ui.activityCards(lesson));
+        }
         else{
           const nav=ui.node('div',undefined,'activity-switch'),back=ui.node('a','← 주제·활동 선택으로');back.href='13_learning_hub.html?topic='+encodeURIComponent(id);nav.append(back);for(const a of lesson.activities){if(a.id===document.body.dataset.screen)continue;const link=ui.node('a',a.title+' →');link.href=a.href+'?topic='+encodeURIComponent(id);nav.append(link);}copy.append(nav);
           let context=document.getElementById('lesson-context');if(!context){context=ui.node('div');context.id='lesson-context';const q=document.getElementById('topic-question');if(q)q.after(context);else main.querySelector('.page-intro')?.after(context);}context.replaceChildren();
