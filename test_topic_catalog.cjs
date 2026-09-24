@@ -26,3 +26,10 @@ test('all inline learning scripts parse after catalogue wiring',()=>{
   assert.ok(html.includes('/assets/topic-catalog.js'));
  }
 });
+
+test('ineligible battle modal keeps action labels readable against each background',()=>{
+ const html=fs.readFileSync('stitch_screens/09_class_debate_battle.html','utf8');
+ assert.match(html,/bg-cyan-500 text-slate-950[^>]*>\s*기초 연습실에서 뱃지 획득하기/);
+ assert.match(html,/bg-cyan-950[^>]*text-cyan-100[^>]*>\s*참관 모드로 둘러보기/);
+ assert.match(html,/bg-slate-800 text-white[^>]*>\s*나의 성장 화면으로 돌아가기/);
+});
