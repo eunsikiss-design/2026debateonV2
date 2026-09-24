@@ -220,6 +220,21 @@ const server = http.createServer(async (req, res) => {
   }
   const lessonRoute=pathname.match(/^\/api\/learning\/topics\/([a-zA-Z0-9_-]+)$/);
   const materialRoute=pathname.match(/^\/api\/teacher\/materials\/([a-zA-Z0-9_-]+)$/);
+  if(materialRoute&&req.method==='PUT'){
+    try{res.setHeader('Cache-Control','no-store');sendJSON(res,200,{success:true,...learningService.savePlan(materialRoute[1],req.auth,await parseRequestBody(req))});}
+    catch(error){sendJSON(res,error.status||500,{success:false,error:error.status?error.message:'수업 자료 저장에 실패했습니다.'});}return;
+  }
+  const draftRoute=pathname.match(/^\/api\/learning\/drafts\/([a-zA-Z0-9_-]+)$/);
+  if(draftRoute){
+    try{
+      res.setHeader('Cache-Control','no-store');learningService.topic(draftRoute[1],req.auth);
+      if(req.method==='GET'){
+        const previous=storageService.getStudentPracticeSessions(req.auth.uid).filter(s=>s.topicId===draftRoute[1]&&s.mode!=='speech_timer').slice(0,30).reverse().map(s=>({mode:s.mode==='advanced_essay'?'advanced':'basic',content:s.studentDraft?{paragraphs:s.studentDraft.split(/\n\s*\n/),writingPlan:s.writingPlan}:{claim:s.claim||'',reason:s.reason||'',rebuttal:s.rebuttal||'',stance:s.stance||'pro'},updatedAt:s.createdAt||s.submittedAt}));
+        sendJSON(res,200,{success:true,drafts:learningService.drafts.get(req.auth,draftRoute[1]),previous});
+      }else if(req.method==='PUT')sendJSON(res,200,{success:true,draft:learningService.drafts.save(req.auth,draftRoute[1],await parseRequestBody(req))});
+      else sendJSON(res,405,{error:'METHOD_NOT_ALLOWED'});
+    }catch(error){sendJSON(res,error.status||500,{success:false,error:error.status?error.message:'초안을 저장하거나 불러오지 못했습니다.'});}return;
+  }
   if ((lessonRoute||materialRoute)&&req.method==='GET') {
     try {res.setHeader('Cache-Control','no-store');sendJSON(res,200,{success:true,...(materialRoute?learningService.teacherMaterial(materialRoute[1],req.auth):{lesson:learningService.lesson(lessonRoute[1],req.auth)})});}
     catch(error){sendJSON(res,error.status||500,{success:false,error:error.code||'LEARNING_UNAVAILABLE',message:error.status?error.message:'수업 자료를 불러오지 못했습니다.'});} return;
@@ -892,7 +907,7 @@ const server = http.createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
   const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html']);
-  const allowed = reqUrl === '/index.html' || ['/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
+  const allowed = reqUrl === '/index.html' || ['/assets/speech-outline.js','/assets/learning-drafts.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||
     (/^\/assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:png|jpg|jpeg|svg|webp|ico|css|woff2?)$/.test(reqUrl));
   if (!allowed || reqUrl.includes('..') || reqUrl.includes('\\')) { res.writeHead(404); res.end('Not Found'); return; }

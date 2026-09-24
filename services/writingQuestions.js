@@ -1,15 +1,15 @@
 'use strict';
 const {normalize}=require('../assets/writing-plan');
 const schema={type:'OBJECT',properties:{paragraphs:{type:'ARRAY',items:{type:'OBJECT',properties:{index:{type:'INTEGER'},focus:{type:'STRING'},contextQuote:{type:'STRING'},questions:{type:'ARRAY',items:{type:'STRING'}},terms:{type:'ARRAY',items:{type:'STRING'}}},required:['index','focus','contextQuote','questions','terms']}}},required:['paragraphs']};
-function contextOf(lesson){return {...lesson.topic,scenario:lesson.scenario,feedbackPoints:lesson.feedbackPoints};}
+function contextOf(lesson){return {...lesson.topic,scenario:lesson.scenario,pedagogy:lesson.pedagogy,feedbackPoints:lesson.feedbackPoints};}
 function contextText(lesson){const s=lesson.scenario;return [s.story,s.complication,s.advancedComplication].filter(Boolean).join('\n');}
-function withParticle(word,closed,open){const code=word.charCodeAt(word.length-1)-0xAC00;return word+(code>=0&&code<=11171&&code%28!==0?closed:open);}
 function localQuestions(lesson,input){
   const plan=normalize(input),s=lesson.scenario,actor=s.role||'상황 속 인물',words=lesson.topic.conceptDefinitions||[];
-  const quotes=contextText(lesson).split(/(?<=[.!?])\s+/).filter(Boolean),issue=s.issue||lesson.topic.title;
+  const quotes=(s.characters?.length?s.characters.map(c=>c.context).join('\n'):contextText(lesson)).split(/(?<=[.!?])\s+/).filter(Boolean),issue=s.issue||lesson.topic.title;
   return {source:'lesson-guide',writingPlan:plan,paragraphs:Array.from({length:plan.targetParagraphs},(_,i)=>{
     const last=i===plan.targetParagraphs-1,one=plan.targetParagraphs===1,focus=one?'선택·이유·다른 의견':i===0?'문제와 나의 선택':last?'다른 의견과 결론':'개념을 적용한 근거';
-    const questions=one?[`${withParticle(actor,'은','는')} 어떤 어려움을 겪고 있나요? 어떤 선택을 지지하고 왜 그런가요?`,`${withParticle(issue,'을','를')} 판단할 때 다른 입장의 걱정에는 어떻게 답할까요?`]:i===0?[`${withParticle(actor,'이','가')} 겪는 가장 시급한 어려움은 무엇인가요?`,`${lesson.topic.question} ${actor}의 처지를 고려해 내 주장을 밝혀 보세요.`]:last?[`${issue}에 관해 반대하는 사람은 어떤 부담을 걱정할까요?`,`${actor}의 선택에 어떤 조건이나 예외를 두면 그 걱정에 답할 수 있을까요?`]:[`${actor}의 상황에서 아래 단서가 내 주장을 뒷받침하는 이유는 무엇인가요?`,words.length?`‘${words[(i-1)%words.length].term}’의 뜻을 이 상황에 어떻게 적용할 수 있나요?`:'그 이유에서 내 주장으로 이어지는 과정을 설명할 수 있나요?'];
+    const names=s.characters?.map(c=>c.name).join(' · ')||actor;
+    const questions=one?[s.choiceQuestion||lesson.topic.question,`${names}의 이해관계를 비교하여 이유와 조건을 설명해 주십시오.`]:i===0?[`${names}의 요구가 충돌하는 구체적 조건은 무엇입니까?`,s.choiceQuestion||lesson.topic.question]:last?[`‘${issue}’에 관해 자신과 다른 주장이 제기할 수 있는 가장 중요한 걱정은 무엇입니까?`,'그 걱정에 답하려면 자신의 판단에 어떤 조건이나 예외가 필요합니까?']:[`아래 단서를 ‘${issue}’에 대한 자신의 판단 근거로 어떻게 연결할 수 있습니까?`,words.length?`‘${words[(i-1)%words.length].term}’의 뜻을 서로 다른 인물의 상황에 적용해 설명해 주십시오.`:'이유와 주장을 연결하는 과정을 설명해 주십시오.'];
     return {index:i+1,focus,contextQuote:quotes[Math.min(i,quotes.length-1)]||s.story,questions,terms:words.length?[words[i%words.length].term]:[]};
   })};
 }

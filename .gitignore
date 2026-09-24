@@ -9,6 +9,7 @@ data/*
 !data/curriculum_corpus.example.json
 !data/curriculum_corpus.json
 !data/learning-materials.json
+!data/lesson-plans.json
 !data/keywords.json
 !data/keyword-definitions.json
 reports/

@@ -2,6 +2,9 @@
   const $=id=>document.getElementById(id),ui=window.LearningUI;
   const claim=$('input-claim'),reason=$('input-reason'),rebuttal=$('input-rebuttal'),status=$('basic-status');
   let attempt=1,evaluation=null,evaluatedText='',busy=false,needsRewrite=false;
+  let draftSession=null,loadedTopic=null,loadTicket=0;
+  const draftStatus=ui.node('p','','learning-status');draftStatus.setAttribute('role','status');status.before(draftStatus);
+  function saveDraft(){if(draftSession)draftSession.schedule({claim:claim.value,reason:reason.value,rebuttal:rebuttal.value,stance:stance()});}
   const stance=()=>document.querySelector('[name=stance]:checked')?.value||'pro';
   const fingerprint=()=>JSON.stringify([window.TopicCatalog.current?.topicId,stance(),claim.value,reason.value,rebuttal.value]);
   function selectedClaim(){
@@ -18,9 +21,12 @@
   }
   function saving(){ $('final-submit-badge-btn').disabled=busy||!evaluation||attempt<2||needsRewrite||fingerprint()!==evaluatedText; }
   function sync(){if(busy)return;attempt=1;evaluation=null;evaluatedText='';needsRewrite=false;$('attempt-badge').textContent='1회차 생각 쓰기';$('topic-question').textContent=window.TopicCatalog.current?.question||'주제를 선택해 주세요.';$('coach-feedback').hidden=true;$('request-eval-btn').disabled=!window.TopicCatalog.current;status.textContent='';selectedClaim();scaffold();saving();}
-  window.TopicCatalog.ready.then(sync);window.addEventListener('curriculum-topic-change',sync);
-  document.addEventListener('change',event=>{if(event.target.matches('[name=stance]')){selectedClaim();saving();}});
-  [reason,rebuttal].forEach(n=>n.addEventListener('input',()=>{if(needsRewrite&&fingerprint()!==evaluatedText)needsRewrite=false;saving();}));
+  async function restore(){const id=window.TopicCatalog.current?.topicId;if(!id||loadedTopic===id)return;loadedTopic=id;const ticket=++loadTicket;draftSession?.close();draftSession=null;reason.value='';rebuttal.value='';sync();reason.readOnly=rebuttal.readOnly=true;
+    try{const session=await window.LearningDrafts.open(id,'basic',draftStatus);if(ticket!==loadTicket){session.close();return;}draftSession=session;const d=session.content;if(d){reason.value=d.reason;rebuttal.value=d.rebuttal;const radio=document.querySelector(`[name=stance][value="${d.stance==='con'?'con':'pro'}"]`);if(radio)radio.checked=true;selectedClaim();}}
+    catch(e){draftStatus.textContent=e.message+' 새로고침 후 다시 불러오세요.';loadedTopic=null;}finally{if(ticket===loadTicket)reason.readOnly=rebuttal.readOnly=!draftSession;}}
+  window.TopicCatalog.ready.then(restore);window.addEventListener('curriculum-topic-change',restore);
+  document.addEventListener('change',event=>{if(event.target.matches('[name=stance]')){selectedClaim();saving();saveDraft();}});
+  [reason,rebuttal].forEach(n=>n.addEventListener('input',()=>{if(needsRewrite&&fingerprint()!==evaluatedText)needsRewrite=false;saving();saveDraft();}));
   function lock(value){busy=value;window.TopicCatalog.lock(value);$('request-eval-btn').disabled=value;[reason,rebuttal].forEach(n=>n.readOnly=value);document.querySelectorAll('[name=stance]').forEach(n=>n.disabled=value);$('retry-rewrite-btn').disabled=value;saving();}
   function render(result){const f=result.feedback;document.querySelector('#coach-card h2').textContent='내 글 다시 살펴보기';$('coach-feedback').hidden=false;$('feedback-praise').textContent=f.praise;$('feedback-challenge').textContent=f.nextChallenge;$('feedback-question').textContent=f.question;$('scaffold-guidance').textContent=result.scaffold.scaffoldGuidance;$('feedback-source').textContent=result.source==='gemini-api'?'소크라AI 피드백 · 교사의 최종 평가가 아닙니다.':'AI 응답을 받지 못해 기본 도움말을 보여드립니다. 글의 타당성을 판정한 결과가 아닙니다.';const refs=$('coach-references');refs.replaceChildren();for(const item of result.evidenceBasis||[]){const c=ui.node('div');c.append(ui.node('blockquote',item.quote),ui.node('p',item.explanation));refs.append(ui.details('사용한 교과 근거',c));}}
   $('request-eval-btn').addEventListener('click',async()=>{
