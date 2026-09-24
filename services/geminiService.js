@@ -157,10 +157,10 @@ ${learningContext ? "원문 발췌가 없어도 제공된 만약에 상황과 �
     const words=topic?.conceptDefinitions||[],concepts=topic?.keyConcepts||[];
     const text=[claim,reason,rebuttal].filter(Boolean).join(' '),usedConcepts=concepts.filter(c=>text.includes(c));
     const word=words.find(w=>usedConcepts.includes(w.term))||words[0];
-    const nextChallenge=word?`‘${word.term}’은 ${word.definition} 이야기의 어떤 부분이 이 뜻과 이어지는지, 그 점이 왜 내 선택의 이유가 되는지 써 보세요.`:'이야기 속 한 사람의 처지와 내가 선택한 이유를 이어서 설명해 보세요.';
-    const condition=learningContext?.scenario?.complication;
-    const question=condition?`이야기의 추가 조건(${condition})을 생각하면, 내 선택을 뒷받침하는 이유를 어떻게 설명할 수 있을까요?`:`「${topic?.question||topic?.title||'이 주제'}」에서 내가 든 이유는 왜 내 선택을 뒷받침하나요?`;
-    const praise=claim?.trim()?'내 생각을 글로 적었습니다. 아래 도움말로 이유와의 연결을 직접 살펴보세요.':'내 생각부터 짧게 적어 보세요.';
+    const role=learningContext?.scenario?.role||'상황 속 인물',mode=learningContext?.mode||'basic';
+    const nextChallenge=word?`‘${word.term}’의 뜻은 “${word.definition}”입니다. ${role}의 상황 중 어느 부분에 이 뜻이 적용되는지 자신의 말로 설명해 보세요.`:`${role}이 겪는 구체적인 일과 내 선택의 이유를 연결해 보세요.`;
+    const question=!learningContext?`「${topic?.question||topic?.title||'이 주제'}」에서 내가 든 이유는 왜 내 선택을 뒷받침하나요?`:mode==='speech'?`준비한 개요의 이유를 실제 말에서도 전했나요? ${role}이 마주한 한 장면을 넣어 다시 말해 볼까요?`:mode==='advanced'?`다른 입장의 사람이 ${role}의 선택을 걱정한다면, 마지막 문단에서 어떤 조건을 제안할 수 있을까요?`:`${role}과 다른 처지의 사람은 무엇을 걱정할까요? 그 점을 생각해도 내 이유가 이어지나요?`;
+    const praise=claim?.trim()?mode==='speech'?'말한 내용을 전사문으로 남겼습니다. 개요와 실제 말을 비교해 보세요.':mode==='advanced'?'글을 완성했습니다. 문단 사이에서 주장과 이유가 이어지는지 살펴보세요.':'내 선택을 한 문장으로 분명히 했습니다. 이제 이유와 연결해 보세요.':'내 생각부터 짧게 적어 보세요.';
     return {assessmentLimited:true,analysis:{claim:0,evidence:0,reasoning:0,concept:0,rebuttal:0},diagnosis:{strengths:[praise],weaknesses:[nextChallenge]},scaffold:{currentLevel:currentScaffoldLevel,recommendedLevel:2,scaffoldGuidance:'개념의 뜻 → 이야기의 구체적인 부분 → 내 선택의 이유 순서로 이어 보세요.'},feedback:{praise,nextChallenge,question},badgeEligible:!!(claim?.trim()&&reason?.trim()&&attemptCount>=2),usedConcepts,evidenceBasis:[]};
   }
 

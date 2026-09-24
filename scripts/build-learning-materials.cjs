@@ -66,7 +66,34 @@ replacements.unshift(
 const core=Object.keys(defs).sort((a,b)=>b.length-a.length);
 function easy(s){let kept=[];for(const term of core){s=s.split(term).join(`\uE000${kept.length}\uE001`);kept.push(term);}for(const[a,b]of replacements)s=s.replace(new RegExp('(?<![가-힣])'+a,'g'),()=>b);return s.replace(/\uE000(\d+)\uE001/g,(_,i)=>kept[i]);}
 function walk(x){if(typeof x==='string')return /^https?:/.test(x)?x:easy(x);if(Array.isArray(x))return x.map(walk);if(x&&typeof x==='object')return Object.fromEntries(Object.entries(x).map(([k,v])=>[k,walk(v)]));return x;}
-const materials=handbook.topics.map(t=>({...walk(t),scenario:{title:'만약에',story:easy(t.case),complication:extra[t.id],invitation:'나라면 어떤 선택을 할까요? 상황 속 한 사람을 떠올리며 내 생각과 이유를 써 보세요. 다른 조건을 붙이거나 새로운 방법을 제안해도 좋아요.'}}));
+const actors={
+ '1-01':'최놀림 학생','1-02':'박하준 청년','1-03':'서하린 주민','1-04':'김서연 방문객','1-05':'이준호 주민','1-06':'정다은 도서관 이용자','1-07':'최민재 학생','1-08':'한지우 학생',
+ '2-01':'김서연 학생','2-02':'박지민 학생','2-03':'이수빈 시민','2-04':'오하늘 소비자','2-05':'김도윤 유권자','2-06':'정유진 지원자','2-07':'박하준 지역 청년','2-08':'서하린 신청자',
+ '3-01':'김지후 시민','3-02':'이서윤 학생','3-03':'박민서 주민','3-04':'정하린 노동자','3-05':'최가은 소비자','3-06':'김도현 청년','3-07':'이준호 노동자','3-08':'박서연 소비자',
+ '4-01':'김하린 주민','4-02':'최민준 소비자','4-03':'박유진 학생','4-04':'이소연 시민','4-05':'김지우 학생','4-06':'정민서 주민','4-07':'박하늘 주민','4-08':'최서윤 학생',
+ '5-01':'김유진 지역 주민','5-02':'박지훈 보호자','5-03':'이하린 노동자','5-04':'최민서 학생','5-05':'김도윤 주민','5-06':'박서연 대표','5-07':'정하린 노동자','5-08':'이민준 지역 청년'
+};
+const personalStory={
+ '1-01':'최놀림 학생은 어릴 때 올린 일상 영상 때문에 지금도 놀림을 받습니다. 같은 영상에 함께 나온 김추억 학생은 소중한 추억이라며 남겨 두고 싶어 합니다. 그런데 이 영상과 별개로, 공공기관의 잘못을 보여 주는 영상에도 시민들의 얼굴이 찍혀 있습니다.'
+};
+function namePeople(text,actor){return text.replace(/한 학생은/g,actor+'은').replace(/한 청년은/g,actor+'은').replace(/한 주민은/g,actor+'은').replace(/한 친구는/g,'김추억 학생은').replace(/다른 친구는/g,'이준호 학생은').replace(/두 학생/g,'김서연 학생과 이준호 학생').replace(/청년 갑/g,'김도현 청년').replace(/\b갑의/g,'김도현 청년의');}
+function choice(topic,actor){
+ const q=topic.debateQuestion||topic.question||'';
+ const opinion=/공정한가|정당한가|심화시키는가|필요한가|할 수 있는가/.test(q);
+ const labels=opinion?['동의한다','동의하지 않는다']:['찬성한다','반대한다'];
+ const proposition=q.replace(/\?$/,'').replace(/해야 하는가$/,'해야 한다').replace(/할 수 있는가$/,'할 수 있다').replace(/공정한가$/,'공정하다').replace(/정당한가$/,'정당하다').replace(/필요한가$/,'필요하다').replace(/심화시키는가$/,'심화시킨다').replace(/인가$/,'이다');
+ const claim=label=>`내 생각에는 ${actor}의 입장에서 ${proposition}는 주장에 ${label}.`;
+ return [{value:'pro',label:labels[0],claim:claim(labels[0])},{value:'con',label:labels[1],claim:claim(labels[1])}];
+}
+const materials=handbook.topics.map(t=>{
+ const actor=actors[t.id]||'김민서 학생',question=t.debateQuestion||t.question||'';
+ const options=choice(t,actor);
+ if(t.id==='1-01'){
+  options[0].label='동의한다';options[0].claim='내 생각에는 최놀림 학생의 영상 삭제 요구를 폭넓게 받아들여야 한다.';
+  options[1].label='동의하지 않는다';options[1].claim='내 생각에는 최놀림 학생의 영상 삭제 요구를 조건 없이 받아들여서는 안 된다.';
+ }
+ return {...walk(t),scenario:{title:'만약에',role:actor,story:personalStory[t.id]||namePeople(easy(t.case),actor),complication:namePeople(extra[t.id],actor),advancedComplication:`${actor}의 선택에 영향을 받는 사람들의 의견이 서로 다릅니다. 당장 조치할 때와 충분히 확인한 뒤 조치할 때의 결과도 다릅니다. 누구에게 어떤 부담이 생기는지, 확인할 자료와 예외 기준까지 생각해 보세요.`,invitation:`${actor}의 입장에서 무엇을 선택할지 정하고 이유를 말해 보세요.`,choiceQuestion:t.id==='1-01'?'최놀림 학생의 입장에서, 오래된 영상의 삭제 요구를 폭넓게 받아들이는 데 동의하나요? 동의한다면 어떤 영상까지 지울지, 동의하지 않는다면 어떤 영상을 남길지 이유를 제시해 보세요.':`${actor}의 입장에서 ${options[0].label==='동의한다'?'동의하나요, 동의하지 않나요':'찬성하나요, 반대하나요'}? ${question} 선택의 이유와 필요한 조건을 말해 보세요.`,options}};
+});
 fs.writeFileSync(path.join(root,'data/learning-materials.json'),JSON.stringify({version:1,notice:'교사가 활용하는 수업용 예시입니다. A~E는 답안의 특징을 살펴보는 참고이며 학생의 성적을 확정하지 않습니다.',topics:materials},null,2));
 const topics=require('../data/topics.json');
 const keywords=Object.entries(defs).map(([term,definition],i)=>({id:'word_'+String(i+1).padStart(3,'0'),term,definition,topicIds:topics.filter(t=>t.keyConcepts.includes(term)).map(t=>t.topicId),source:'교과 핵심 개념 · 수업용 쉬운 뜻풀이'}));

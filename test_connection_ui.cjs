@@ -17,10 +17,11 @@ test('all learning screens complete session rendering without a false connection
   assert.match(fs.readFileSync('stitch_screens/'+page+'.html','utf8'),/cyber-ui.js/);
  }
  const r=run();await settle();
- assert.ok(r.nodes.some(n=>n.textContent==='CONNECTED'));
  assert.ok(r.nodes.some(n=>n.textContent==='학번 10325'));
- assert.ok(r.nodes.some(n=>n.textContent==='이메일 test@example.test'));
- assert.match(r.notice.textContent,/운영 서비스 연결됨/);
+ assert.ok(r.nodes.some(n=>n.textContent==='검증학생 (test@example.test)'));
+ assert.ok(r.nodes.some(n=>n.textContent==='로그아웃'));
+ assert.ok(!r.nodes.some(n=>n.textContent==='계정 변경'||n.textContent.includes('세션으로 연결되었습니다')));
+ assert.equal(r.notice.hidden,true);
  assert.equal(r.timers.length,0);
 });
 test('session failures stop after three automatic retries even when health succeeds',async()=>{

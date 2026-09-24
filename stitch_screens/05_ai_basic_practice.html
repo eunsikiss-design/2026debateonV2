@@ -3,10 +3,9 @@
 <body data-screen="basic" class="learning-shell"><header></header><main>
 <section class="learning-panel"><p class="learning-kicker">오늘의 논제</p><h2 id="topic-question">주제를 불러오고 있습니다.</h2><div id="lesson-context"></div></section>
 <div class="basic-workspace"><section aria-label="내 생각 쓰기">
-<fieldset class="basic-stance"><legend>나의 입장</legend><label><input type="radio" name="stance" value="pro" checked>찬성</label><label><input type="radio" name="stance" value="con">반대</label></fieldset>
 <p>조건을 붙이거나 새로운 대안을 제안해도 좋아요. 그 이유를 함께 써 주세요.</p>
-<div><label for="input-claim">내 생각</label><textarea id="input-claim" maxlength="3000" placeholder="이 상황에서 나는 어떤 선택을 할까요?"></textarea></div>
-<div><label for="input-reason">그렇게 생각한 이유</label><textarea id="input-reason" maxlength="5000" placeholder="개념의 뜻이 상황의 어느 부분과 이어지나요? 그 점이 왜 내 주장을 뒷받침하나요?"></textarea></div>
+<div class="basic-claim"><strong>내 생각에는</strong><p id="basic-claim-sentence" aria-live="polite"></p><input type="hidden" id="input-claim"></div>
+<div><label for="input-reason">그렇게 생각한 이유</label><div id="basic-concept-scaffold"></div><textarea id="input-reason" maxlength="5000" placeholder="개념의 뜻이 상황의 어느 부분과 이어지나요? 그 점이 왜 내 주장을 뒷받침하나요?"></textarea></div>
 <div><label for="input-rebuttal">다르게 생각해 보기 (선택)</label><textarea id="input-rebuttal" maxlength="3000" placeholder="다른 사람의 처지나 상황의 조건이 달라지면 어떨까요?"></textarea></div>
 <p id="attempt-badge">1회차 생각 쓰기</p><button id="request-eval-btn" type="button" class="basic-primary" disabled>소크라AI에게 연결 살펴보기 요청</button><p id="basic-status" role="status" class="learning-status"></p>
 </section><aside id="coach-card" class="learning-panel basic-coach" aria-live="polite"><span class="learning-kicker">소크라AI</span><h2>먼저 내 생각을 적어 보세요</h2><p>개념의 뜻을 상황에 적용하고, 이유와 주장이 어떻게 이어지는지 함께 살펴봅니다.</p><div id="coach-feedback" hidden><h3>글에서 살펴본 점</h3><p id="feedback-praise"></p><h3>한 가지 더 생각하기</h3><p id="feedback-challenge"></p><h3>소크라AI의 질문</h3><p id="feedback-question"></p><p id="scaffold-guidance"></p><p id="feedback-source" class="learning-status"></p><div id="coach-references"></div><button id="retry-rewrite-btn" type="button" class="basic-primary">질문을 참고해 다시 쓰기</button><button id="final-submit-badge-btn" type="button" class="basic-primary" style="margin-top:12px" disabled>다시 쓴 글 기록하기</button></div></aside></div>
