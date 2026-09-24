@@ -70,7 +70,7 @@ main > div:not(.page-intro) {min-width:0}
 #request-eval-btn,#submit-essay-btn,#send-msg-btn,#start-btn {background:rgb(var(--rgb-cyan)/.08)!important;color:var(--neon-cyan)!important;border:1px solid rgb(var(--rgb-cyan)/.65)!important;box-shadow:var(--glow-active)!important;background-image:none!important}
 [class*="rounded-2xl"],[class*="rounded-3xl"] {border-radius:var(--radius-panel)!important}
 [class*="shadow-"] {box-shadow:none}
-.cyber-nav {position:fixed;left:0;right:0;bottom:0;z-index:var(--z-dock);background:rgb(var(--rgb-surface)/.97);backdrop-filter:blur(18px);border-top:1px solid var(--hud-border);padding:6px 8px calc(6px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));height:calc(var(--nav-height) + env(safe-area-inset-bottom));gap:4px}
+.cyber-nav {position:fixed;left:0;right:0;bottom:0;z-index:var(--z-dock);background:rgb(var(--rgb-surface)/.97);backdrop-filter:blur(18px);border-top:1px solid var(--hud-border);padding:6px 8px calc(6px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));height:calc(var(--nav-height) + env(safe-area-inset-bottom));gap:4px}
 .cyber-nav-link {display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;color:var(--text-secondary);font-size:10px;font-weight:600;text-decoration:none;border-radius:var(--radius-sm);border:1px solid transparent}
 .cyber-nav-link[aria-current=page] {color:var(--neon-cyan);border-color:rgb(var(--rgb-cyan)/.15);background:rgb(var(--rgb-cyan)/.05)}
 .cyber-nav-link[aria-current=page]::after {content:'';height:2px;width:16px;background:var(--neon-cyan);border-radius:2px}
@@ -160,3 +160,7 @@ body[data-screen=growth] .empty-growth {margin:0 20px 20px}
 .warp-console .keyword-pill{flex-shrink:0;white-space:nowrap}
 .warp-console #send-msg-btn{flex-shrink:0}
 
+
+/* Keep essential visibility states usable if the optional Tailwind CDN is unavailable. */
+.hidden{display:none!important}
+.hud-symbol{font:24px/1 sans-serif;flex-shrink:0}

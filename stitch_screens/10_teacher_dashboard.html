@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DebateOn 교사 대시보드</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="/assets/cyber.css"><link rel="stylesheet" href="/assets/teacher.css"><script defer src="/assets/teacher-dashboard.js"></script></head>
+<title>DebateOn 교사 대시보드</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="/assets/cyber.css"><link rel="stylesheet" href="/assets/teacher.css"><script defer src="/assets/teacher-dashboard.js"></script><link rel="stylesheet" href="/assets/learning.css"><script defer src="/assets/learning-ui.js"></script><script defer src="/assets/teacher-learning.js"></script></head>
 <body data-screen="teacher" class="teacher-shell">
 <a class="cyber-skip" href="#teacher-main">본문으로 건너뛰기</a>
 <header class="teacher-header"><a class="hud-brand" href="/stitch_screens/10_teacher_dashboard.html"><span>Debate<b>On</b></span><small>TEACHER COMMAND</small></a><div class="teacher-account"><span id="teacher-identity">세션 확인 중</span><button id="logout-btn" type="button">로그아웃</button></div></header>
 <aside class="teacher-sidebar" aria-label="교사 메뉴"><strong>CLASS COMMAND</strong><nav id="teacher-nav">
-<button aria-current="page" data-panel="overview">CLASS OVERVIEW</button><button data-panel="registration">가입 현황</button><button data-panel="students">STUDENT MATRIX</button><button data-panel="assignments">ASSIGNMENTS</button><button data-panel="battle">BATTLE MONITOR</button><button data-panel="rubric">RUBRIC</button><button data-panel="evidence">EVIDENCE</button><button data-panel="growth">GROWTH</button><button data-panel="records">SCHOOL RECORD</button><button data-panel="sync">SYNC STATUS</button>
+<button aria-current="page" data-panel="overview">CLASS OVERVIEW</button><button data-panel="registration">가입 현황</button><button data-panel="students">STUDENT MATRIX</button><button data-panel="assignments">ASSIGNMENTS</button><button data-panel="battle">BATTLE MONITOR</button><button data-panel="keywords">핵심 단어</button><button data-panel="materials">40논제 수업 자료</button><button data-panel="rubric">RUBRIC</button><button data-panel="evidence">EVIDENCE</button><button data-panel="growth">GROWTH</button><button data-panel="records">SCHOOL RECORD</button><button data-panel="sync">SYNC STATUS</button>
 </nav></aside>
 <main id="teacher-main" tabindex="-1">
 <section class="teacher-intro"><div><span class="tech-label">PILOT / TEACHER SYSTEM</span><h1>학급 운영 대시보드</h1><p id="class-label">담당 학급 정보를 확인하고 있습니다.</p></div><button id="refresh-dashboard" class="neon-button" type="button">새로고침</button></section>
@@ -26,6 +26,6 @@
 <section class="teacher-panel" data-view="growth" hidden><header><span class="tech-label">GROWTH</span><h2>학급 성장 근거</h2></header><div id="growth-content" class="teacher-empty">실제 연습 기록이 누적되면 다섯 역량의 변화와 근거를 표시합니다.</div></section>
 <section class="teacher-panel" data-view="records" hidden><header><span class="tech-label">SCHOOL RECORD</span><h2>세특 작성 지원</h2><p>학생 선택과 검증된 수행 근거가 있어야 초안을 생성할 수 있습니다.</p></header><div class="teacher-empty">학생 수행 근거를 먼저 선택하세요. AI 초안은 교사 검토 없이 확정되지 않습니다.</div></section>
 <section class="teacher-panel" data-view="sync" hidden><header><span class="tech-label">SYNC STATUS</span><h2>보고용 데이터 동기화</h2></header><div class="teacher-empty" id="sync-state">Google Sheets 연결 상태를 확인하고 있습니다.</div></section>
-</main><div id="teacher-toast" class="cyber-toast" role="status" hidden></div>
+<section class="teacher-panel" data-view="keywords" hidden><h2>핵심 단어 관리</h2><p>학교의 학생들에게 적용할 단어와 뜻풀이를 편집합니다. 저장하면 이후 기초 논리·심화 논술·스피치 피드백에 자동 반영됩니다. 이미 받은 피드백은 바뀌지 않습니다.</p><div id="keyword-editor"></div></section><section class="teacher-panel" data-view="materials" hidden><h2>40논제 수업 자료</h2><p>논제별 평가 기준, 성취수준과 연계한 예시답안, 찬반 입론 및 예상 문답을 확인하세요.</p><div id="teacher-materials"></div></section></main><div id="teacher-toast" class="cyber-toast" role="status" hidden></div>
 </body></html>
 

@@ -1,59 +1,40 @@
 (() => {
-  let topics = [], current = null;
-  const drafts = new Map();
-  const fields = () => [...document.querySelectorAll('#input-claim, #input-reason, #input-rebuttal, #essay-input')];
-  let resolveReady;
-  const ready = new Promise(resolve => { resolveReady = resolve; });
-  window.TopicCatalog = { ready, lock(value) { document.querySelectorAll('#curriculum-unit, #curriculum-topic').forEach(s => { s.disabled = value; }); }, get current() { return current; }, get topics() { return topics; } };
-  document.addEventListener('DOMContentLoaded', async () => {
-    const main = document.querySelector('main');
-    const panel = document.createElement('section');
-    panel.style.cssText = 'margin:20px;padding:20px;border:1px solid #168294;border-radius:16px;background:#101923;color:#e6f5ff';
-    panel.innerHTML = '<h2>통합사회2 토론·논술 주제</h2><label>단원 <select id="curriculum-unit"></select></label> <label>주제 <select id="curriculum-topic"></select></label><p id="curriculum-question"></p><p id="curriculum-essay"></p><p id="curriculum-concepts"></p><small id="curriculum-source"></small><p><a href="05_ai_basic_practice.html">기초 연습</a> · <a href="06_ai_advanced_practice.html">심화논술</a> · <a href="08_speech_timer_training.html">스피치</a></p><p id="curriculum-status" role="status">주제를 불러오는 중입니다.</p>';
-    main.prepend(panel);
-    document.getElementById('tab-speak-btn')?.addEventListener('click', () => {
-      if (current) location.href = '08_speech_timer_training.html?topic=' + encodeURIComponent(current.topicId);
-    });
-    panel.querySelectorAll('select').forEach(s => { s.style.cssText = 'max-width:100%;padding:10px;margin:6px 0;background:#101923;color:#e6f5ff;border:1px solid #168294'; });
-    const unit = panel.querySelector('#curriculum-unit'), select = panel.querySelector('#curriculum-topic');
-    function pick(id) {
-      const next = topics.find(t => t.topicId === id);
-      if (!next) return;
-      if (current) drafts.set(current.topicId, fields().map(f => f.value));
-      current = next;
-      fields().forEach((f,i) => { f.value = drafts.get(id)?.[i] || ''; f.placeholder = f.id === 'essay-input' ? next.essayPrompt || next.question : '선택한 주제에 대한 주장과 교과 근거를 작성하세요.'; f.dispatchEvent(new Event('input')); });
-      try { sessionStorage.setItem('debateon-topic', id); } catch {}
-      document.getElementById('curriculum-question').textContent = '토론: ' + next.question;
-      document.getElementById('curriculum-essay').textContent = '논술: ' + (next.essayPrompt || next.question);
-      document.getElementById('curriculum-concepts').textContent = '핵심 개념: ' + next.keyConcepts.join(' · ');
-      document.getElementById('curriculum-source').textContent = next.textbookRef + ' · ' + (next.sourceType || '기존 확장 주제');
-      document.querySelectorAll('.intro-index').forEach(n => { n.textContent = next.unit; });
-      panel.querySelectorAll('a').forEach(a => { a.search = '?topic=' + encodeURIComponent(id); });
-      window.dispatchEvent(new CustomEvent('curriculum-topic-change', { detail: next }));
+  let topics=[],current=null,lesson=null,locked=false,resolveReady,sequence=0;
+  const ready=new Promise(r=>resolveReady=r),drafts=new Map();
+  const fields=()=>[...document.querySelectorAll('#input-claim,#input-reason,#input-rebuttal,#essay-input')];
+  window.TopicCatalog={ready,lock(value){locked=value;document.querySelectorAll('#curriculum-unit,#curriculum-topic').forEach(s=>s.disabled=value);},get current(){return current;},get lesson(){return lesson;},get topics(){return topics;}};
+  document.addEventListener('DOMContentLoaded',async()=>{
+    const ui=window.LearningUI,main=document.querySelector('main'),hub=document.body.dataset.screen==='hub';
+    const panel=ui.node('section',undefined,'learning-panel');panel.id='learning-selector';
+    panel.innerHTML='<h2>단원과 주제 선택</h2><div class="learning-selectors"><label>단원<select id="curriculum-unit"></select></label><label>주제<select id="curriculum-topic"></select></label></div><div id="learning-topic-copy"></div><p id="curriculum-status" class="learning-status" role="status"></p>';
+    if(hub)main.append(panel);else{const intro=main.querySelector('.page-intro');if(intro)intro.after(panel);else main.prepend(panel);}
+    const unit=panel.querySelector('#curriculum-unit'),select=panel.querySelector('#curriculum-topic'),copy=panel.querySelector('#learning-topic-copy'),status=panel.querySelector('#curriculum-status');
+    let activities;
+    if(hub){activities=ui.node('section',undefined,'learning-panel');activities.id='activity-choice';main.append(activities);}
+    async function pick(id){
+      const ticket=++sequence;status.textContent='선택한 주제의 수업 자료를 불러오고 있습니다.';
+      try{
+        const r=await fetch('/api/learning/topics/'+encodeURIComponent(id),{cache:'no-store'}),data=await r.json();
+        if(!r.ok)throw Error(data.error||'수업 자료를 불러오지 못했습니다.');if(ticket!==sequence)return;
+        if(current)drafts.set(current.topicId,fields().map(f=>f.value));lesson=data.lesson;current=lesson.topic;
+        const index=topics.findIndex(t=>t.topicId===id);if(index>=0)topics[index]=current;
+        fields().forEach((f,i)=>{f.value=drafts.get(id)?.[i]||'';f.placeholder=f.id==='essay-input'?current.essayPrompt:({ 'input-claim':'이 상황에서 나는 어떤 선택을 할까요?', 'input-reason':'상황의 어떤 점 때문에 그렇게 생각하나요? 개념의 뜻과 이어서 설명해 보세요.', 'input-rebuttal':'조건이나 사람의 처지가 달라지면 내 생각은 어떻게 달라질까요? (선택)' }[f.id]||'');f.dispatchEvent(new Event('input'));});
+        try{sessionStorage.setItem('debateon-topic',id);}catch{}history.replaceState(null,'',location.pathname+'?topic='+encodeURIComponent(id));copy.replaceChildren();
+        if(hub){copy.className='learning-topic-copy';copy.append(ui.node('p','토론 논제','learning-kicker'),ui.node('h3',current.question,'learning-question'),ui.node('p','논술 주제','learning-kicker'),ui.node('p',current.essayPrompt||current.question),ui.node('h3','핵심 개념'),ui.node('p','단어를 누르면 쉬운 뜻풀이가 열립니다.'),ui.concepts(current.conceptDefinitions),ui.node('p',current.textbookRef,'source-note'));activities.replaceChildren(ui.node('span','다음 활동','learning-kicker'),ui.node('h2','이 주제로 무엇을 해 볼까요?'),ui.node('p','활동을 고르면 소크라AI가 질문과 도움말로 함께합니다. 내 생각을 먼저 쓰거나 말한 뒤 피드백을 받아 보세요.'),ui.activityCards(lesson));}
+        else{
+          const nav=ui.node('div',undefined,'activity-switch'),back=ui.node('a','← 주제·활동 선택으로');back.href='13_learning_hub.html?topic='+encodeURIComponent(id);nav.append(back);for(const a of lesson.activities){if(a.id===document.body.dataset.screen)continue;const link=ui.node('a',a.title+' →');link.href=a.href+'?topic='+encodeURIComponent(id);nav.append(link);}copy.append(nav);
+          let context=document.getElementById('lesson-context');if(!context){context=ui.node('div');context.id='lesson-context';const q=document.getElementById('topic-question');if(q)q.after(context);else panel.after(context);}context.replaceChildren();
+          if(document.body.dataset.screen!=='basic')context.append(ui.node('h2',current.question),ui.node('p',current.essayPrompt||current.question));
+          context.append(ui.scenario(lesson.scenario),ui.details('개념 도움말 · 필요할 때 펼쳐 보기',ui.concepts(current.conceptDefinitions)));
+          if(document.body.dataset.screen==='basic')context.append(ui.details('이번 연습에서 살펴볼 점',ui.rubric(lesson.basicRubric)));
+          const plan=lesson.activities.find(a=>a.id===document.body.dataset.screen);if(plan)context.append(ui.node('p','소크라AI 활동 계획: '+plan.plan,'learning-status'));
+        }
+        window.dispatchEvent(new CustomEvent('curriculum-topic-change',{detail:current}));document.querySelectorAll('.cyber-nav-link').forEach(a=>{if(/05_|06_|08_|13_/.test(a.href))a.search='?topic='+encodeURIComponent(id);});status.textContent='교사가 편집한 최신 개념 도움말을 적용했습니다.';
+      }catch(e){if(ticket!==sequence)return;status.textContent=e.message+' 새로고침 후 다시 선택해 주세요.';if(current){unit.value=current.unit;fill(current.topicId);}else copy.textContent='로그인 상태와 연결을 확인해 주세요.';throw e;}
     }
-    function options(preferred) {
-      select.replaceChildren();
-      topics.filter(t => t.unit === unit.value).forEach(t => select.add(new Option(t.title, t.topicId)));
-      if ([...select.options].some(o => o.value === preferred)) select.value = preferred;
-      pick(select.value);
-    }
-    try {
-      const response = await fetch('/api/topics');
-      const data = await response.json();
-      if (!response.ok || !data.success || !data.topics?.length) throw new Error();
-      topics = data.topics;
-      [...new Set(topics.map(t => t.unit))].forEach(u => unit.add(new Option(u,u)));
-      let saved; try { saved = sessionStorage.getItem('debateon-topic'); } catch {}
-      const preferred = new URLSearchParams(location.search).get('topic') || saved;
-      const first = topics.find(t => t.topicId === preferred) || topics[0];
-      unit.value = first.unit; options(first.topicId);
-      unit.addEventListener('change', () => options());
-      select.addEventListener('change', () => pick(select.value));
-      document.getElementById('curriculum-status').textContent = '단원별 40개 주제 · 기존 추가 주제도 선택할 수 있습니다.';
-      resolveReady(topics);
-    } catch {
-      document.getElementById('curriculum-status').textContent = '주제를 불러오지 못했습니다. 새로고침해 주세요.';
-      resolveReady([]);
-    }
+    function fill(preferred){select.replaceChildren();topics.filter(t=>t.unit===unit.value).forEach(t=>select.add(new Option(t.title,t.topicId)));if(preferred)select.value=preferred;}
+    unit.addEventListener('change',()=>{if(locked)return;fill();pick(select.value).catch(()=>{});});select.addEventListener('change',()=>{if(!locked)pick(select.value).catch(()=>{});});
+    document.getElementById('tab-speak-btn')?.addEventListener('click',()=>{if(current)location.href='08_speech_timer_training.html?topic='+encodeURIComponent(current.topicId);});
+    try{const r=await fetch('/api/learning/topics',{cache:'no-store'}),data=await r.json();if(!r.ok||!data.topics?.length)throw Error(r.status===401?'로그인 후 주제를 선택할 수 있습니다.':'주제를 불러오지 못했습니다.');topics=data.topics;[...new Set(topics.map(t=>t.unit))].forEach(u=>unit.add(new Option(u,u)));let saved;try{saved=sessionStorage.getItem('debateon-topic');}catch{}const first=topics.find(t=>t.topicId===(new URLSearchParams(location.search).get('topic')||saved))||topics[0];unit.value=first.unit;fill(first.topicId);await pick(first.topicId);resolveReady(topics);}catch(e){status.textContent=e.message;resolveReady([]);}
   });
 })();

@@ -134,11 +134,11 @@
       if (!response.ok) throw new Error(data.message || data.error || '스피치 분석에 실패했습니다.');
       setState('COMPLETE');
       const evaluation = data.evaluation || {};
-      document.getElementById('speech-eval-total').textContent = evaluation.scores?.totalScore == null ? '분석 완료' : `${evaluation.scores.totalScore}점`;
+      document.getElementById('speech-eval-total').textContent = evaluation.scores?.totalScore == null ? '기본 도움말 · 평가 전' : `${evaluation.scores.totalScore}점`;
       document.getElementById('speech-eval-wpm').textContent = evaluation.metrics?.wpm == null ? '측정값 없음' : `${evaluation.metrics.wpm} WPM`;
-      document.getElementById('speech-eval-praise').textContent = evaluation.feedback?.praise || '발화를 끝까지 완료했습니다.';
-      document.getElementById('speech-eval-growth').textContent = evaluation.feedback?.growthPoint || '실제 수행 근거를 바탕으로 다음 연습 목표를 확인하세요.';
-      document.getElementById('speech-eval-challenge').textContent = evaluation.feedback?.nextSpeechChallenge || '같은 주장을 더 짧게 구조화해 보세요.';
+      document.getElementById('speech-eval-praise').textContent = evaluation.praise || evaluation.feedback?.praise || '발화를 끝까지 완료했습니다.';
+      document.getElementById('speech-eval-growth').textContent = evaluation.growthPoint || evaluation.feedback?.growthPoint || '실제 수행 근거를 바탕으로 다음 연습 목표를 확인하세요.';
+      document.getElementById('speech-eval-challenge').textContent = evaluation.nextSpeechChallenge || evaluation.feedback?.nextSpeechChallenge || '같은 주장을 더 짧게 구조화해 보세요.';
       document.getElementById('speech-eval-modal').classList.remove('hidden');
       document.getElementById('speech-eval-modal').classList.add('flex');
     } catch (error) { setState('ERROR', error.message); }

@@ -1,12 +1,13 @@
 /* Shared HUD, navigation, input states, and responsive behavior. No AI or auth simulation. */
 (() => {
   const routes = {
-    basic: '/stitch_screens/05_ai_basic_practice.html', advanced: '/stitch_screens/06_ai_advanced_practice.html',
+    hub:'/stitch_screens/13_learning_hub.html', basic: '/stitch_screens/05_ai_basic_practice.html', advanced: '/stitch_screens/06_ai_advanced_practice.html',
     speech: '/stitch_screens/08_speech_timer_training.html', growth: '/stitch_screens/07_competency_report.html',
     battle: '/stitch_screens/09_class_debate_battle.html', auth: '/stitch_screens/04_login_signup.html'
   };
   const page = document.body.dataset.screen || 'basic';
   const titles = {
+    hub:['LEARN / 통합사회2','주제에서 시작하는 나의 생각','궁금한 주제를 고르고, 나에게 맞는 활동으로 생각을 넓혀 보세요.'],
     basic: ['01 / BASIC PRACTICE','짧게 쓰고, 깊게 생각하기','나의 주장부터 시작해 보세요. 소크라 AI는 생각을 대신하지 않고 다음 질문을 건넵니다.'],
     advanced: ['02 / ADVANCED WRITING','생각을 하나의 논증으로','주장, 근거, 반론을 연결하는 세 문단. 내 언어로 논리를 완성합니다.'],
     speech: ['03 / SPEECH LAB','생각을 목소리로','주어진 시간 안에 핵심을 분명하게. 나만의 속도로 말하기를 연습하세요.'],
@@ -18,14 +19,14 @@
     const node = document.createElement(tag); if (cls) node.className = cls;
     if (text !== undefined) node.textContent = text; return node;
   }
-  function icon(name) { const node = element('span', 'material-symbols-outlined', name); node.setAttribute('aria-hidden','true'); return node; }
+  function icon(name) { const node = element('span', 'hud-symbol', ({menu_book:'▣',edit_note:'✎',article:'▤',mic:'♩',radar:'◎',swords:'⚔'})[name]||'◇'); node.setAttribute('aria-hidden','true'); return node; }
   const skip = element('a','cyber-skip','본문으로 건너뛰기'); skip.href='#main-content';document.body.prepend(skip);
   let identity;
   const notice=document.querySelector('body > aside[role=status]');
   const header = document.querySelector('body > header');
   if (header) {
     const old = element('div','legacy-header'); while(header.firstChild) old.append(header.firstChild); header.append(old);
-    const hud=element('div','hud-header'); const brand=element('a','hud-brand');brand.href=routes.basic;
+    const hud=element('div','hud-header'); const brand=element('a','hud-brand');brand.href=routes.hub;
     const word=element('span');word.append('Debate',element('b','','On'));brand.append(word,element('small','','THINK · SPEAK · CONNECT'));
     identity=element('div','hud-identity');identity.hidden=true;const actions=element('div','hud-actions'); const battle=element('a','hud-battle');battle.href=routes.battle;
     battle.append(icon('swords'),element('span','',page==='battle'?'배틀룸':'배틀룸 입장'));actions.append(battle);const evidence=element('a','hud-battle');evidence.href='/stitch_screens/11_evidence_library.html';evidence.textContent='근거 자료';actions.prepend(evidence);hud.append(brand,identity,actions);header.append(hud);
@@ -33,14 +34,14 @@
   }
   const main=document.querySelector('main'); if(!main)return;
   main.id='main-content';main.setAttribute('tabindex','-1');
-  const layout=main.querySelector(':scope > div');if(layout)layout.classList.add('content-layout');
+  const layout=page==='basic'||page==='hub'?null:main.querySelector(':scope > div');if(layout)layout.classList.add('content-layout');
   const intro=element('section','page-intro');const introText=element('div');const title=titles[page];
   introText.append(element('span','tech-label',title[0]),element('h1','',title[1]),element('p','',title[2]));
-  intro.append(introText,element('span','intro-index','UNIT 02 / 통합사회2'));main.prepend(intro);
+  intro.append(introText,element('span','intro-index','통합사회2'));main.prepend(intro);
 
   document.querySelectorAll('body > nav').forEach(n=>n.remove());
   const nav=element('nav','cyber-nav');nav.setAttribute('aria-label','학습 메뉴');
-  [['basic','edit_note','기초 연습'],['advanced','article','심화 논술'],['speech','mic','스피치'],['growth','radar','역량 분석']].forEach(([key,symbol,label])=>{
+  [['hub','menu_book','주제 선택'],['basic','edit_note','기초 연습'],['advanced','article','심화 논술'],['speech','mic','스피치'],['growth','radar','역량 분석']].forEach(([key,symbol,label])=>{
     const a=element('a','cyber-nav-link');a.href=routes[key];if(page===key)a.setAttribute('aria-current','page');a.append(icon(symbol),element('span','',label));nav.append(a);
   });document.body.append(nav);
 
@@ -77,7 +78,7 @@
     if(!input.id)input.id='cyber-input-'+index;
     if(!input.labels?.length&&!input.getAttribute('aria-label'))input.setAttribute('aria-label',input.placeholder||({ 'topic-select':'연습 논제 선택','target-student-select':'답변할 학생 선택' }[input.id])||'학습 입력');
   });
-  const nodes=[['input-claim','01 / CLAIM','주장'],['input-reason','02 / REASONING','이유와 근거'],['input-rebuttal','03 / SYNTHESIS','반론 검토와 결론']];
+  const nodes=[['input-claim','01 / CLAIM','주장'],['input-reason','02 / REASONING','이유와 근거'],['input-rebuttal','03 / THINK FURTHER','다르게 생각해 보기 (선택)']];
   nodes.forEach(([id,technical,label])=>{
     const input=document.getElementById(id);if(!input)return;input.value='';input.setAttribute('aria-label',label);
     const panel=input.parentElement;panel.classList.add('logic-module','cyber-panel');

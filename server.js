@@ -28,6 +28,7 @@ const sheetSyncQueue = require('./services/sheetSyncQueue');
 const firebaseAuth = require('./services/firebaseAuth');
 const socialAuth = require('./services/socialAuth');
 const studentRoster = require('./services/studentRoster');
+const learningService = require('./services/learningService');
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const ROOT = path.resolve(__dirname);
@@ -141,7 +142,7 @@ const server = http.createServer(async (req, res) => {
   }
   const socialCallback = pathname.match(/^\/api\/auth\/(naver|kakao)\/callback$/);
   if (socialCallback && req.method === 'GET') {
-    try{const params=new URLSearchParams(urlParts[1]||'');const profile=await socialAuth.complete(socialCallback[1],params.get('code'),params.get('state'),req.headers.cookie);const created=await firebaseAuth.createSocialSession({provider:socialCallback[1],...profile}),restored=restoreStoredStudentProfile(created.profile);res.setHeader('Set-Cookie',[socialAuth.stateCookie(socialCallback[1],'',0),firebaseAuth.cookie(created.session,created.maxAgeSeconds)]);res.writeHead(302,{Location:restored.onboardingComplete?'/stitch_screens/05_ai_basic_practice.html':'/stitch_screens/04_login_signup.html?onboarding=1'});res.end();}catch{res.writeHead(302,{Location:'/stitch_screens/04_login_signup.html?error=social_login_failed'});res.end();}return;
+    try{const params=new URLSearchParams(urlParts[1]||'');const profile=await socialAuth.complete(socialCallback[1],params.get('code'),params.get('state'),req.headers.cookie);const created=await firebaseAuth.createSocialSession({provider:socialCallback[1],...profile}),restored=restoreStoredStudentProfile(created.profile);res.setHeader('Set-Cookie',[socialAuth.stateCookie(socialCallback[1],'',0),firebaseAuth.cookie(created.session,created.maxAgeSeconds)]);res.writeHead(302,{Location:restored.onboardingComplete?'/stitch_screens/13_learning_hub.html':'/stitch_screens/04_login_signup.html?onboarding=1'});res.end();}catch{res.writeHead(302,{Location:'/stitch_screens/04_login_signup.html?error=social_login_failed'});res.end();}return;
   }
   if (pathname === '/api/auth/session' && req.method === 'POST') {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Authentication 설정이 완료되지 않았습니다.'});return;}
@@ -213,13 +214,37 @@ const server = http.createServer(async (req, res) => {
   }
 
   // 4. Gemini 기초 연습 실시간 진단: POST /api/practice/evaluate
+  if (pathname === '/api/learning/topics' && req.method === 'GET') {
+    try { res.setHeader('Cache-Control','no-store');sendJSON(res,200,{success:true,topics:learningService.list(req.auth)}); }
+    catch(error){sendJSON(res,error.status||500,{success:false,error:error.code||'LEARNING_UNAVAILABLE',message:error.status?error.message:'수업 자료를 불러오지 못했습니다.'});} return;
+  }
+  const lessonRoute=pathname.match(/^\/api\/learning\/topics\/([a-zA-Z0-9_-]+)$/);
+  const materialRoute=pathname.match(/^\/api\/teacher\/materials\/([a-zA-Z0-9_-]+)$/);
+  if ((lessonRoute||materialRoute)&&req.method==='GET') {
+    try {res.setHeader('Cache-Control','no-store');sendJSON(res,200,{success:true,...(materialRoute?learningService.teacherMaterial(materialRoute[1],req.auth):{lesson:learningService.lesson(lessonRoute[1],req.auth)})});}
+    catch(error){sendJSON(res,error.status||500,{success:false,error:error.code||'LEARNING_UNAVAILABLE',message:error.status?error.message:'수업 자료를 불러오지 못했습니다.'});} return;
+  }
+  const keywordRoute=pathname.match(/^\/api\/teacher\/keywords(?:\/([a-zA-Z0-9_-]+))?$/);
+  if(keywordRoute){
+    try {
+      res.setHeader('Cache-Control','no-store');
+      if(req.method==='GET'&&!keywordRoute[1])sendJSON(res,200,{success:true,...learningService.keywords(req.auth)});
+      else if((req.method==='POST'&&!keywordRoute[1])||(['PUT','DELETE'].includes(req.method)&&keywordRoute[1])){
+        const body=await parseRequestBody(req);sendJSON(res,200,{success:true,...learningService.mutate(req.auth,req.method,keywordRoute[1],body)});
+      }else sendJSON(res,405,{success:false,error:'METHOD_NOT_ALLOWED'});
+    } catch(error){sendJSON(res,error.status||500,{success:false,error:error.code||'KEYWORD_SAVE_FAILED',message:error.status?error.message:'단어를 저장하지 못했습니다. 기존 설정은 유지됩니다.'});} return;
+  }
+
   if (req.method === 'POST' && pathname === '/api/practice/evaluate') {
     try {
       const body = await parseRequestBody(req);
-      const { topic, stance, claim, reason, rebuttal, currentScaffoldLevel = 1, attemptCount = 1 } = body;
+      const { stance, claim, reason, rebuttal, currentScaffoldLevel = 1, attemptCount = 1 } = body;
+      const learningContext=learningService.coaching(body.topicId||body.topic?.topicId,req.auth,'basic');
+      const topic=learningContext.topic;
 
       const evaluation = await geminiService.evaluateBasicPractice({
         topic,
+        learningContext,
         stance,
         claim,
         reason,
@@ -230,7 +255,7 @@ const server = http.createServer(async (req, res) => {
 
       sendJSON(res, 200, { success: true, evaluation });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -283,7 +308,7 @@ const server = http.createServer(async (req, res) => {
         badgeAwarded: !!awardedBadge
       });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -340,7 +365,7 @@ const server = http.createServer(async (req, res) => {
         recentSessions: sessions.slice(0, 5)
       });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -416,7 +441,7 @@ const server = http.createServer(async (req, res) => {
       broadcastDebate(room.roomId, 'room', { room:{ ...room, remainingSeconds } });
       sendJSON(res, 200, { success: true, room: { ...room, id: room.roomId, remainingSeconds } });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -457,7 +482,7 @@ const server = http.createServer(async (req, res) => {
         room: { ...room, id: room.roomId, remainingSeconds }
       });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -494,7 +519,7 @@ const server = http.createServer(async (req, res) => {
         teacherObservations: req.auth.role==='teacher' ? observations : undefined
       });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -555,7 +580,7 @@ const server = http.createServer(async (req, res) => {
       broadcastDebate(roomId, 'message', { message:{ ...message, id:message.messageId, speechType:rawType } });
       sendJSON(res, 200, { success: true, message: { ...message, id: message.messageId, speechType: rawType } });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -584,7 +609,7 @@ const server = http.createServer(async (req, res) => {
       storageService.updateDebateRoom(roomId, { aiSummary: summary });
       sendJSON(res, 200, { success: true, summary });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -621,7 +646,7 @@ const server = http.createServer(async (req, res) => {
       storageService.updateDebateRoom(roomId, { status: "completed", evaluation });
       sendJSON(res, 200, { success: true, evaluation });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -697,11 +722,12 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await parseRequestBody(req);
       const { topicId, studentDraft, paragraphLevel = 3, stance = 'pro' } = body;
-      const topic = storageService.getTopic(topicId) || { title: "기본소득제 도입 타당성", keyConcepts: ["기회비용", "재정건전성", "소득재분배", "차등의 원칙"] };
-      const evaluation = await geminiService.evaluateAdvancedEssay({ topic, studentDraft, paragraphLevel, stance });
+      const learningContext=learningService.coaching(topicId,req.auth,pathname.startsWith('/api/speech/')?'speech':'advanced');
+      const topic=learningContext.topic;
+      const evaluation = await geminiService.evaluateAdvancedEssay({ topic, studentDraft, paragraphLevel, stance, learningContext });
       sendJSON(res, 200, { success: true, evaluation });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -711,8 +737,9 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await parseRequestBody(req);
       const { topicId, studentDraft, paragraphLevel = 3, stance = 'pro' } = body; const userId=req.auth.uid;
-      const topic = storageService.getTopic(topicId) || { title: "기본소득제 도입 타당성", keyConcepts: ["기회비용", "재정건전성", "소득재분배", "차등의 원칙"] };
-      const evaluation = await geminiService.evaluateAdvancedEssay({ topic, studentDraft, paragraphLevel, stance });
+      const learningContext=learningService.coaching(topicId,req.auth,pathname.startsWith('/api/speech/')?'speech':'advanced');
+      const topic=learningContext.topic;
+      const evaluation = await geminiService.evaluateAdvancedEssay({ topic, studentDraft, paragraphLevel, stance, learningContext });
 
       const session = storageService.savePracticeSession({
         userId,
@@ -740,7 +767,7 @@ const server = http.createServer(async (req, res) => {
       sheetSyncQueue.enqueue('PRACTICE_SUBMIT', { userId, type: 'advanced_essay', sessionId: session.sessionId });
       sendJSON(res, 200, { success: true, session, badge, evaluation });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -750,11 +777,12 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await parseRequestBody(req);
       const { topicId, transcript, durationSeconds = 45, targetDurationSeconds = 45 } = body;
-      const topic = storageService.getTopic(topicId) || { title: "AI 판사 도입 논란", keyConcepts: ["사법정의", "법적안정성", "공정한재판"] };
-      const evaluation = await geminiService.evaluateSpeech({ topic, transcript, durationSeconds, targetDurationSeconds });
+      const learningContext=learningService.coaching(topicId,req.auth,pathname.startsWith('/api/speech/')?'speech':'advanced');
+      const topic=learningContext.topic;
+      const evaluation = await geminiService.evaluateSpeech({ topic, transcript, durationSeconds, targetDurationSeconds, learningContext });
       sendJSON(res, 200, { success: true, evaluation });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -764,8 +792,9 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await parseRequestBody(req);
       const { topicId, transcript, durationSeconds = 45, targetDurationSeconds = 45 } = body; const userId=req.auth.uid;
-      const topic = storageService.getTopic(topicId) || { title: "AI 판사 도입 논란", keyConcepts: ["사법정의", "법적안정성", "공정한재판"] };
-      const evaluation = await geminiService.evaluateSpeech({ topic, transcript, durationSeconds, targetDurationSeconds });
+      const learningContext=learningService.coaching(topicId,req.auth,pathname.startsWith('/api/speech/')?'speech':'advanced');
+      const topic=learningContext.topic;
+      const evaluation = await geminiService.evaluateSpeech({ topic, transcript, durationSeconds, targetDurationSeconds, learningContext });
 
       const session = storageService.savePracticeSession({
         userId,
@@ -792,7 +821,7 @@ const server = http.createServer(async (req, res) => {
       sheetSyncQueue.enqueue('PRACTICE_SUBMIT', { userId, type: 'speech_timer', sessionId: session.sessionId });
       sendJSON(res, 200, { success: true, session, badge, evaluation });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -838,7 +867,7 @@ const server = http.createServer(async (req, res) => {
       sheetSyncQueue.enqueue('SCHOOL_RECORD_DRAFT', { studentId, draft });
       sendJSON(res, 200, { success: true, draft });
     } catch (err) {
-      sendJSON(res, 500, { success: false, error: err.message });
+      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
     return;
   }
@@ -848,8 +877,8 @@ const server = http.createServer(async (req, res) => {
   // ==========================================
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
-  const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html']);
-  const allowed = reqUrl === '/index.html' || ['/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
+  const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html']);
+  const allowed = reqUrl === '/index.html' || ['/assets/basic-learning.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||
     (/^\/assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:png|jpg|jpeg|svg|webp|ico|css|woff2?)$/.test(reqUrl));
   if (!allowed || reqUrl.includes('..') || reqUrl.includes('\\')) { res.writeHead(404); res.end('Not Found'); return; }

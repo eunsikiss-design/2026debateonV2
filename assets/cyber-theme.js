@@ -1,5 +1,5 @@
 // Shared compatibility aliases for existing screens. Visual tokens live in cyber.css.
-tailwind.config = {
+if (window.tailwind) window.tailwind.config = {
   "darkMode": "class",
   "theme": {
     "extend": {
