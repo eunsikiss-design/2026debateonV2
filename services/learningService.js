@@ -10,9 +10,9 @@ const BASIC_RUBRIC=[
  {name:'조건을 바꾸어 생각하기',description:'다른 사람의 처지나 상황의 조건이 달라져도 내 이유가 맞는지 생각해 보았나요?'}
 ];
 const ACTIVITIES=[
- {id:'basic',icon:'✎',title:'기초 논리 연습',description:'개념을 내 생각과 연결해 짧은 주장과 이유를 써요.',plan:'상황 읽기 → 내 생각과 이유 쓰기 → 소크라AI 질문으로 연결 살피기 → 다시 쓰기',href:'05_ai_basic_practice.html'},
- {id:'advanced',icon:'▤',title:'심화 논술',description:'여러 근거와 다른 의견을 살펴 하나의 글로 만들어요.',plan:'논술 과제 읽기 → 주장·근거·다른 의견 연결하기 → 소크라AI와 빠진 설명 찾기 → 글 다듬기',href:'06_ai_advanced_practice.html'},
- {id:'speech',icon:'🎙',title:'스피치',description:'내 생각과 이유를 듣는 사람이 이해하도록 말해요.',plan:'말할 내용 정리 → 시간에 맞춰 말하기 → 소크라AI와 개념·이유 전달 확인 → 다시 말하기',href:'08_speech_timer_training.html'}
+ {id:'basic',icon:'✎',title:'기초 논리 연습',description:'개념을 연결해 짧은 주장과 이유를 써요.',plan:'상황 읽기 → 내 생각과 이유 쓰기 → 소크라AI 질문으로 연결 살피기 → 다시 쓰기',href:'05_ai_basic_practice.html'},
+ {id:'advanced',icon:'▤',title:'심화 논술',description:'근거와 다른 의견을 연결해 글로 써요.',plan:'논술 과제 읽기 → 주장·근거·다른 의견 연결하기 → 소크라AI와 빠진 설명 찾기 → 글 다듬기',href:'06_ai_advanced_practice.html'},
+ {id:'speech',icon:'🎙',title:'스피치',description:'내 생각과 이유를 또렷하게 말해요.',plan:'말할 내용 정리 → 시간에 맞춰 말하기 → 소크라AI와 개념·이유 전달 확인 → 다시 말하기',href:'08_speech_timer_training.html'}
 ];
 function fail(message,status=400,code='INVALID_KEYWORD'){throw Object.assign(new Error(message),{status,code});}
 class LearningService {
