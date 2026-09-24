@@ -718,13 +718,22 @@ const server = http.createServer(async (req, res) => {
   // ==========================================
 
   // 19. 심화 서술형 (1~3문단) 진단 평가: POST /api/practice/advanced/evaluate
+  if(req.method==='POST'&&pathname==='/api/practice/advanced/plan'){
+    try{
+      const body=await parseRequestBody(req),lesson=learningService.lesson(body.topicId,req.auth);
+      const plan=await geminiService.planAdvancedWriting({lesson,writingPlan:body.writingPlan});
+      res.setHeader('Cache-Control','no-store');sendJSON(res,200,{success:true,plan});
+    }catch(error){sendJSON(res,error.status||500,{success:false,error:error.status?error.message:'문단별 질문을 불러오지 못했습니다. 잠시 후 다시 요청해 주세요.'});}
+    return;
+  }
+
   if (req.method === 'POST' && pathname === '/api/practice/advanced/evaluate') {
     try {
       const body = await parseRequestBody(req);
       const { topicId, studentDraft, paragraphLevel = 3, stance = 'pro' } = body;
       const learningContext=learningService.coaching(topicId,req.auth,pathname.startsWith('/api/speech/')?'speech':'advanced');
       const topic=learningContext.topic;
-      learningContext.writingPlan={targetChars:Math.min(10000,Math.max(100,Number(body.writingPlan?.targetChars)||600)),targetSentences:Math.min(100,Math.max(1,Number(body.writingPlan?.targetSentences)||12)),targetParagraphs:Math.min(5,Math.max(1,Number(paragraphLevel)||3))};
+      learningContext.writingPlan={targetChars:Math.min(4000,Math.max(50,Number(body.writingPlan?.targetChars)||600)),targetSentences:Math.min(80,Math.max(1,Number(body.writingPlan?.targetSentences)||12)),targetParagraphs:Math.min(20,Math.max(1,Number(paragraphLevel)||3))};
       const evaluation = await geminiService.evaluateAdvancedEssay({ topic, studentDraft, paragraphLevel, stance, learningContext });
       sendJSON(res, 200, { success: true, evaluation });
     } catch (err) {
@@ -740,7 +749,7 @@ const server = http.createServer(async (req, res) => {
       const { topicId, studentDraft, paragraphLevel = 3, stance = 'pro' } = body; const userId=req.auth.uid;
       const learningContext=learningService.coaching(topicId,req.auth,pathname.startsWith('/api/speech/')?'speech':'advanced');
       const topic=learningContext.topic;
-      learningContext.writingPlan={targetChars:Math.min(10000,Math.max(100,Number(body.writingPlan?.targetChars)||600)),targetSentences:Math.min(100,Math.max(1,Number(body.writingPlan?.targetSentences)||12)),targetParagraphs:Math.min(5,Math.max(1,Number(paragraphLevel)||3))};
+      learningContext.writingPlan={targetChars:Math.min(4000,Math.max(50,Number(body.writingPlan?.targetChars)||600)),targetSentences:Math.min(80,Math.max(1,Number(body.writingPlan?.targetSentences)||12)),targetParagraphs:Math.min(20,Math.max(1,Number(paragraphLevel)||3))};
       const evaluation = await geminiService.evaluateAdvancedEssay({ topic, studentDraft, paragraphLevel, stance, learningContext });
 
       const session = storageService.savePracticeSession({
@@ -749,6 +758,7 @@ const server = http.createServer(async (req, res) => {
         topicTitle: topic.title,
         mode: "advanced_essay",
         paragraphLevel,
+        writingPlan:learningContext.writingPlan,
         stance,
         studentDraft,
         evaluation,
@@ -882,7 +892,7 @@ const server = http.createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
   const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html']);
-  const allowed = reqUrl === '/index.html' || ['/assets/basic-learning.js','/assets/advanced-writing.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
+  const allowed = reqUrl === '/index.html' || ['/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||
     (/^\/assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:png|jpg|jpeg|svg|webp|ico|css|woff2?)$/.test(reqUrl));
   if (!allowed || reqUrl.includes('..') || reqUrl.includes('\\')) { res.writeHead(404); res.end('Not Found'); return; }

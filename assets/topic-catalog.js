@@ -24,8 +24,8 @@
         else{
           const nav=ui.node('div',undefined,'activity-switch'),back=ui.node('a','← 주제·활동 선택으로');back.href='13_learning_hub.html?topic='+encodeURIComponent(id);nav.append(back);for(const a of lesson.activities){if(a.id===document.body.dataset.screen)continue;const link=ui.node('a',a.title+' →');link.href=a.href+'?topic='+encodeURIComponent(id);nav.append(link);}copy.append(nav);
           let context=document.getElementById('lesson-context');if(!context){context=ui.node('div');context.id='lesson-context';const q=document.getElementById('topic-question');if(q)q.after(context);else main.querySelector('.page-intro')?.after(context);}context.replaceChildren();
-          if(document.body.dataset.screen!=='basic')context.append(ui.node('h2',current.question),ui.node('p',current.essayPrompt||current.question));
-          context.append(ui.scenario(lesson.scenario,document.body.dataset.screen==='advanced'));
+          if(document.body.dataset.screen==='advanced')context.append(ui.node('p','관련 토론 논제: '+current.question));
+          context.append(ui.scenario(document.body.dataset.screen==='speech'?(lesson.speechScenario||lesson.scenario):lesson.scenario,document.body.dataset.screen==='advanced'));
           if(document.body.dataset.screen==='basic'){
             const stance=ui.node('fieldset',undefined,'basic-stance');stance.innerHTML='<legend>나의 입장</legend><label><input type="radio" name="stance" value="pro" checked><span></span></label><label><input type="radio" name="stance" value="con"><span></span></label>';
             const options=lesson.scenario?.options||[];stance.querySelector('[value=pro]+span').textContent=options[0]?.label||'찬성';stance.querySelector('[value=con]+span').textContent=options[1]?.label||'반대';context.append(stance);

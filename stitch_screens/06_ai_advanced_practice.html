@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>심화 논술 · 디베이트온</title><link rel="stylesheet" href="/assets/cyber.css"><link rel="stylesheet" href="/assets/learning.css"><script defer src="/assets/cyber-ui.js"></script><script src="/assets/learning-ui.js"></script><script src="/assets/topic-catalog.js"></script><script defer src="/assets/advanced-writing.js"></script></head>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>심화 논술 · 디베이트온</title><link rel="stylesheet" href="/assets/cyber.css"><link rel="stylesheet" href="/assets/learning.css"><script defer src="/assets/cyber-ui.js"></script><script src="/assets/learning-ui.js"></script><script src="/assets/topic-catalog.js"></script><script src="/assets/writing-plan.js"></script><script defer src="/assets/advanced-writing.js"></script></head>
 <body data-screen="advanced" class="learning-shell"><header></header><main>
 <section class="learning-panel"><p class="learning-kicker">논술 과제</p><h2 id="topic-question">주제를 불러오고 있습니다.</h2><div id="lesson-context"></div></section>
 <section class="learning-panel guided-form" aria-label="나의 논술 계획">
-<h2>내가 쓸 글의 길이 정하기</h2><p>원하는 분량을 직접 정하세요. 세 문단을 고르면 각 질문에 쓴 글이 자동으로 한 편의 논증글이 됩니다.</p>
-<div class="guided-goals"><label>목표 글자 수<input id="target-chars" type="number" min="100" max="10000" value="600"></label><label>목표 문장 수<input id="target-sentences" type="number" min="1" max="100" value="12"></label><label>목표 문단 수<input id="target-paragraphs" type="number" min="1" max="5" value="3"></label></div>
-<p id="essay-counts" class="guided-counts" role="status"></p><div id="paragraph-prompts"></div>
+<h2>내가 쓸 글의 길이 정하기</h2><p>1문장 약 50자, 1문단 3~4문장을 기준으로 추천합니다. 한 항목을 바꾸면 나머지 분량도 맞춰집니다. 문단별 질문에 답하면 한 편의 논증글로 연결됩니다.</p>
+<div class="guided-goals"><label>목표 글자 수<input id="target-chars" type="number" min="50" max="4000" step="50" value="600"></label><label>목표 문장 수<input id="target-sentences" type="number" min="1" max="80" value="12"></label><label>목표 문단 수<input id="target-paragraphs" type="number" min="1" max="20" value="3"></label></div>
+<p id="writing-recommendation" class="learning-status" aria-live="polite"></p><p id="essay-counts" class="guided-counts" role="status"></p>
+<div class="guided-actions"><button type="button" id="generate-questions-btn">소크라AI 질문 다시 만들기</button></div><p id="question-plan-status" class="learning-status" role="status"></p><div id="paragraph-prompts"></div>
 <h2>완성된 글</h2><p>위에서 작성한 문단을 순서대로 모았습니다. 고칠 내용은 각 문단 입력창에서 수정하세요.</p><textarea id="essay-input" class="compiled-essay" readonly rows="14" aria-label="자동으로 완성된 논증글"></textarea>
 <div class="guided-actions"><button type="button" id="submit-essay-btn">소크라AI에게 글 살펴보기 요청</button></div><p id="essay-status" class="learning-status" role="status"></p>
 <section id="essay-feedback" class="guided-feedback" hidden aria-live="polite"><h2>소크라AI의 질문</h2><p id="essay-strength"></p><p id="essay-improvement"></p><p id="essay-question"></p><p class="learning-status">이 의견은 교사의 최종 평가가 아닙니다.</p></section>
