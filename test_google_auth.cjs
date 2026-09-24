@@ -7,7 +7,7 @@ const client = fs.readFileSync(path.join(root, 'assets', 'auth-client.js'), 'utf
 
 test('student signup defaults to Google and supports configured Naver and Kakao', () => {
   assert.match(client, /GoogleAuthProvider/);
-  assert.match(client, /signInWithRedirect/);
+  assert.match(client, /signInWithPopup/);
   assert.match(client, /getRedirectResult/);
   assert.match(client, /location\.hostname === '127\.0\.0\.1'/);
   assert.match(client, /\/api\/auth\/naver\/start/);

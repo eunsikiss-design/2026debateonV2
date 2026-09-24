@@ -18,7 +18,7 @@ function validate(input){
 }
 function scenario(p){
  const choiceQuestion=`${p.claimant}의 입장에서 제시한 “${p.proposition}”라는 주장에 동의합니까, 동의하지 않습니까? 자신의 판단을 밝히고, 다른 입장이 제기할 수 있는 걱정과 필요한 조건도 함께 설명해 주십시오.`;
- return {title:'만약에',role:p.claimant,claimant:p.claimant,proposition:p.proposition,characters:p.characters,
+ return {title:'만약에',setting:p.setting,role:p.claimant,claimant:p.claimant,proposition:p.proposition,characters:p.characters,
   story:p.setting+'\n\n'+p.characters.map(c=>`${c.name}: ${c.context}\n${c.position}`).join('\n\n'),
   complication:'핵심 쟁점은 '+p.issue+'입니다.',advancedComplication:p.advancedComplication,issue:p.issue,
   invitation:choiceQuestion,choiceQuestion,

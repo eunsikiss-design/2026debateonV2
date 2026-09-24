@@ -319,7 +319,9 @@ class StorageService {
     const store = this._read();
     if (!store.debateRooms) store.debateRooms = {};
 
-    const roomId = roomData.roomId || "room_gangseo_1_3";
+    const roomId = roomData.roomId || `room_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+    const existing = store.debateRooms[roomId];
+    if(existing) throw Object.assign(new Error('기존 토론 기록은 덮어쓸 수 없습니다. 새 토론을 시작하세요.'),{status:409});
     const durationMinutes = parseInt(roomData.durationMinutes || 10, 10);
     const now = new Date();
     const endsAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
@@ -353,7 +355,7 @@ class StorageService {
   getDebateRoom(roomId = "room_gangseo_1_3") {
     const store = this._read();
     if (!store.debateRooms || !store.debateRooms[roomId]) {
-      return this.initDebateRoom({ roomId });
+      throw Object.assign(new Error('교사가 아직 토론방을 열지 않았습니다.'), {status:404});
     }
     const room = store.debateRooms[roomId];
     return { ...room,
@@ -365,9 +367,15 @@ class StorageService {
     };
   }
 
+  getCurrentDebateRoom(schoolId, grade, classId) {
+    const rooms=Object.values(this._read().debateRooms||{}).filter(r=>r.schoolId===schoolId&&Number(r.grade)===Number(grade)&&Number(r.classId)===Number(classId));
+    const room=rooms.sort((a,b)=>new Date(b.startedAt)-new Date(a.startedAt))[0];
+    return room?this.getDebateRoom(room.roomId):null;
+  }
+
   joinDebateRoom(roomId, profile, teamId = 'pro') {
     const store = this._read();
-    if (!store.debateRooms?.[roomId]) this.initDebateRoom({ roomId });
+    if (!store.debateRooms?.[roomId]) throw Object.assign(new Error('교사가 아직 토론방을 열지 않았습니다.'), {status:404});
     const fresh = this._read();
     const room = fresh.debateRooms[roomId];
     if (!room.participants) room.participants = { teamA: [], teamB: [] };

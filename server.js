@@ -57,6 +57,12 @@ function broadcastDebate(roomId, event, payload) {
   for (const response of clients) response.write(frame);
 }
 
+function scopedDebateRoom(user, roomId) {
+  const room=storageService.getDebateRoom(roomId);
+  if(!firebaseAuth.sameClass(user,room.schoolId,room.grade,room.classId))throw Object.assign(new Error('담당 학급의 토론방만 이용할 수 있습니다.'),{status:403});
+  return room;
+}
+
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -446,10 +452,18 @@ const server = http.createServer(async (req, res) => {
   // [PHASE 3: REALTIME DEBATE BATTLE API ROUTES]
   // ==========================================
 
+  if(req.method==='GET'&&pathname==='/api/debate/current') {
+    const room=storageService.getCurrentDebateRoom(req.auth.schoolId,req.auth.grade,req.auth.classId);
+    sendJSON(res,200,{success:true,room});return;
+  }
   // 9. 토론방 초기화/조회: POST /api/debate/room/init
   if (req.method === 'POST' && pathname === '/api/debate/room/init') {
     try {
       const body = await parseRequestBody(req);
+      const active=storageService.getCurrentDebateRoom(req.auth.schoolId,req.auth.grade,req.auth.classId);
+      if(active?.status==='active'&&new Date(active.endsAt)>new Date()){sendJSON(res,409,{success:false,error:'진행 중인 토론을 종료한 뒤 새 토론을 시작하세요.'});return;}
+      const topic=learningService.topic(body.topicId,req.auth);
+      body.title=topic.question;body.unit=topic.unit;body.durationMinutes=Math.max(1,Math.min(60,Number(body.durationMinutes)||10));
       const room = storageService.initDebateRoom({ ...body, hostUid:req.auth.uid, schoolId:req.auth.schoolId,
         grade:req.auth.grade, classId:req.auth.classId });
       const remainingSeconds = Math.max(0, Math.floor((new Date(room.endsAt) - Date.now()) / 1000));
@@ -468,9 +482,12 @@ const server = http.createServer(async (req, res) => {
       const { roomId = "room_gangseo_1_3", teamId = "pro" } = body; const {uid:userId,schoolId,grade,classId,role}=req.auth;
 
       const user = req.auth;
+      const existingRoom=scopedDebateRoom(user,roomId);
+      if(existingRoom.status!=='active'||new Date(existingRoom.endsAt)<=new Date()){sendJSON(res,409,{success:false,error:'종료된 토론입니다. 기록만 읽을 수 있습니다.'});return;}
+      if(!['pro','con'].includes(teamId)){sendJSON(res,400,{success:false,error:'입장을 선택하세요.'});return;}
       const badges = storageService.getStudentBadges(userId);
       const settings = storageService.getClassSettings(schoolId, grade, classId);
-      const required = settings.requiredBadgeCount || 1;
+      const required = settings.requiredBadgeCount ?? 1;
       const userRole = role || user.role || 'student';
       const hasOverride = user.battleOverride === true;
 
@@ -505,7 +522,7 @@ const server = http.createServer(async (req, res) => {
   // 인증 세션 쿠키를 사용하는 단방향 실시간 토론 스트림.
   if (req.method === 'GET' && pathname.startsWith('/api/debate/stream/')) {
     const roomId = pathname.split('/').pop();
-    const room = storageService.getDebateRoom(roomId);
+    let room;try{room = scopedDebateRoom(req.auth,roomId);}catch(error){sendJSON(res,error.status||500,{success:false,error:error.message});return;}
     if (!room || !firebaseAuth.sameClass(req.auth, room.schoolId, room.grade, room.classId)) {
       sendJSON(res, 403, { success:false, error:'CLASS_SCOPE_REQUIRED' }); return;
     }
@@ -524,7 +541,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && pathname.startsWith('/api/debate/room/')) {
     try {
       const roomId = pathname.split('/').pop() || "room_gangseo_1_3";
-      const room = storageService.getDebateRoom(roomId);
+      const room = scopedDebateRoom(req.auth,roomId);
       const remainingSeconds = Math.max(0, Math.floor((new Date(room.endsAt) - Date.now()) / 1000));
       const observations = storageService.getTeacherObservations(roomId);
 
@@ -544,6 +561,13 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await parseRequestBody(req);
       const { roomId = "room_gangseo_1_3", teamId = "pro", messageType, speechType, targetUid = null, targetName = null, content, usedEvidenceIds = [] } = body; const {uid:authorUid,name:authorName,studentNumber:authorNumber}=req.auth;
+      const currentRoom=scopedDebateRoom(req.auth,roomId);
+      if(currentRoom.status!=='active'||new Date(currentRoom.endsAt)<=new Date()){sendJSON(res,409,{success:false,error:'토론이 종료되었습니다. 작성한 글은 화면에 유지됩니다.'});return;}
+      const members=[...(currentRoom.participants?.teamA||[]),...(currentRoom.participants?.teamB||[])];
+      const member=members.find(p=>p.uid===authorUid);
+      if(!member){sendJSON(res,403,{success:false,error:'입장을 선택하고 토론에 참여한 뒤 전송하세요.'});return;}
+      const target=targetUid?members.find(p=>p.uid===targetUid):null;
+      if(targetUid&&!target){sendJSON(res,400,{success:false,error:'답변할 학생을 다시 선택하세요.'});return;}
 
       const trimmed = (content || '').trim();
       if(Array.from(trimmed).length>300){sendJSON(res,400,{success:false,error:'MESSAGE_TOO_LONG'});return;}
@@ -582,11 +606,11 @@ const server = http.createServer(async (req, res) => {
         authorUid,
         authorName,
         authorNumber,
-        teamId,
+        teamId:member.team,
         messageType: normalizedType,
         speechType: rawType,
         targetUid,
-        targetName,
+        targetName:target?.name||null,
         content: trimmed,
         usedEvidenceIds,
         moderationStatus: "approved"
@@ -605,24 +629,10 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await parseRequestBody(req);
       const { roomId = "room_gangseo_1_3" } = body;
-      const room = storageService.getDebateRoom(roomId);
+      const room = scopedDebateRoom(req.auth,roomId);
 
-      // 47조 절대 준수: 승패/우열 판정 금지, 쟁점 중심 요약
-      const summary = {
-        clashPoint: "기계적 판결의 [법적 안정성 및 신속성] vs 구체적 사건 맥락의 [개별적 타당성 및 실질적 평등]",
-        teamAKeyArgument: "인간 판사의 자의적 판결을 배제하고 양형 기준을 확립하여 사법 불신 해소 (헌법 제27조)",
-        teamBKeyArgument: "사회적 약자의 생계형 범죄 등 수치화 불가 맥락 무시 위험 및 과거 판례 편향 답습",
-        proSummary: "양형 기준 확립을 통한 자의적 판결 방지 및 법적 안정성 확보",
-        conSummary: "과거 판례 데이터 편향 답습 위험 및 사회적 약자의 특수한 맥락 고려 필요",
-        unansweredQuestions: "찬성 측은 AI 알고리즘의 편향을 사전 감사할 수 있는 구체적 제도를, 반대 측은 현재 인간 판사의 양형 불일치를 해결할 대안을 추가 제시해야 합니다.",
-        proPoints: ["양형 기준 확립을 통한 자의적 판결 방지", "법적 안정성 및 신속한 재판권 보장"],
-        conPoints: ["과거 데이터 편향 답습 위험", "생계형 범죄 등 수치화하기 힘든 인간적 맥락 반영 한계"],
-        socraticChallenge: "찬성 측은 알고리즘 편향에 대한 검증책을, 반대 측은 인간 판사의 양형 불일치 개선 대안을 제시해 보세요.",
-        updatedAt: new Date().toISOString()
-      };
-
-      storageService.updateDebateRoom(roomId, { aiSummary: summary });
-      sendJSON(res, 200, { success: true, summary });
+      // A live model-backed summary is not available yet. Never return a canned verdict.
+      sendJSON(res, 503, { success: false, code: 'DEBATE_SUMMARY_NOT_READY', error: 'AI 쟁점 요약은 준비 중입니다. 실제 발언 기록을 확인해 주세요.' });
     } catch (err) {
       sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
@@ -634,7 +644,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await parseRequestBody(req);
       const { roomId = "room_gangseo_1_3" } = body;
-      const room = storageService.getDebateRoom(roomId);
+      const room = scopedDebateRoom(req.auth,roomId);
 
       const verifiedMessages = (room.messages || []).filter(message => message.dataOrigin === 'verified');
       const byTeam = teamId => verifiedMessages.filter(message => message.teamId === teamId);
@@ -659,6 +669,7 @@ const server = http.createServer(async (req, res) => {
       };
 
       storageService.updateDebateRoom(roomId, { status: "completed", evaluation });
+      broadcastDebate(roomId,'room',{room:{...room,status:'completed',evaluation}});
       sendJSON(res, 200, { success: true, evaluation });
     } catch (err) {
       sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
@@ -670,7 +681,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pathname === '/api/teacher/debate-note') {
     try {
       const body = await parseRequestBody(req);
-      const obs = storageService.addTeacherObservation(body);
+      scopedDebateRoom(req.auth,body.roomId);
+      const obs = storageService.addTeacherObservation({...body, teacherUid:req.auth.uid});
       sheetSyncQueue.enqueue('TEACHER_OBSERVATION', obs);
       sendJSON(res, 200, { success: true, observation: obs });
     } catch (err) {
@@ -906,7 +918,7 @@ const server = http.createServer(async (req, res) => {
   // ==========================================
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
-  const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html']);
+  const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html','14_user_guide.html']);
   const allowed = reqUrl === '/index.html' || ['/assets/speech-outline.js','/assets/learning-drafts.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||
     (/^\/assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:png|jpg|jpeg|svg|webp|ico|css|woff2?)$/.test(reqUrl));

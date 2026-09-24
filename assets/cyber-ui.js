@@ -19,7 +19,7 @@
     const node = document.createElement(tag); if (cls) node.className = cls;
     if (text !== undefined) node.textContent = text; return node;
   }
-  function icon(name) { const node = element('span', 'hud-symbol', ({menu_book:'▣',edit_note:'✎',article:'▤',mic:'♩',radar:'◎',swords:'⚔'})[name]||'◇'); node.setAttribute('aria-hidden','true'); return node; }
+  function icon(name) { const node = element('img', 'app-icon hud-symbol');node.src='/assets/icons/'+({menu_book:'book-open',edit_note:'notebook-pen',article:'file-text',mic:'mic',radar:'radar',swords:'swords'}[name]||'circle-help')+'.svg';node.alt='';node.width=24;node.height=24;return node; }
   const skip = element('a','cyber-skip','본문으로 건너뛰기'); skip.href='#main-content';document.body.prepend(skip);
   let identity;
   const notice=document.querySelector('body > aside[role=status]');
@@ -32,9 +32,10 @@
     battle.append(icon('swords'),element('span','',page==='battle'?'배틀룸':'배틀룸 입장'));actions.append(battle);const evidence=element('a','hud-battle');evidence.href='/stitch_screens/11_evidence_library.html';evidence.textContent='근거 자료';actions.prepend(evidence);hud.append(brand,identity,actions);header.append(hud);
     if(notice) {notice.removeAttribute('style');notice.className='preview-notice';notice.textContent='서비스 연결 상태를 확인하고 있습니다.';header.after(notice);}
   }
+  const help=element('a','hud-help','사용 안내');help.href='/stitch_screens/14_user_guide.html';document.querySelector('.hud-actions')?.append(help);
   const main=document.querySelector('main'); if(!main)return;
   main.id='main-content';main.setAttribute('tabindex','-1');
-  const layout=page==='basic'||page==='hub'?null:main.querySelector(':scope > div');if(layout)layout.classList.add('content-layout');
+  const layout=['basic','hub','battle','guide'].includes(page)?null:main.querySelector(':scope > div');if(layout)layout.classList.add('content-layout');
   const intro=element('section','page-intro');const introText=element('div');const title=titles[page];
   introText.append(element('span','tech-label',title[0]),element('h1','',title[1]),element('p','',title[2]));
   intro.append(introText,element('span','intro-index','통합사회2'));main.prepend(intro);
@@ -105,7 +106,7 @@
   if(page==='speech') {
     const ring=document.getElementById('timer-digits');if(ring){const display=ring.closest('.relative');if(display){const waveform=element('div','waveform-hud');waveform.setAttribute('aria-label','마이크 미연결 · 장식용 파형');for(let i=0;i<25;i++)waveform.append(element('i'));display.after(waveform);}}
   }
-  if(page==='battle') {
+  if(page==='battle'&&!document.querySelector('.battle-workspace')) {
     const dock=document.querySelector('body > aside:not([role=status])');if(dock){dock.classList.add('warp-console');dock.prepend(element('div','tech-label','WARP CONSOLE / 내 논증 작성'));}
     const input=document.getElementById('argumentInput');if(input){input.maxLength=300;input.setAttribute('aria-label','토론 발언 작성, 최대 300자');}
     const oracle=element('section','cyber-panel oracle-panel');const text=element('div');text.append(element('span','tech-label','SOCRA AI ORACLE'),element('p','','사용 — / 3 · 세션 연결 전 · 질문과 근거 방향 안내'));
