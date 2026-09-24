@@ -1,5 +1,815 @@
 [
   {
+    "topicId": "curriculum_1_01",
+    "title": "잊힐 권리",
+    "unit": "통합사회2 Ⅰ. 인권 보장과 헌법",
+    "chapter": "잊힐 권리",
+    "question": "청소년이 과거에 온라인에 올린 개인정보의 삭제 요구를 폭넓게 보장해야 하는가?",
+    "essayPrompt": "잊힐 권리와 알 권리가 충돌하는 사례를 분석하고 삭제 허용 기준을 제안하라.",
+    "background": "잊힐 권리와 알 권리가 충돌하는 사례를 분석하고 삭제 허용 기준을 제안하라.",
+    "keyConcepts": [
+      "개인정보",
+      "인격권",
+      "알 권리"
+    ],
+    "textbookRef": "미래엔 통합사회2 16쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1NjkYIaksQLX_mTHRpnprdOsttPzgJ-Df/view",
+    "curriculumId": "1-01",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_1_02",
+    "title": "주거권 보장",
+    "unit": "통합사회2 Ⅰ. 인권 보장과 헌법",
+    "chapter": "주거권 보장",
+    "question": "청년 주거 문제 해결을 위해 공공 임대 주택 공급을 확대해야 하는가?",
+    "essayPrompt": "주거 문제를 개인의 경제적 문제와 사회적 인권 문제라는 두 관점에서 분석하고 정책을 제안하라.",
+    "background": "주거 문제를 개인의 경제적 문제와 사회적 인권 문제라는 두 관점에서 분석하고 정책을 제안하라.",
+    "keyConcepts": [
+      "주거권",
+      "사회권"
+    ],
+    "textbookRef": "미래엔 통합사회2 14, 17쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1NjkYIaksQLX_mTHRpnprdOsttPzgJ-Df/view",
+    "curriculumId": "1-02",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_1_03",
+    "title": "환경권과 자유",
+    "unit": "통합사회2 Ⅰ. 인권 보장과 헌법",
+    "chapter": "환경권과 자유",
+    "question": "미세먼지 저감을 위해 개인의 차량 운행을 제한할 수 있는가?",
+    "essayPrompt": "환경권과 개인의 자유 사이의 갈등을 분석하고 권리 제한의 범위와 보완책을 논증하라.",
+    "background": "환경권과 개인의 자유 사이의 갈등을 분석하고 권리 제한의 범위와 보완책을 논증하라.",
+    "keyConcepts": [
+      "환경권",
+      "기본권"
+    ],
+    "textbookRef": "미래엔 통합사회2 14–15, 20–23쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1NjkYIaksQLX_mTHRpnprdOsttPzgJ-Df/view",
+    "curriculumId": "1-03",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_1_04",
+    "title": "안전권과 책임",
+    "unit": "통합사회2 Ⅰ. 인권 보장과 헌법",
+    "chapter": "안전권과 책임",
+    "question": "안전사고 예방에서 개인의 주의보다 국가의 제도적 책임을 우선 강화해야 하는가?",
+    "essayPrompt": "안전사고 사례를 선정해 국가·기업·시민의 책임을 구분하고 예방 정책을 설계하라.",
+    "background": "안전사고 사례를 선정해 국가·기업·시민의 책임을 구분하고 예방 정책을 설계하라.",
+    "keyConcepts": [
+      "안전권",
+      "공공성"
+    ],
+    "textbookRef": "미래엔 통합사회2 15, 18–19쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1NjkYIaksQLX_mTHRpnprdOsttPzgJ-Df/view",
+    "curriculumId": "1-04",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_1_05",
+    "title": "시민불복종",
+    "unit": "통합사회2 Ⅰ. 인권 보장과 헌법",
+    "chapter": "시민불복종",
+    "question": "인권을 침해하는 법에 대한 비폭력 시민불복종은 정당화될 수 있는가?",
+    "essayPrompt": "시민불복종과 일반적인 법 위반을 구분하고 정당화 조건을 사례에 적용하라.",
+    "background": "시민불복종과 일반적인 법 위반을 구분하고 정당화 조건을 사례에 적용하라.",
+    "keyConcepts": [
+      "시민 참여",
+      "공익",
+      "비폭력"
+    ],
+    "textbookRef": "미래엔 통합사회2 24–27쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1NjkYIaksQLX_mTHRpnprdOsttPzgJ-Df/view",
+    "curriculumId": "1-05",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_1_06",
+    "title": "소수자 차별과 접근성",
+    "unit": "통합사회2 Ⅰ. 인권 보장과 헌법",
+    "chapter": "소수자 차별과 접근성",
+    "question": "공공시설의 접근성 개선을 예산 배분의 우선 과제로 삼아야 하는가?",
+    "essayPrompt": "일상에서 다수에게 편리한 제도가 소수자에게 장벽이 되는 사례를 분석하고 개선안을 제시하라.",
+    "background": "일상에서 다수에게 편리한 제도가 소수자에게 장벽이 되는 사례를 분석하고 개선안을 제시하라.",
+    "keyConcepts": [
+      "사회적 소수자",
+      "인권 감수성"
+    ],
+    "textbookRef": "미래엔 통합사회2 28–29쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1NjkYIaksQLX_mTHRpnprdOsttPzgJ-Df/view",
+    "curriculumId": "1-06",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_1_07",
+    "title": "청소년 노동권",
+    "unit": "통합사회2 Ⅰ. 인권 보장과 헌법",
+    "chapter": "청소년 노동권",
+    "question": "청소년 노동권 보호를 위해 사업주의 정보 제공과 근로 감독을 강화해야 하는가?",
+    "essayPrompt": "청소년 근로 사례의 권리 침해를 분석하고 예방·구제 방안을 제시하라.",
+    "background": "청소년 근로 사례의 권리 침해를 분석하고 예방·구제 방안을 제시하라.",
+    "keyConcepts": [
+      "노동권",
+      "근로 계약"
+    ],
+    "textbookRef": "미래엔 통합사회2 30–31쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1NjkYIaksQLX_mTHRpnprdOsttPzgJ-Df/view",
+    "curriculumId": "1-07",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_1_08",
+    "title": "아동 노동과 기업 책임",
+    "unit": "통합사회2 Ⅰ. 인권 보장과 헌법",
+    "chapter": "아동 노동과 기업 책임",
+    "question": "아동 노동을 이용한 상품의 유통을 제한해야 하는가?",
+    "essayPrompt": "아동 노동 금지만으로 빈곤을 해결할 수 있는지 평가하고 교육·생계 지원을 결합한 대책을 제시하라.",
+    "background": "아동 노동 금지만으로 빈곤을 해결할 수 있는지 평가하고 교육·생계 지원을 결합한 대책을 제시하라.",
+    "keyConcepts": [
+      "아동 인권",
+      "빈곤",
+      "국제 협력"
+    ],
+    "textbookRef": "미래엔 통합사회2 32–35쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1NjkYIaksQLX_mTHRpnprdOsttPzgJ-Df/view",
+    "curriculumId": "1-08",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_2_01",
+    "title": "능력주의의 공정성",
+    "unit": "통합사회2 Ⅱ. 사회 정의와 불평등",
+    "chapter": "능력주의의 공정성",
+    "question": "능력과 성과에 따른 보상은 공정한가?",
+    "essayPrompt": "개인의 노력, 타고난 재능, 가정환경이 성취에 미치는 영향을 구분하고 정당한 분배 기준을 논증하라.",
+    "background": "개인의 노력, 타고난 재능, 가정환경이 성취에 미치는 영향을 구분하고 정당한 분배 기준을 논증하라.",
+    "keyConcepts": [
+      "능력",
+      "업적",
+      "필요"
+    ],
+    "textbookRef": "미래엔 통합사회2 42–44쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1y8UGDBDco5IBeVhxSCLV1PEa1vnomVj8/view",
+    "curriculumId": "2-01",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_2_02",
+    "title": "촉법소년 기준 연령",
+    "unit": "통합사회2 Ⅱ. 사회 정의와 불평등",
+    "chapter": "촉법소년 기준 연령",
+    "question": "형사 처벌 대상이 되는 소년의 기준 연령을 낮춰야 하는가?",
+    "essayPrompt": "응보와 예방 관점에서 연령 하향 주장을 비교하고 피해자 보호와 재범 방지를 함께 고려한 대안을 제시하라.",
+    "background": "응보와 예방 관점에서 연령 하향 주장을 비교하고 피해자 보호와 재범 방지를 함께 고려한 대안을 제시하라.",
+    "keyConcepts": [
+      "교정적 정의",
+      "응보",
+      "예방"
+    ],
+    "textbookRef": "미래엔 통합사회2 45–47쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1y8UGDBDco5IBeVhxSCLV1PEa1vnomVj8/view",
+    "curriculumId": "2-02",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_2_03",
+    "title": "사형과 교정적 정의",
+    "unit": "통합사회2 Ⅱ. 사회 정의와 불평등",
+    "chapter": "사형과 교정적 정의",
+    "question": "사형 제도는 교정적 정의 실현에 필요한가?",
+    "essayPrompt": "처벌의 목적에 관한 관점을 비교하여 사형 제도의 정당성과 한계를 논증하라.",
+    "background": "처벌의 목적에 관한 관점을 비교하여 사형 제도의 정당성과 한계를 논증하라.",
+    "keyConcepts": [
+      "칸트",
+      "벤담",
+      "베카리아"
+    ],
+    "textbookRef": "미래엔 통합사회2 45–46쪽",
+    "sourceType": "타 출판사 활동 보완",
+    "sourceUrl": "https://drive.google.com/file/d/1y8UGDBDco5IBeVhxSCLV1PEa1vnomVj8/view",
+    "curriculumId": "2-03",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_2_04",
+    "title": "초과 이윤 과세",
+    "unit": "통합사회2 Ⅱ. 사회 정의와 불평등",
+    "chapter": "초과 이윤 과세",
+    "question": "사회적 위기 속에서 발생한 기업의 초과 이윤에 추가 과세해야 하는가?",
+    "essayPrompt": "개인의 재산권과 공동체의 부담 분담을 검토하고 초과 이윤 과세의 정당화 조건을 제시하라.",
+    "background": "개인의 재산권과 공동체의 부담 분담을 검토하고 초과 이윤 과세의 정당화 조건을 제시하라.",
+    "keyConcepts": [
+      "자유주의",
+      "공동체주의"
+    ],
+    "textbookRef": "미래엔 통합사회2 48–51쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1y8UGDBDco5IBeVhxSCLV1PEa1vnomVj8/view",
+    "curriculumId": "2-04",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_2_05",
+    "title": "의무 투표제",
+    "unit": "통합사회2 Ⅱ. 사회 정의와 불평등",
+    "chapter": "의무 투표제",
+    "question": "투표를 시민의 법적 의무로 정해야 하는가?",
+    "essayPrompt": "정치 참여의 자유와 공동체 구성원의 책임을 비교하고 의무 투표제의 장단점을 평가하라.",
+    "background": "정치 참여의 자유와 공동체 구성원의 책임을 비교하고 의무 투표제의 장단점을 평가하라.",
+    "keyConcepts": [
+      "권리",
+      "의무",
+      "공동선"
+    ],
+    "textbookRef": "미래엔 통합사회2 48–53쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1y8UGDBDco5IBeVhxSCLV1PEa1vnomVj8/view",
+    "curriculumId": "2-05",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_2_06",
+    "title": "적극적 평등 실현 조치",
+    "unit": "통합사회2 Ⅱ. 사회 정의와 불평등",
+    "chapter": "적극적 평등 실현 조치",
+    "question": "사회적 불리함을 겪어 온 집단에 입학·채용 기회를 우대해야 하는가?",
+    "essayPrompt": "적극적 평등 실현 조치의 필요성과 역차별 비판을 비교하고 적용 대상·기간·종료 조건을 제안하라.",
+    "background": "적극적 평등 실현 조치의 필요성과 역차별 비판을 비교하고 적용 대상·기간·종료 조건을 제안하라.",
+    "keyConcepts": [
+      "기회 평등",
+      "실질적 평등"
+    ],
+    "textbookRef": "미래엔 통합사회2 59–61쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1y8UGDBDco5IBeVhxSCLV1PEa1vnomVj8/view",
+    "curriculumId": "2-06",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_2_07",
+    "title": "공간 불평등과 지역 정책",
+    "unit": "통합사회2 Ⅱ. 사회 정의와 불평등",
+    "chapter": "공간 불평등과 지역 정책",
+    "question": "지역 격차 완화를 위해 공공기관의 지방 이전을 확대해야 하는가?",
+    "essayPrompt": "의료·교육·일자리의 공간 불평등을 분석하고 공공기관 이전의 효과와 한계를 평가하라.",
+    "background": "의료·교육·일자리의 공간 불평등을 분석하고 공공기관 이전의 효과와 한계를 평가하라.",
+    "keyConcepts": [
+      "공간 불평등",
+      "균형 발전"
+    ],
+    "textbookRef": "미래엔 통합사회2 54–57, 60쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1y8UGDBDco5IBeVhxSCLV1PEa1vnomVj8/view",
+    "curriculumId": "2-07",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_2_08",
+    "title": "복지와 분배 기준",
+    "unit": "통합사회2 Ⅱ. 사회 정의와 불평등",
+    "chapter": "복지와 분배 기준",
+    "question": "한정된 복지 재원은 필요가 큰 계층에 우선 배분해야 하는가?",
+    "essayPrompt": "사회 보험·공공 부조·사회 서비스의 차이를 바탕으로 복지의 보편성과 선별성 사이의 기준을 논증하라.",
+    "background": "사회 보험·공공 부조·사회 서비스의 차이를 바탕으로 복지의 보편성과 선별성 사이의 기준을 논증하라.",
+    "keyConcepts": [
+      "필요",
+      "사회 복지",
+      "재분배"
+    ],
+    "textbookRef": "미래엔 통합사회2 44, 58–59쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1y8UGDBDco5IBeVhxSCLV1PEa1vnomVj8/view",
+    "curriculumId": "2-08",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_3_01",
+    "title": "시장과 정부",
+    "unit": "통합사회2 Ⅲ. 시장경제와 지속가능발전",
+    "chapter": "시장과 정부",
+    "question": "경제 위기에는 정부의 시장 개입을 확대해야 하는가?",
+    "essayPrompt": "자본주의의 변화 과정에서 시장과 정부의 역할이 달라진 이유를 분석하고 바람직한 역할 분담을 제시하라.",
+    "background": "자본주의의 변화 과정에서 시장과 정부의 역할이 달라진 이유를 분석하고 바람직한 역할 분담을 제시하라.",
+    "keyConcepts": [
+      "시장 실패",
+      "정부 실패"
+    ],
+    "textbookRef": "미래엔 통합사회2 68–73쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1TuA3pmq6bGJCxsvyyCrHRl6ytaAmDrme/view",
+    "curriculumId": "3-01",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_3_02",
+    "title": "비만세와 외부 효과",
+    "unit": "통합사회2 Ⅲ. 시장경제와 지속가능발전",
+    "chapter": "비만세와 외부 효과",
+    "question": "설탕 함량이 높은 음료 등에 세금을 부과해야 하는가?",
+    "essayPrompt": "개인의 소비가 사회적 비용을 발생시키는 과정을 설명하고 과세의 효과와 부담을 평가하라.",
+    "background": "개인의 소비가 사회적 비용을 발생시키는 과정을 설명하고 과세의 효과와 부담을 평가하라.",
+    "keyConcepts": [
+      "외부 효과",
+      "합리적 선택"
+    ],
+    "textbookRef": "미래엔 통합사회2 74–77쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1TuA3pmq6bGJCxsvyyCrHRl6ytaAmDrme/view",
+    "curriculumId": "3-02",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_3_03",
+    "title": "공공재 공급",
+    "unit": "통합사회2 Ⅲ. 시장경제와 지속가능발전",
+    "chapter": "공공재 공급",
+    "question": "공공재 공급 비용은 자발적 기부보다 조세로 부담해야 하는가?",
+    "essayPrompt": "공공재의 특성과 무임승차 문제를 설명하고 시장과 정부의 역할을 논증하라.",
+    "background": "공공재의 특성과 무임승차 문제를 설명하고 시장과 정부의 역할을 논증하라.",
+    "keyConcepts": [
+      "공공재",
+      "무임승차"
+    ],
+    "textbookRef": "미래엔 통합사회2 76–79쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1TuA3pmq6bGJCxsvyyCrHRl6ytaAmDrme/view",
+    "curriculumId": "3-03",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_3_04",
+    "title": "연결되지 않을 권리",
+    "unit": "통합사회2 Ⅲ. 시장경제와 지속가능발전",
+    "chapter": "연결되지 않을 권리",
+    "question": "퇴근 후 업무 연락에 응답하지 않을 권리를 법으로 보장해야 하는가?",
+    "essayPrompt": "노동자의 휴식과 기업의 업무 필요가 충돌할 때 적용할 기준과 예외를 제안하라.",
+    "background": "노동자의 휴식과 기업의 업무 필요가 충돌할 때 적용할 기준과 예외를 제안하라.",
+    "keyConcepts": [
+      "노동권",
+      "시장 참여자의 책임"
+    ],
+    "textbookRef": "미래엔 통합사회2 80–81쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1TuA3pmq6bGJCxsvyyCrHRl6ytaAmDrme/view",
+    "curriculumId": "3-04",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_3_05",
+    "title": "패스트 패션",
+    "unit": "통합사회2 Ⅲ. 시장경제와 지속가능발전",
+    "chapter": "패스트 패션",
+    "question": "저렴하고 유행에 맞는 패스트 패션을 구매하는 선택은 정당한가?",
+    "essayPrompt": "소비의 편익과 환경·노동에 미치는 영향을 비교하고 지속가능한 의류 소비 방안을 제안하라.",
+    "background": "소비의 편익과 환경·노동에 미치는 영향을 비교하고 지속가능한 의류 소비 방안을 제안하라.",
+    "keyConcepts": [
+      "윤리적 소비",
+      "지속가능발전"
+    ],
+    "textbookRef": "미래엔 통합사회2 82–83쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1TuA3pmq6bGJCxsvyyCrHRl6ytaAmDrme/view",
+    "curriculumId": "3-05",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_3_06",
+    "title": "금융 의사 결정",
+    "unit": "통합사회2 Ⅲ. 시장경제와 지속가능발전",
+    "chapter": "금융 의사 결정",
+    "question": "청년기의 자산 관리에서는 수익성보다 안전성을 우선해야 하는가?",
+    "essayPrompt": "소득·지출·생애 목표가 주어진 가상 인물의 금융 생활을 설계하고 안전성·수익성·유동성의 균형을 설명하라.",
+    "background": "소득·지출·생애 목표가 주어진 가상 인물의 금융 생활을 설계하고 안전성·수익성·유동성의 균형을 설명하라.",
+    "keyConcepts": [
+      "금융 자산",
+      "생애 주기"
+    ],
+    "textbookRef": "미래엔 통합사회2 84–89쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1TuA3pmq6bGJCxsvyyCrHRl6ytaAmDrme/view",
+    "curriculumId": "3-06",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_3_07",
+    "title": "국제무역과 불평등",
+    "unit": "통합사회2 Ⅲ. 시장경제와 지속가능발전",
+    "chapter": "국제무역과 불평등",
+    "question": "국제무역 확대는 경제적 불평등을 심화시키는가?",
+    "essayPrompt": "비교 우위에 따른 무역 이익과 국가·집단 간 이익 배분 문제를 함께 분석하라.",
+    "background": "비교 우위에 따른 무역 이익과 국가·집단 간 이익 배분 문제를 함께 분석하라.",
+    "keyConcepts": [
+      "비교 우위",
+      "국제 분업"
+    ],
+    "textbookRef": "미래엔 통합사회2 90–95쪽",
+    "sourceType": "타 출판사 활동 보완",
+    "sourceUrl": "https://drive.google.com/file/d/1TuA3pmq6bGJCxsvyyCrHRl6ytaAmDrme/view",
+    "curriculumId": "3-07",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_3_08",
+    "title": "공정 무역과 가격",
+    "unit": "통합사회2 Ⅲ. 시장경제와 지속가능발전",
+    "chapter": "공정 무역과 가격",
+    "question": "생산자에게 공정한 몫을 보장하기 위해 더 높은 가격을 지불해야 하는가?",
+    "essayPrompt": "바나나 무역의 참여자별 역할과 위험을 분석하고 공정한 가격·분배 원칙을 제시하라.",
+    "background": "바나나 무역의 참여자별 역할과 위험을 분석하고 공정한 가격·분배 원칙을 제시하라.",
+    "keyConcepts": [
+      "공정 무역",
+      "윤리적 소비"
+    ],
+    "textbookRef": "미래엔 통합사회2 92–97쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1TuA3pmq6bGJCxsvyyCrHRl6ytaAmDrme/view",
+    "curriculumId": "3-08",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_4_01",
+    "title": "지역화 전략",
+    "unit": "통합사회2 Ⅳ. 세계화와 평화",
+    "chapter": "지역화 전략",
+    "question": "지역 발전을 위해 고유 문화를 관광 상품으로 적극 활용해야 하는가?",
+    "essayPrompt": "지역 브랜드·장소 마케팅이 지역 경제와 문화 보전에 미치는 영향을 분석하고 실행 방안을 제시하라.",
+    "background": "지역 브랜드·장소 마케팅이 지역 경제와 문화 보전에 미치는 영향을 분석하고 실행 방안을 제시하라.",
+    "keyConcepts": [
+      "세계화",
+      "지역화"
+    ],
+    "textbookRef": "미래엔 통합사회2 102–105쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1ucI6dDu2iyf6gtYF1rl2lSWJYjBO2E6Q/view",
+    "curriculumId": "4-01",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_4_02",
+    "title": "스마트폰과 공급망 책임",
+    "unit": "통합사회2 Ⅳ. 세계화와 평화",
+    "chapter": "스마트폰과 공급망 책임",
+    "question": "다국적 기업은 해외 원료 조달 과정의 인권·환경 문제까지 책임져야 하는가?",
+    "essayPrompt": "스마트폰 생산 과정의 세계적 연결 구조를 분석하고 기업·정부·소비자의 책임을 제시하라.",
+    "background": "스마트폰 생산 과정의 세계적 연결 구조를 분석하고 기업·정부·소비자의 책임을 제시하라.",
+    "keyConcepts": [
+      "다국적 기업",
+      "빈부 격차"
+    ],
+    "textbookRef": "미래엔 통합사회2 104, 106–109쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1ucI6dDu2iyf6gtYF1rl2lSWJYjBO2E6Q/view",
+    "curriculumId": "4-02",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_4_03",
+    "title": "문화의 획일화",
+    "unit": "통합사회2 Ⅳ. 세계화와 평화",
+    "chapter": "문화의 획일화",
+    "question": "소수 언어와 지역 문화를 보전하기 위해 공적 지원을 확대해야 하는가?",
+    "essayPrompt": "세계화가 문화 다양성에 미치는 양면적 영향을 설명하고 보전 정책을 설계하라.",
+    "background": "세계화가 문화 다양성에 미치는 양면적 영향을 설명하고 보전 정책을 설계하라.",
+    "keyConcepts": [
+      "문화 다양성",
+      "획일화"
+    ],
+    "textbookRef": "미래엔 통합사회2 107–108쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1ucI6dDu2iyf6gtYF1rl2lSWJYjBO2E6Q/view",
+    "curriculumId": "4-03",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_4_04",
+    "title": "보편 윤리와 특수 윤리",
+    "unit": "통합사회2 Ⅳ. 세계화와 평화",
+    "chapter": "보편 윤리와 특수 윤리",
+    "question": "문화적 전통이 보편적 인권과 충돌할 때 그 관행을 제한해야 하는가?",
+    "essayPrompt": "문화 존중과 인권 보장을 함께 실현할 판단 기준을 사례에 적용하라.",
+    "background": "문화 존중과 인권 보장을 함께 실현할 판단 기준을 사례에 적용하라.",
+    "keyConcepts": [
+      "보편 윤리",
+      "특수 윤리"
+    ],
+    "textbookRef": "미래엔 통합사회2 107–108쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1ucI6dDu2iyf6gtYF1rl2lSWJYjBO2E6Q/view",
+    "curriculumId": "4-04",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_4_05",
+    "title": "적극적 평화",
+    "unit": "통합사회2 Ⅳ. 세계화와 평화",
+    "chapter": "적극적 평화",
+    "question": "전쟁이 없는 상태만으로 평화로운 사회라고 할 수 있는가?",
+    "essayPrompt": "직접적·구조적·문화적 폭력을 구분하고 적극적 평화를 위한 정책을 논증하라.",
+    "background": "직접적·구조적·문화적 폭력을 구분하고 적극적 평화를 위한 정책을 논증하라.",
+    "keyConcepts": [
+      "소극적 평화",
+      "적극적 평화"
+    ],
+    "textbookRef": "미래엔 통합사회2 110–115쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1ucI6dDu2iyf6gtYF1rl2lSWJYjBO2E6Q/view",
+    "curriculumId": "4-05",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_4_06",
+    "title": "국제 사회의 평화 책임",
+    "unit": "통합사회2 Ⅳ. 세계화와 평화",
+    "chapter": "국제 사회의 평화 책임",
+    "question": "분쟁 이후 평화 지원은 군사적 안전 확보만큼 빈곤·차별 해소에 집중해야 하는가?",
+    "essayPrompt": "국가·국제기구·국제 비정부 기구가 맡을 역할을 구분하고 협력 방안을 설계하라.",
+    "background": "국가·국제기구·국제 비정부 기구가 맡을 역할을 구분하고 협력 방안을 설계하라.",
+    "keyConcepts": [
+      "국제 행위 주체",
+      "평화 구축"
+    ],
+    "textbookRef": "미래엔 통합사회2 112–115, 120–121쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1ucI6dDu2iyf6gtYF1rl2lSWJYjBO2E6Q/view",
+    "curriculumId": "4-06",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_4_07",
+    "title": "남북 교류와 평화",
+    "unit": "통합사회2 Ⅳ. 세계화와 평화",
+    "chapter": "남북 교류와 평화",
+    "question": "남북 관계가 경색되어도 인도적·문화적 교류를 지속해야 하는가?",
+    "essayPrompt": "독일의 통일 사례와 남북 분단의 특성을 비교하여 평화 정착을 위한 교류 조건을 제안하라.",
+    "background": "독일의 통일 사례와 남북 분단의 특성을 비교하여 평화 정착을 위한 교류 조건을 제안하라.",
+    "keyConcepts": [
+      "분단",
+      "평화 통일"
+    ],
+    "textbookRef": "미래엔 통합사회2 116, 119–120쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1ucI6dDu2iyf6gtYF1rl2lSWJYjBO2E6Q/view",
+    "curriculumId": "4-07",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_4_08",
+    "title": "동아시아 역사 갈등",
+    "unit": "통합사회2 Ⅳ. 세계화와 평화",
+    "chapter": "동아시아 역사 갈등",
+    "question": "역사 갈등 해결을 위해 공동 역사 연구와 시민 교류를 확대해야 하는가?",
+    "essayPrompt": "역사 왜곡에 대한 대응과 국가 간 협력을 함께 고려한 갈등 해결 방안을 논증하라.",
+    "background": "역사 왜곡에 대한 대응과 국가 간 협력을 함께 고려한 갈등 해결 방안을 논증하라.",
+    "keyConcepts": [
+      "역사 인식",
+      "국제 협력"
+    ],
+    "textbookRef": "미래엔 통합사회2 117–121쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1ucI6dDu2iyf6gtYF1rl2lSWJYjBO2E6Q/view",
+    "curriculumId": "4-08",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_5_01",
+    "title": "국제 인구 이동과 난민",
+    "unit": "통합사회2 Ⅴ. 미래와 지속가능한 삶",
+    "chapter": "국제 인구 이동과 난민",
+    "question": "국제 사회는 난민 수용과 정착 지원의 책임을 더 고르게 분담해야 하는가?",
+    "essayPrompt": "인구 이동의 원인과 유출·유입 지역의 영향을 분석하고 인권과 지역의 수용 역량을 고려한 정책을 제안하라.",
+    "background": "인구 이동의 원인과 유출·유입 지역의 영향을 분석하고 인권과 지역의 수용 역량을 고려한 정책을 제안하라.",
+    "keyConcepts": [
+      "인구 이동",
+      "난민",
+      "세계시민"
+    ],
+    "textbookRef": "미래엔 통합사회2 128–131쪽",
+    "sourceType": "타 출판사 활동 보완",
+    "sourceUrl": "https://drive.google.com/file/d/1nLiVJN5Q9IoYd608WaJticzyN047neKy/view",
+    "curriculumId": "5-01",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_5_02",
+    "title": "저출생 대응",
+    "unit": "통합사회2 Ⅴ. 미래와 지속가능한 삶",
+    "chapter": "저출생 대응",
+    "question": "저출생 대응에서는 일회성 현금 지원보다 돌봄·주거·일자리 여건 개선을 우선해야 하는가?",
+    "essayPrompt": "저출생의 원인을 통합적 관점에서 분석하고 정책의 우선순위와 평가 기준을 제시하라.",
+    "background": "저출생의 원인을 통합적 관점에서 분석하고 정책의 우선순위와 평가 기준을 제시하라.",
+    "keyConcepts": [
+      "인구 구조",
+      "저출생"
+    ],
+    "textbookRef": "미래엔 통합사회2 132–135쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1nLiVJN5Q9IoYd608WaJticzyN047neKy/view",
+    "curriculumId": "5-02",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_5_03",
+    "title": "고령화와 정년",
+    "unit": "통합사회2 Ⅴ. 미래와 지속가능한 삶",
+    "chapter": "고령화와 정년",
+    "question": "고령화 대응을 위해 정년을 연장해야 하는가?",
+    "essayPrompt": "노후 소득, 청년 고용, 기업 부담을 검토하고 정년 연장의 조건과 보완책을 제안하라.",
+    "background": "노후 소득, 청년 고용, 기업 부담을 검토하고 정년 연장의 조건과 보완책을 제안하라.",
+    "keyConcepts": [
+      "고령화",
+      "생산 가능 인구"
+    ],
+    "textbookRef": "미래엔 통합사회2 133–135쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1nLiVJN5Q9IoYd608WaJticzyN047neKy/view",
+    "curriculumId": "5-03",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_5_04",
+    "title": "세대 간 정의",
+    "unit": "통합사회2 Ⅴ. 미래와 지속가능한 삶",
+    "chapter": "세대 간 정의",
+    "question": "현재의 복지 확대를 결정할 때 미래 세대의 부담을 우선적으로 고려해야 하는가?",
+    "essayPrompt": "현재 세대와 미래 세대의 권리를 비교하고 연금·복지 부담을 공정하게 나눌 원칙을 논증하라.",
+    "background": "현재 세대와 미래 세대의 권리를 비교하고 연금·복지 부담을 공정하게 나눌 원칙을 논증하라.",
+    "keyConcepts": [
+      "세대 간 정의",
+      "지속가능성"
+    ],
+    "textbookRef": "미래엔 통합사회2 133–134쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1nLiVJN5Q9IoYd608WaJticzyN047neKy/view",
+    "curriculumId": "5-04",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_5_05",
+    "title": "에너지 전환과 원자력",
+    "unit": "통합사회2 Ⅴ. 미래와 지속가능한 삶",
+    "chapter": "에너지 전환과 원자력",
+    "question": "탄소 배출을 줄이기 위한 에너지 전환에서 원자력을 활용해야 하는가?",
+    "essayPrompt": "전력 공급, 온실가스, 사고 위험, 폐기물 문제를 함께 검토하여 에너지 구성안을 제시하라.",
+    "background": "전력 공급, 온실가스, 사고 위험, 폐기물 문제를 함께 검토하여 에너지 구성안을 제시하라.",
+    "keyConcepts": [
+      "자원",
+      "에너지 안보",
+      "환경"
+    ],
+    "textbookRef": "미래엔 통합사회2 136–141쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1nLiVJN5Q9IoYd608WaJticzyN047neKy/view",
+    "curriculumId": "5-05",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_5_06",
+    "title": "기후 책임의 분담",
+    "unit": "통합사회2 Ⅴ. 미래와 지속가능한 삶",
+    "chapter": "기후 책임의 분담",
+    "question": "기후변화 대응 비용을 선진국이 더 많이 부담해야 하는가?",
+    "essayPrompt": "누적 배출, 현재 배출, 대응 능력을 비교하여 국가 간 공정한 책임 분담 원칙을 제시하라.",
+    "background": "누적 배출, 현재 배출, 대응 능력을 비교하여 국가 간 공정한 책임 분담 원칙을 제시하라.",
+    "keyConcepts": [
+      "기후변화",
+      "국제 협력"
+    ],
+    "textbookRef": "미래엔 통합사회2 142–145; Ⅳ 122–123쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1nLiVJN5Q9IoYd608WaJticzyN047neKy/view",
+    "curriculumId": "5-06",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_5_07",
+    "title": "인공지능과 일자리",
+    "unit": "통합사회2 Ⅴ. 미래와 지속가능한 삶",
+    "chapter": "인공지능과 일자리",
+    "question": "인공지능 도입으로 얻는 이익의 일부를 노동자의 재교육에 의무적으로 사용해야 하는가?",
+    "essayPrompt": "기술 발전이 일자리와 삶의 질에 미치는 양면적 영향을 분석하고 전환 지원책을 설계하라.",
+    "background": "기술 발전이 일자리와 삶의 질에 미치는 양면적 영향을 분석하고 전환 지원책을 설계하라.",
+    "keyConcepts": [
+      "과학기술",
+      "직업 변화"
+    ],
+    "textbookRef": "미래엔 통합사회2 146–151쪽",
+    "sourceType": "본문·사례 확장",
+    "sourceUrl": "https://drive.google.com/file/d/1nLiVJN5Q9IoYd608WaJticzyN047neKy/view",
+    "curriculumId": "5-07",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
+    "topicId": "curriculum_5_08",
+    "title": "미래 사회와 세계시민",
+    "unit": "통합사회2 Ⅴ. 미래와 지속가능한 삶",
+    "chapter": "미래 사회와 세계시민",
+    "question": "미래 사회의 발전은 경제 성장보다 생태적 지속가능성을 우선해야 하는가?",
+    "essayPrompt": "정치·경제·사회·환경 변화를 연결한 미래 시나리오를 작성하고 세계시민으로서의 실천 방향을 제안하라.",
+    "background": "정치·경제·사회·환경 변화를 연결한 미래 시나리오를 작성하고 세계시민으로서의 실천 방향을 제안하라.",
+    "keyConcepts": [
+      "미래 시나리오",
+      "세계시민"
+    ],
+    "textbookRef": "미래엔 통합사회2 149–153쪽",
+    "sourceType": "활동 재구성",
+    "sourceUrl": "https://drive.google.com/file/d/1nLiVJN5Q9IoYd608WaJticzyN047neKy/view",
+    "curriculumId": "5-08",
+    "difficulty": "중급",
+    "recommendedLevel": 1,
+    "recommendedBadge": "badge_reasoning"
+  },
+  {
     "topicId": "topic_justice_basic_income",
     "title": "기본소득제 전면 도입, 사회 정의 실현을 위해 타당한가?",
     "unit": "통합사회2 Ⅱ. 사회 정의와 불평등",
@@ -13,7 +823,7 @@
       "노직의 자유지상주의",
       "조세 형평성"
     ],
-    "textbookRef": "미래엔 통합사회2 교과서 p.78~85 연계",
+    "textbookRef": "미래엔 통합사회2 Ⅱ. 사회 정의와 불평등 연계 확장 주제",
     "difficulty": "중급",
     "recommendedLevel": 1,
     "recommendedBadge": "badge_reasoning"
@@ -21,7 +831,7 @@
   {
     "topicId": "topic_sns_shutdown",
     "title": "청소년 SNS 심야 이용 시간 제한법 도입, 정당한가?",
-    "unit": "통합사회2 Ⅳ. 인권 보장과 헌법",
+    "unit": "통합사회2 Ⅰ. 인권 보장과 헌법",
     "chapter": "01. 인권의 발달과 기본권 보장",
     "question": "청소년의 수면권 및 건강권 보장을 위해 SNS 심야 이용을 법률로 제한하는 것은 헌법상 정당한가?",
     "background": "청소년의 무분별한 스마트폰 및 SNS 과몰입으로 인한 수면 부족, 우울증, 학업 집중도 저하를 방지하기 위해 국가가 개입해야 한다는 시각과, 청소년의 자기결정권 및 사생활의 비밀과 자유를 과도하게 침해하는 온정주의적 규제라는 입장이 대립합니다.",
@@ -32,7 +842,7 @@
       "자기결정권",
       "공익과 사익의 조화"
     ],
-    "textbookRef": "미래엔 통합사회2 교과서 p.140~145 연계",
+    "textbookRef": "미래엔 통합사회2 Ⅰ. 인권 보장과 헌법 연계 확장 주제",
     "difficulty": "기초",
     "recommendedLevel": 1,
     "recommendedBadge": "badge_claim_evidence"
@@ -51,10 +861,9 @@
       "역차별 문제",
       "아리스토텔레스의 비례적 평등"
     ],
-    "textbookRef": "미래엔 통합사회2 교과서 p.72~77 연계",
+    "textbookRef": "미래엔 통합사회2 59–61쪽",
     "difficulty": "심화",
     "recommendedLevel": 2,
     "recommendedBadge": "badge_concept_connect"
   }
 ]
-

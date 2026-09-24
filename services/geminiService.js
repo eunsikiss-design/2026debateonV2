@@ -299,12 +299,10 @@ ${grounding.context}
     }
 
     const focusImprovement = usedConcepts.length < 2
-      ? "상대방의 우려나 재정적 한계에 대해 교과 개념(예: 기회비용, 재정건전성)을 연계한 지속 가능한 대안을 보완해 보세요."
+      ? `교과 개념(${concepts.slice(0,3).join(", ")})을 활용하여 근거와 대안을 보완해 보세요.`
       : "상대방 찬성/반대 측의 대표적 논거를 한 줄 인정한 후 이를 반박하는 절충안을 추가하면 완성도가 극대화됩니다.";
 
-    const socraticQuestion = stance === 'pro'
-      ? "기본소득의 보편적 혜택을 강조할 때, 상대방이 제기하는 '조세 저항과 재정 부담'을 어떤 세원 발굴이나 단계적 제도로 설득할 수 있을까요?"
-      : "선별적 복지의 효율성을 지지할 때, 복지 사각지대에서 발생하는 사회적 비용은 어떻게 최소화할 수 있을까요?";
+    const socraticQuestion = `「${topic?.question || topic?.title}」에 대한 자신의 주장과 반대되는 가장 강한 근거는 무엇이며, 어떤 조건이나 대안으로 답할 수 있을까요?`;
 
     return {
       source: "socratic-coach-advanced",

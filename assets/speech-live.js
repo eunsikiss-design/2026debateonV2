@@ -11,6 +11,7 @@
   let warningSent = false;
   let liveRunning = false;
   let targetSeconds = 45;
+  let speechTopic = null;
 
   const panel = document.createElement('section');
   panel.id = 'live-speech-panel';
@@ -95,8 +96,12 @@
   const legacyToggle = window.toggleSpeechTimer;
   window.toggleSpeechTimer = async function toggleLiveSpeechTimer() {
     if (!liveRunning) {
+      if (!window.TopicCatalog.current) { setState('EMPTY', '주제를 먼저 선택해 주세요.'); return; }
+      if (speechTopic?.topicId !== window.TopicCatalog.current.topicId) { finalTranscript = ''; interimTranscript = ''; }
+      speechTopic = window.TopicCatalog.current;
+      document.querySelectorAll('#curriculum-unit, #curriculum-topic').forEach(s => { s.disabled = true; });
       try { await beginRecognition(); }
-      catch (error) { if (error.message !== 'SPEECH_RECOGNITION_UNAVAILABLE') setState('MIC DENIED', '마이크 권한을 허용해야 실시간 발화 훈련을 시작할 수 있습니다.'); return; }
+      catch (error) { window.TopicCatalog.lock(false); if (error.message !== 'SPEECH_RECOGNITION_UNAVAILABLE') setState('MIC DENIED', '마이크 권한을 허용해야 실시간 발화 훈련을 시작할 수 있습니다.'); return; }
       liveRunning = true;
     } else {
       pauseRecognition();
@@ -117,12 +122,12 @@
     stopMedia();
     const transcript = finalTranscript.trim();
     const durationSeconds = startedAt ? Math.max(1, Math.round((Date.now() - startedAt) / 1000)) : 0;
-    if (!transcript) { setState('EMPTY', '기록된 발화가 없습니다. 다시 시작해 주세요.'); return; }
+    if (!transcript) { window.TopicCatalog.lock(false); setState('EMPTY', '기록된 발화가 없습니다. 다시 시작해 주세요.'); return; }
     setState('ANALYZING');
     try {
       const response = await fetch('/api/speech/submit', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ topicId:'topic_ai_judge', transcript, durationSeconds, targetDurationSeconds:targetSeconds })
+        body:JSON.stringify({ topicId:speechTopic.topicId, transcript, durationSeconds, targetDurationSeconds:targetSeconds })
       });
       const data = await response.json();
       if (response.status === 401) throw new Error('분석 결과를 저장하려면 학생 계정 로그인이 필요합니다.');
@@ -137,6 +142,7 @@
       document.getElementById('speech-eval-modal').classList.remove('hidden');
       document.getElementById('speech-eval-modal').classList.add('flex');
     } catch (error) { setState('ERROR', error.message); }
+    finally { window.TopicCatalog.lock(false); }
   };
 
   const style = document.createElement('style');

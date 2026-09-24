@@ -7,7 +7,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test_connection_ui.cjs test_stage2_security.cjs test_stage4_auth.cjs test_stage5_teacher.cjs test_google_auth.cjs test_student_onboarding.cjs test_stage6_speech.cjs test_stage7_battle.cjs test_stage8_knowledge.cjs test_stage9_quality.cjs test_stage10_ai.cjs test_stage11_review_ui.cjs",
+    "test": "node --test test_connection_ui.cjs test_stage2_security.cjs test_stage4_auth.cjs test_stage5_teacher.cjs test_google_auth.cjs test_student_onboarding.cjs test_stage6_speech.cjs test_stage7_battle.cjs test_stage8_knowledge.cjs test_stage9_quality.cjs test_stage10_ai.cjs test_stage11_review_ui.cjs test_topic_catalog.cjs",
     "knowledge:ingest": "node scripts/ingest_knowledge.js",
     "knowledge:embed": "node scripts/build-embeddings.cjs",
     "knowledge:model": "node scripts/download-embedding-model.cjs",
@@ -19,4 +19,3 @@
     "@huggingface/transformers": "3.8.1"
   }
 }
-

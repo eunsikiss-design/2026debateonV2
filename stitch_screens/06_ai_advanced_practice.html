@@ -19,14 +19,14 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/assets/cyber.css">
 <script defer src="/assets/cyber-ui.js"></script>
-</head><body data-screen="advanced" class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen">
+<script src="/assets/topic-catalog.js"></script></head><body data-screen="advanced" class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen">
 <aside role="status" style="position:relative;z-index:100;padding:10px;background:#141a26;color:#fff;border-bottom:1px solid #00f2fe;font:13px sans-serif">미리보기 · 예시 데이터가 포함되어 있습니다. 실제 인증·학습 기록 기능은 연결 전입니다.</aside><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-primary tracking-tight">디베이트온</span><span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm">예시고 고1 통합사회2</span></div></div><div class="flex items-center gap-space-sm"><span class="hidden font-headline-sm text-headline-sm text-on-surface truncate">Advanced Practice</span><div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-bold text-[11px] shadow-sm border border-primary/30"><span class="tracking-tight font-headline-sm">강서</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full pb-8">
 <!-- Top Academic Context Header -->
 <div class="px-margin pt-4 pb-2">
 <div class="flex items-center justify-between">
 <div class="flex items-center gap-space-xs">
 <span class="px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">
-          통합사회 Ⅴ. 시장 경제와 금융
+          통합사회2 단원별 논술
         </span>
 <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm">
 <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
@@ -37,11 +37,9 @@
 <span class="material-symbols-outlined text-[18px]">bookmark_border</span>
 </button>
 </div>
-<h2 class="mt-3 font-headline-md text-headline-md text-on-surface leading-tight">
-      기본소득제(UBI) 전면 도입은 시장 경제의 분배 불평등을 해결하는 최선책인가?
-    </h2>
+<h2 class="mt-3" id="advanced-topic-title">주제를 선택해 주세요.</h2>
 <p class="mt-1 font-body-sm text-body-sm text-on-surface-variant">
-      경제적 효율성과 형평성, 재정 건전성의 관점에서 다각적으로 접근해 보세요.
+      선택한 주제의 논술 과제와 핵심 개념을 활용해 보세요.
     </p>
 </div>
 <!-- Mode Toggle (Tab Style) -->
@@ -93,59 +91,29 @@
 <span class="font-label-md text-label-md text-on-surface font-semibold">참고 제시문 및 통계 데이터</span>
 </div>
 <div class="flex items-center gap-1.5">
-<span class="font-label-sm text-label-sm text-primary font-medium">OECD 보고서 등 2건</span>
+<span class="font-label-sm text-label-sm text-primary font-medium">교과서 근거 안내</span>
 <span class="material-symbols-outlined text-on-surface-variant text-[18px] transition-transform" id="ref-icon">expand_more</span>
 </div>
 </button>
-<div class="hidden px-4 pb-4 pt-1 flex flex-col gap-3" id="ref-drawer">
-<!-- Visual Stats Card with SVG sparklines -->
-<div class="p-3 rounded-lg bg-surface-container-lowest flex flex-col gap-2">
-<div class="flex items-center justify-between">
-<span class="font-label-sm text-label-sm text-on-surface-variant">자료 1. 최근 5년간 지니계수 변화 (처분가능소득 기준)</span>
-<span class="font-code-argument text-code-argument text-primary font-bold">0.324 → 0.331 ↑</span>
-</div>
-<!-- Inline Sparkline Metric -->
-<div class="h-10 w-full flex items-end gap-1.5 pt-2">
-<div class="flex-1 bg-surface-container-highest rounded-t h-[50%] flex items-center justify-center text-[10px] font-code-argument text-on-surface-variant">2020</div>
-<div class="flex-1 bg-surface-container-highest rounded-t h-[60%] flex items-center justify-center text-[10px] font-code-argument text-on-surface-variant">2021</div>
-<div class="flex-1 bg-surface-container-highest rounded-t h-[65%] flex items-center justify-center text-[10px] font-code-argument text-on-surface-variant">2022</div>
-<div class="flex-1 bg-surface-tint/60 rounded-t h-[80%] flex items-center justify-center text-[10px] font-code-argument text-white">2023</div>
-<div class="flex-1 bg-primary rounded-t h-[95%] flex items-center justify-center text-[10px] font-code-argument text-white font-bold">2024</div>
-</div>
-</div>
-<div class="p-3 rounded-lg bg-surface-container-lowest flex flex-col gap-1">
-<span class="font-label-sm text-label-sm text-on-surface-variant">자료 2. OECD 사회복지 지출 리포트 발췌</span>
-<p class="font-body-sm text-body-sm text-on-surface leading-relaxed">
-            "선별적 복지는 복지 사각지대 해소와 수급 자격 심사에 막대한 행정비용이 발생하나, 보편적 기본소득은 막대한 증세에 따른 경제적 왜곡 및 근로의욕 저하(도덕적 해이) 리스크를 수반한다."
-          </p>
-</div>
-</div>
-</div>
-</div>
+<div class="hidden px-4 pb-4 pt-1 flex flex-col gap-3" id="ref-drawer"></div></div></div>
 <!-- Visual Concept Chips (Delight / Mentor micro-prompts) -->
-<div class="px-margin mt-3 flex items-center gap-2 overflow-x-auto pb-1">
-<span class="font-label-sm text-label-sm text-on-surface-variant whitespace-nowrap">추천 핵심어:</span>
-<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-code-argument text-code-argument whitespace-nowrap cursor-pointer hover:bg-surface-tint hover:text-white transition-colors">#기회비용</span>
-<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-code-argument text-code-argument whitespace-nowrap cursor-pointer hover:bg-surface-tint hover:text-white transition-colors">#소득재분배</span>
-<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-code-argument text-code-argument whitespace-nowrap cursor-pointer hover:bg-surface-tint hover:text-white transition-colors">#조세저항</span>
-<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-code-argument text-code-argument whitespace-nowrap cursor-pointer hover:bg-surface-tint hover:text-white transition-colors">#도덕적해이</span>
-</div>
+<div class="px-margin mt-3" id="advanced-concepts"></div>
 <!-- Primary Workspace: Essay Section -->
 <div class="px-margin mt-4 flex flex-col gap-3" id="essay-workspace">
 <!-- Paragraph Navigation Pills -->
 <div class="flex items-center justify-between rounded-xl bg-surface-container-low p-1.5 text-center">
 <div class="flex-1 py-1.5 px-1 rounded-lg bg-surface-container-lowest text-primary font-label-sm text-label-sm shadow-sm flex flex-col items-center">
-<span class="text-[10px] text-primary">완료 (180자)</span>
+<span class="text-[10px] text-primary">작성 안내</span>
 <span class="font-semibold">1문단: 문제 제기</span>
 </div>
 <span class="material-symbols-outlined text-outline text-[16px]">chevron_right</span>
 <div class="flex-1 py-1.5 px-1 rounded-lg bg-surface-container-lowest text-primary font-label-sm text-label-sm shadow-sm flex flex-col items-center">
-<span class="text-[10px] text-primary">완료 (320자)</span>
+<span class="text-[10px] text-primary">작성 안내</span>
 <span class="font-semibold">2문단: 핵심 논거</span>
 </div>
 <span class="material-symbols-outlined text-outline text-[16px]">chevron_right</span>
 <div class="flex-1 py-1.5 px-1 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm shadow-sm flex flex-col items-center animate-pulse">
-<span class="text-[10px] text-secondary-container">작성 중 (140자)</span>
+<span class="text-[10px] text-secondary-container">작성 안내</span>
 <span class="font-semibold">3문단: 대안/결론</span>
 </div>
 </div>
@@ -164,7 +132,7 @@
 </div>
 <!-- Real Textarea -->
 <div class="relative">
-<textarea class="w-full bg-surface-container-low/50 rounded-xl p-3.5 font-body-md text-body-md text-on-surface placeholder-outline focus:outline-none focus:bg-surface-container-lowest transition-all resize-none leading-relaxed" id="essay-input" placeholder="상대편이 우려하는 재정적 한계와 근로의욕 저하를 최소화하면서, 불평등을 해결할 수 있는 조건부 안심소득이나 선별 복지와의 절충안을 제시해보세요..." rows="8">따라서 기본소득제의 전면적 도입보다는, 디지털 전환과 자동화로 인해 일자리를 잃은 취약계층을 집중 지원하는 '차등적 안심소득제'의 단계적 도입이 경제적 기회비용 측면에서 더욱 지속 가능하다고 판단된다. 이를 통해 세대 간 조세 저항을 줄이고 국가 재정건전성을 유지하는 현실적인 복지 타협점을 마련해야 한다.</textarea>
+<textarea class="w-full bg-surface-container-low/50 rounded-xl p-3.5 font-body-md text-body-md text-on-surface placeholder-outline focus:outline-none focus:bg-surface-container-lowest transition-all resize-none leading-relaxed" id="essay-input" placeholder="상대편이 우려하는 재정적 한계와 근로의욕 저하를 최소화하면서, 불평등을 해결할 수 있는 조건부 안심소득이나 선별 복지와의 절충안을 제시해보세요..." rows="8"></textarea>
 </div>
 <!-- Live Counter & Grammar / Argument Status -->
 <div class="flex items-center justify-between pt-1">
@@ -290,7 +258,7 @@
 <div class="p-3 rounded-xl bg-surface-container-highest/60 flex items-center justify-between">
 <div class="flex items-center gap-2">
 <span class="material-symbols-outlined text-primary text-[20px]">auto_stories</span>
-<span class="font-label-sm text-label-sm text-on-surface">작년 전국 토론대회 수상작의 UBI 반론 분석 팁 보기</span>
+<span class="font-label-sm text-label-sm text-on-surface">선택한 주제의 예상 반론과 보완 대안을 검토하세요</span>
 </div>
 <span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
 </div>
@@ -331,6 +299,10 @@
   let activeParagraphLevel = 3;
 
   function switchMode(mode) {
+    if (mode === 'speech') {
+      location.href = '08_speech_timer_training.html?topic=' + encodeURIComponent(window.TopicCatalog.current?.topicId || '');
+      return;
+    }
     const essayBtn = document.getElementById('mode-essay-btn');
     const speechBtn = document.getElementById('mode-speech-btn');
     const essayWorkspace = document.getElementById('essay-workspace');
@@ -391,18 +363,22 @@
   }
 
   async function loadEvidenceCards() {
-    try {
-      const res = await fetch('/api/evidence/cards?topicId=topic_justice_basic_income');
-      const data = await res.json();
-      if (!res.ok || !data.success || !data.evaluation) throw new Error(data.message || '분석에 실패했습니다.');
-      if (data.success && data.cards) {
-        // dynamic evidence cards available
-      }
-    } catch (e) {
-      console.warn('Could not fetch evidence cards:', e);
-    }
+    const drawer = document.getElementById('ref-drawer');
+    const topic = window.TopicCatalog.current;
+    drawer.textContent = topic ? topic.textbookRef + ' · ' + topic.keyConcepts.join(' · ') + ' — 교과서에서 직접 근거를 확인하고 출처를 밝혀 주세요.' : '주제를 선택해 주세요.';
   }
 
+  window.addEventListener('curriculum-topic-change', event => {
+    document.getElementById('advanced-topic-title').textContent = event.detail.question;
+    document.getElementById('advanced-concepts').textContent = event.detail.keyConcepts.join(' · ');
+    loadEvidenceCards();
+    document.getElementById('completion-rate-text').textContent = '선택한 주제로 작성 후 분석해 주세요.';
+    document.getElementById('overall-level-badge').textContent = '분석 대기';
+    for (const part of ['claim','concept','rebuttal']) {
+      document.getElementById('rubric-' + part + '-grade').textContent = '—';
+      document.getElementById('rubric-' + part + '-desc').textContent = '선택한 주제의 글을 작성하고 분석을 요청해 주세요.';
+    }
+  });
   const essayInput = document.getElementById('essay-input');
   const charCount = document.getElementById('char-count');
   if (essayInput && charCount) {
@@ -425,6 +401,7 @@
 
   // Submit Advanced Essay
   async function submitAdvancedEssay() {
+    if (!window.TopicCatalog.current) { alert('주제를 먼저 선택해 주세요.'); return; }
     const text = essayInput.value.trim();
     if (!text) {
       alert('논술 내용을 입력해 주세요.');
@@ -435,13 +412,14 @@
     const btnText = document.getElementById('submit-btn-text');
     btnText.textContent = "소크라 정밀 분석 중...";
     btn.disabled = true;
+    window.TopicCatalog.lock(true);
 
     try {
       const res = await fetch('/api/practice/advanced/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topicId: "topic_justice_basic_income",
+          topicId: window.TopicCatalog.current.topicId,
           paragraphLevel: activeParagraphLevel,
           stance: "pro",
           studentDraft: text
@@ -491,6 +469,7 @@
     } finally {
       btnText.textContent = "AI 정밀 종합 첨삭 제출";
       btn.disabled = false;
+      window.TopicCatalog.lock(false);
     }
   }
 

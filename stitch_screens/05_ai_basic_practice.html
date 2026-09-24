@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/assets/cyber.css">
 <script defer src="/assets/cyber-ui.js"></script>
-</head>
+<script src="/assets/topic-catalog.js"></script></head>
 <body data-screen="basic" class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen">
 <aside role="status" style="position:relative;z-index:100;padding:10px;background:#141a26;color:#fff;border-bottom:1px solid #00f2fe;font:13px sans-serif">미리보기 · 예시 데이터가 포함되어 있습니다. 실제 인증·학습 기록 기능은 연결 전입니다.</aside>
 
@@ -329,16 +329,16 @@
 
   // Load Topics from API
   async function loadTopics() {
-    try {
-      const res = await fetch('/api/topics');
-      const data = await res.json();
-      if (data.success && data.topics) {
-        topics = data.topics;
-        renderTopic(currentTopicIndex);
-      }
-    } catch (e) {
-      console.warn('Failed to load topics:', e);
-    }
+    topics = await window.TopicCatalog.ready;
+    topicSelect.hidden = true;
+    const sync = () => {
+      currentTopicIndex = topics.findIndex(t => t.topicId === window.TopicCatalog.current?.topicId);
+      lastEvaluation = null;
+      coachCard.classList.add('hidden');
+      coachCard.classList.remove('flex');
+      renderTopic(currentTopicIndex);
+    };
+    sync(); window.addEventListener('curriculum-topic-change', sync);
   }
 
   function renderTopic(index) {
@@ -382,14 +382,11 @@
 
     evalBtnText.textContent = "소크라 AI 분석 중...";
     requestEvalBtn.disabled = true;
+    window.TopicCatalog.lock(true);
 
     try {
-      const activeTopic = topics[currentTopicIndex] || {
-        title: "기본소득제 전면 도입 타당성",
-        unit: "통합사회2 Ⅱ. 사회 정의와 불평등",
-        question: "기본소득제 도입은 정의로운가?",
-        keyConcepts: ["분배적 정의", "롤스", "차등의 원칙"]
-      };
+      const activeTopic = window.TopicCatalog.current;
+      if (!activeTopic) throw new Error('주제를 먼저 선택해 주세요.');
 
       const res = await fetch('/api/practice/evaluate', {
         method: 'POST',
@@ -418,6 +415,7 @@
     } finally {
       evalBtnText.textContent = "소크라 AI 논증 진단 요청";
       requestEvalBtn.disabled = false;
+      window.TopicCatalog.lock(false);
     }
   });
 
@@ -425,12 +423,12 @@
     const fallbackEval = {
       scaffold: {
         recommendedLevel: 1,
-        scaffoldGuidance: "이유 문장에 교과서의 '롤스' 또는 '분배적 정의' 개념을 접목해 보세요."
+        scaffoldGuidance: `선택한 주제의 교과 개념(${window.TopicCatalog.current?.keyConcepts.join(' · ') || ''})을 근거와 연결해 보세요.`
       },
       feedback: {
         praise: "자신의 입장을 명확한 단문 형태로 흔들림 없이 선언했습니다!",
         nextChallenge: "근거와 주장 사이의 인과관계를 더욱 분명하게 다듬어보세요.",
-        question: "만약 상대방이 재정 부담 문제를 지적한다면 어떻게 방어할 수 있을까요?"
+        question: "상대방의 가장 강한 반론은 무엇이며 어떤 근거로 답할 수 있을까요?"
       }
     };
     lastEvaluation = fallbackEval;
@@ -499,7 +497,8 @@
     finalSubmitBadgeBtn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">sync</span><span>저장 및 뱃지 검증 중...</span>';
 
     try {
-      const activeTopic = topics[currentTopicIndex] || { topicId: 'topic_justice_basic_income' };
+      const activeTopic = window.TopicCatalog.current;
+      if (!activeTopic) throw new Error('주제를 먼저 선택해 주세요.');
       const res = await fetch('/api/practice/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
