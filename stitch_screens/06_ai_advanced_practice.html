@@ -394,6 +394,7 @@
     try {
       const res = await fetch('/api/evidence/cards?topicId=topic_justice_basic_income');
       const data = await res.json();
+      if (!res.ok || !data.success || !data.evaluation) throw new Error(data.message || '분석에 실패했습니다.');
       if (data.success && data.cards) {
         // dynamic evidence cards available
       }

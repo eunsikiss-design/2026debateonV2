@@ -21,6 +21,7 @@
   function icon(name) { const node = element('span', 'material-symbols-outlined', name); node.setAttribute('aria-hidden','true'); return node; }
   const skip = element('a','cyber-skip','본문으로 건너뛰기'); skip.href='#main-content';document.body.prepend(skip);
   let identity;
+  const notice=document.querySelector('body > aside[role=status]');
   const header = document.querySelector('body > header');
   if (header) {
     const old = element('div','legacy-header'); while(header.firstChild) old.append(header.firstChild); header.append(old);
@@ -28,7 +29,6 @@
     const word=element('span');word.append('Debate',element('b','','On'));brand.append(word,element('small','','THINK · SPEAK · CONNECT'));
     identity=element('div','hud-identity');identity.hidden=true;const actions=element('div','hud-actions'); const battle=element('a','hud-battle');battle.href=routes.battle;
     battle.append(icon('swords'),element('span','',page==='battle'?'배틀룸':'배틀룸 입장'));actions.append(battle);const evidence=element('a','hud-battle');evidence.href='/stitch_screens/11_evidence_library.html';evidence.textContent='근거 자료';actions.prepend(evidence);hud.append(brand,identity,actions);header.append(hud);
-    const notice=document.querySelector('body > aside[role=status]');
     if(notice) {notice.removeAttribute('style');notice.className='preview-notice';notice.textContent='서비스 연결 상태를 확인하고 있습니다.';header.after(notice);}
   }
   const main=document.querySelector('main'); if(!main)return;
@@ -58,9 +58,10 @@
     stateHeading.textContent='CONNECTING';stateMessage.textContent='학습 서비스 상태를 확인하고 있습니다.';
     try {
       const res=await fetch('/api/health',{signal:AbortSignal.timeout(5000)});if(!res.ok)throw new Error('Unavailable');
-      automaticRetries=0;clearTimeout(reconnectTimer);const info=await res.json();if(info.authentication==='firebase_session'){const me=await fetch('/api/auth/me',{signal:AbortSignal.timeout(5000)});if(me.ok){const data=await me.json();if(data.user.role==='student'&&data.user.onboardingComplete===false){location.href='/stitch_screens/04_login_signup.html?onboarding=1';return;}signedIn=true;showIdentity(data.user);stateHeading.textContent='CONNECTED';stateMessage.textContent=(data.user.name||'사용자')+'님 · '+(data.user.role==='teacher'?'교사':'학생')+' 세션으로 연결되었습니다.';if(notice)notice.textContent='운영 서비스 연결됨 · 학습 기록이 안전하게 저장됩니다.';}else{stateHeading.textContent='SIGN IN REQUIRED';stateMessage.textContent='AI 분석과 기록 저장을 사용하려면 로그인하세요.';if(notice)notice.textContent='운영 서비스 연결됨 · 로그인 후 AI 분석과 기록 저장을 사용할 수 있습니다.';}}
+      clearTimeout(reconnectTimer);const info=await res.json();if(info.authentication==='firebase_session'){const me=await fetch('/api/auth/me',{signal:AbortSignal.timeout(5000)});if(me.ok){const data=await me.json();if(data.user.role==='student'&&data.user.onboardingComplete===false){location.href='/stitch_screens/04_login_signup.html?onboarding=1';return;}signedIn=true;showIdentity(data.user);stateHeading.textContent='CONNECTED';stateMessage.textContent=(data.user.name||'사용자')+'님 · '+(data.user.role==='teacher'?'교사':'학생')+' 세션으로 연결되었습니다.';if(notice)notice.textContent='운영 서비스 연결됨 · 학습 기록이 안전하게 저장됩니다.';}else{if(me.status!==401)throw new Error('Session unavailable');signedIn=false;if(identity)identity.hidden=true;stateHeading.textContent='SIGN IN REQUIRED';stateMessage.textContent='AI 분석과 기록 저장을 사용하려면 로그인하세요.';if(notice)notice.textContent='운영 서비스 연결됨 · 로그인 후 AI 분석과 기록 저장을 사용할 수 있습니다.';}}
       else{stateHeading.textContent='PREVIEW MODE';stateMessage.textContent='글 작성과 타이머를 둘러볼 수 있어요. Firebase Authentication 활성화 후 로그인과 기록 저장을 사용할 수 있습니다.';if(notice)notice.textContent='미리보기 · 실제 인증과 학습 기록은 연결 전입니다.';}
-    } catch {stateHeading.textContent=navigator.onLine?'RECONNECTING':'OFFLINE';stateMessage.textContent=navigator.onLine?'서버가 다시 연결되는 중입니다. 작성 중인 내용은 유지됩니다.':'인터넷 연결을 확인해 주세요. 작성 중인 내용은 유지됩니다.';if(notice)notice.textContent=stateMessage.textContent;if(navigator.onLine&&automaticRetries<3){automaticRetries+=1;clearTimeout(reconnectTimer);reconnectTimer=setTimeout(checkConnection,automaticRetries*2000);}}
+      automaticRetries=0;
+    } catch {signedIn=false;stateHeading.textContent=navigator.onLine?'RECONNECTING':'OFFLINE';stateMessage.textContent=navigator.onLine?'서버가 다시 연결되는 중입니다. 작성 중인 내용은 유지됩니다.':'인터넷 연결을 확인해 주세요. 작성 중인 내용은 유지됩니다.';if(notice)notice.textContent=stateMessage.textContent;if(navigator.onLine&&automaticRetries<3){automaticRetries+=1;clearTimeout(reconnectTimer);reconnectTimer=setTimeout(checkConnection,automaticRetries*2000);}}
     finally{retry.disabled=false;state.removeAttribute('aria-busy');checking=false;}
   }
   retry.addEventListener('click',()=>{automaticRetries=0;clearTimeout(reconnectTimer);checkConnection();});window.addEventListener('online',()=>{automaticRetries=0;checkConnection();});window.addEventListener('offline',checkConnection);checkConnection();
