@@ -8,7 +8,7 @@ test('Gemini retries transient failures, then uses configured question fallback 
  {fetchImpl:async(url,options)=>{calls.push({url,options});return calls.length<3?{ok:false,status:503,body:{cancel:async()=>cancelled++}}:{ok:true,json:async()=>({answer:'ok'})};},sleep:async ms=>pauses.push(ms),random:()=>0});
  assert.equal(response.model,'light');assert.equal(response.data.answer,'ok');assert.equal(cancelled,2);
  assert.deepEqual(pauses,[1000,2000]);assert.match(calls[0].url,/models\/coach:/);assert.match(calls[2].url,/models\/light:/);
- assert.equal(calls[0].options.signal,calls[2].options.signal);assert.ok(!calls[0].url.includes('fixture'));
+ assert.ok(calls.every(c=>c.options.signal instanceof AbortSignal));assert.ok(!calls[0].url.includes('fixture'));
 });
 test('Gemini stops after three failures and does not retry authentication or quota errors',async()=>{
  const {generate}=require('./services/geminiTransport');
@@ -20,6 +20,15 @@ test('Gemini stops after three failures and does not retry authentication or quo
  let attempts=0;
  await assert.rejects(generate({apiKey:'fixture',modelName:'coach',body:{}},{timeoutMs:1,fetchImpl:async(url,{signal})=>{attempts++;await new Promise(resolve=>setTimeout(resolve,5));signal.throwIfAborted();}}),{name:'TimeoutError'});
  assert.equal(attempts,1);
+});
+test('a stalled coach request leaves time for the configured fallback',async()=>{
+ const {generate}=require('./services/geminiTransport');let attempts=0;
+ const result=await generate({apiKey:'fixture',modelName:'coach',fallbackModel:'light',body:{}},{timeoutMs:500,attemptTimeoutMs:5,sleep:async()=>{},fetchImpl:async(url,{signal})=>{
+  attempts++;
+  if(url.includes('/light:'))return {ok:true,json:async()=>({ok:true})};
+  await new Promise(resolve=>setTimeout(resolve,10));signal.throwIfAborted();
+ }});
+ assert.equal(attempts,3);assert.equal(result.model,'light');
 });
 test('length recommendation connects characters, sentences and paragraphs',()=>{
  assert.deepEqual(recommend('chars',300),{targetChars:300,targetSentences:6,targetParagraphs:2});
