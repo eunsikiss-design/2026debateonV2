@@ -47,6 +47,7 @@ for(const s of input){
  // Detailed models supplied for five topics remain teacher references, separately labelled.
  base.originalEpisode=s.episode;
  if(s.rawAttractive){for(const field of ['rubric','essays','speeches','dialogues','standard'])if(s.rawAttractive[field])base[field]=s.rawAttractive[field];base.providedDetails=s.rawAttractive;}
+ for(const [stance,models] of Object.entries(base.speeches))base.speeches[stance]=models.map(model=>({...model,paragraphs:model.paragraphs||String(model.text||'').split(/\n\s*\n/),judgment:model.judgment||'제공 자료의 입론 예시입니다. 사실·통계·법령 인용은 원출처 확인이 필요합니다.'}));
  materials.push(base);
 }
 const allTerms=[...new Set(topics.flatMap(t=>t.keyConcepts))];
