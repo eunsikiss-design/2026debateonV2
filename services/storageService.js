@@ -93,10 +93,28 @@ class StorageService {
       ...previous,
       ...userData,
       uid,
-      createdAt: previous.createdAt || userData.createdAt || new Date().toISOString(),
-      lastLoginAt: new Date().toISOString()
+      createdAt: previous.createdAt || userData.createdAt || new Date().toISOString()
     };
     store.users[uid] = user;
+    this._write(store);
+    return user;
+  }
+
+  // Count a new visit after 30 minutes without a recorded visit. Refreshes within
+  // one minute do not write to disk, and historical visits are never invented.
+  recordStudentVisit(uid, at = new Date().toISOString()) {
+    const store = this._read();
+    const user = store.users[uid];
+    if (!user || user.role !== 'student' || user.onboardingComplete !== true) return null;
+    const now = Date.parse(at), previous = Date.parse(user.lastAccessAt || '');
+    if (!Number.isFinite(now)) throw new Error('Invalid visit timestamp');
+    const newVisit = !Number.isFinite(previous) || now - previous >= 30 * 60 * 1000;
+    if (!newVisit && now - previous < 60 * 1000) return user;
+    user.lastAccessAt = at;
+    if (newVisit) {
+      user.visitCount = (Number(user.visitCount) || 0) + 1;
+      user.lastLoginAt = at;
+    }
     this._write(store);
     return user;
   }
@@ -480,4 +498,3 @@ class StorageService {
 
 
 module.exports = new StorageService();
-

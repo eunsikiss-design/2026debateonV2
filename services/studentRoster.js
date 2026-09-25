@@ -50,7 +50,8 @@ class StudentRoster {
       return { studentNumber: entry.studentNumber, name: entry.name || user?.name || null, grade: entry.grade, classId: entry.classId,
         seatNumber: entry.seatNumber, transferSlot: !entry.name, registered: Boolean(user?.onboardingComplete),
         authProvider: user?.authProvider || null, email: user?.email || null, registeredAt: user?.registeredAt || null,
-        consentAt: user?.privacyConsentAt || null, lastLoginAt: user?.lastLoginAt || null };
+        consentAt: user?.privacyConsentAt || null, lastLoginAt: user?.lastLoginAt || null,
+        lastAccessAt: user?.lastAccessAt || null, visitCount: Number.isInteger(user?.visitCount) ? user.visitCount : null };
     });
   }
 }

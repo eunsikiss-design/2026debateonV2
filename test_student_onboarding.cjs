@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {StudentRoster}=require('./services/studentRoster');
+const storageService=require('./services/storageService');
 
 test('roster requires matching names and permits named claims for blank transfer slots',()=>{
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'debateon-roster-')),file=path.join(root,'roster.json');
@@ -22,5 +23,30 @@ test('registration status joins roster slots to completed student profiles',()=>
     assert.equal(status.length,2);assert.equal(status[0].registered,true);assert.equal(status[1].registered,false);assert.equal(status[1].transferSlot,true);
     const withEmail=roster.registrationStatus([{uid:'u',role:'student',studentNumber:'10101',name:'등록학생',email:'student@example.com',onboardingComplete:true}]);
     assert.equal(withEmail[0].email,'student@example.com');assert.equal(withEmail[1].email,null);
+    const visited=roster.registrationStatus([{uid:'u',role:'student',studentNumber:'10101',name:'등록학생',onboardingComplete:true,registeredAt:'2026-09-23T00:00:00Z',lastAccessAt:'2026-09-25T04:30:00Z',visitCount:3}]);
+    assert.equal(visited[0].registeredAt,'2026-09-23T00:00:00Z');
+    assert.equal(visited[0].lastAccessAt,'2026-09-25T04:30:00Z');
+    assert.equal(visited[0].visitCount,3);
+    assert.equal(visited[1].visitCount,null);
   }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('student visits group refreshes and resume after 30 minutes of inactivity',()=>{
+  const storage=Object.create(Object.getPrototypeOf(storageService));
+  let store={users:{student:{uid:'student',role:'student',onboardingComplete:true},teacher:{uid:'teacher',role:'teacher',onboardingComplete:true}}};
+  storage._read=()=>structuredClone(store);
+  storage._write=data=>{store=structuredClone(data);return true;};
+  assert.equal(storage.recordStudentVisit('teacher','2026-09-25T00:00:00Z'),null);
+  storage.recordStudentVisit('student','2026-09-25T00:00:00Z');
+  assert.equal(store.users.student.visitCount,1);
+  storage.recordStudentVisit('student','2026-09-25T00:00:20Z');
+  assert.equal(store.users.student.lastAccessAt,'2026-09-25T00:00:00Z');
+  storage.recordStudentVisit('student','2026-09-25T00:29:00Z');
+  assert.equal(store.users.student.visitCount,1);
+  storage.recordStudentVisit('student','2026-09-25T00:59:00Z');
+  assert.equal(store.users.student.visitCount,2);
+  assert.equal(store.users.student.lastAccessAt,'2026-09-25T00:59:00Z');
+  storage.saveUser({uid:'student',name:'등록학생'});
+  assert.equal(store.users.student.visitCount,2);
+  assert.equal(store.users.student.lastAccessAt,'2026-09-25T00:59:00Z');
 });

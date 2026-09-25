@@ -167,11 +167,11 @@ const server = http.createServer(async (req, res) => {
   }
   const socialCallback = pathname.match(/^\/api\/auth\/(naver|kakao)\/callback$/);
   if (socialCallback && req.method === 'GET') {
-    try{const params=new URLSearchParams(urlParts[1]||'');const profile=await socialAuth.complete(socialCallback[1],params.get('code'),params.get('state'),req.headers.cookie);const created=await firebaseAuth.createSocialSession({provider:socialCallback[1],...profile}),restored=restoreStoredStudentProfile(created.profile);res.setHeader('Set-Cookie',[socialAuth.stateCookie(socialCallback[1],'',0),firebaseAuth.cookie(created.session,created.maxAgeSeconds)]);res.writeHead(302,{Location:restored.onboardingComplete?'/stitch_screens/13_learning_hub.html':'/stitch_screens/04_login_signup.html?onboarding=1'});res.end();}catch{res.writeHead(302,{Location:'/stitch_screens/04_login_signup.html?error=social_login_failed'});res.end();}return;
+    try{const params=new URLSearchParams(urlParts[1]||'');const profile=await socialAuth.complete(socialCallback[1],params.get('code'),params.get('state'),req.headers.cookie);const created=await firebaseAuth.createSocialSession({provider:socialCallback[1],...profile}),restored=restoreStoredStudentProfile(created.profile);if(restored.onboardingComplete)storageService.recordStudentVisit(restored.uid);res.setHeader('Set-Cookie',[socialAuth.stateCookie(socialCallback[1],'',0),firebaseAuth.cookie(created.session,created.maxAgeSeconds)]);res.writeHead(302,{Location:restored.onboardingComplete?'/stitch_screens/13_learning_hub.html':'/stitch_screens/04_login_signup.html?onboarding=1'});res.end();}catch{res.writeHead(302,{Location:'/stitch_screens/04_login_signup.html?error=social_login_failed'});res.end();}return;
   }
   if (pathname === '/api/auth/session' && req.method === 'POST') {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED',message:'Firebase Authentication 설정이 완료되지 않았습니다.'});return;}
-    try{const body=await parseRequestBody(req);if(!body.idToken)throw new Error('ID token required');const created=await firebaseAuth.createSession(body.idToken),restored=restoreStoredStudentProfile(created.profile);res.setHeader('Set-Cookie',firebaseAuth.cookie(created.session,created.maxAgeSeconds));sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(restored)});}catch{sendJSON(res,401,{success:false,error:'INVALID_ID_TOKEN',message:'로그인 정보를 확인할 수 없습니다.'});}return;
+    try{const body=await parseRequestBody(req);if(!body.idToken)throw new Error('ID token required');const created=await firebaseAuth.createSession(body.idToken),restored=restoreStoredStudentProfile(created.profile);if(restored.role==='student'&&restored.onboardingComplete)storageService.recordStudentVisit(restored.uid);res.setHeader('Set-Cookie',firebaseAuth.cookie(created.session,created.maxAgeSeconds));sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(restored)});}catch{sendJSON(res,401,{success:false,error:'INVALID_ID_TOKEN',message:'로그인 정보를 확인할 수 없습니다.'});}return;
   }
   if (pathname === '/api/auth/logout' && req.method === 'POST') {res.setHeader('Set-Cookie',firebaseAuth.cookie('',0));sendJSON(res,200,{success:true});return;}
   const publicReads = new Set(['/api/topics']);
@@ -204,7 +204,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pathname === '/api/auth/login') { sendJSON(res,410,{success:false,error:'LEGACY_LOGIN_REMOVED'});return; }
 
   // 2. Current verified session.
-  if (req.method === 'GET' && pathname === '/api/auth/me') { sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(req.auth)});return; }
+  if (req.method === 'GET' && pathname === '/api/auth/me') {if(req.auth.role==='student'&&req.auth.onboardingComplete)storageService.recordStudentVisit(req.auth.uid);res.setHeader('Cache-Control','private, no-store');sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(req.auth)});return; }
 
   if (req.method === 'POST' && pathname === '/api/auth/onboarding') {
     try {
@@ -219,6 +219,7 @@ const server = http.createServer(async (req, res) => {
         studentNumber:verified.studentNumber,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1'},profile={...req.auth,...profileData,onboardingComplete:true};
       storageService.saveUser({...profile,studentNumber:verified.studentNumber,name:verified.verifiedName,grade:verified.grade,classId:verified.classId,
         onboardingComplete:true,transferSlot:verified.transferSlot,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1',registeredAt:claimed?.registeredAt||now,dataOrigin:'verified'});
+      storageService.recordStudentVisit(profile.uid,now);
       try{Object.assign(profile,await firebaseAuth.completeStudentProfile(req.auth,profileData));}
       catch(error){console.warn('Firebase student profile sync deferred:',error?.code||error?.name||'unknown');}
       sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(profile)});
