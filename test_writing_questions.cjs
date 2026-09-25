@@ -36,7 +36,7 @@ test('length recommendation connects characters, sentences and paragraphs',()=>{
  assert.deepEqual(recommend('sentences',9),{targetChars:450,targetSentences:9,targetParagraphs:3});
  assert.deepEqual(recommend('paragraphs',NaN),{targetChars:600,targetSentences:12,targetParagraphs:3});
 });
-test('speech scenario uses the current named protagonists and distinct positions',()=>{for(const topic of learning.list(user)){const lesson=learning.lesson(topic.topicId,user);assert.ok(lesson.scenario.story.includes(lesson.scenario.role));assert.equal(lesson.speechScenario.perspectives.length,2);assert.notEqual(lesson.speechScenario.perspectives[0].reason,lesson.speechScenario.perspectives[1].reason);}});
+test('speech scenario uses the current named protagonists and distinct positions',()=>{for(const topic of learning.list(user)){const lesson=learning.lesson(topic.topicId,user);assert.equal(lesson.speechScenario.story,lesson.scenario.story);assert.equal(lesson.scenario.preserveEpisode,true);assert.equal(lesson.speechScenario.perspectives.length,0);}});
 
 test('AI planning receives the actual character and plan, and rejects invented context or terms',async t=>{
  const old={apiKey:coach.apiKey,coachModel:coach.coachModel,call:coach._callGeminiAPIWithPrompt};
@@ -47,7 +47,7 @@ test('AI planning receives the actual character and plan, and rejects invented c
  coach._callGeminiAPIWithPrompt=async request=>(received=request,{paragraphs:valid.paragraphs});
  const result=await coach.planAdvancedWriting({lesson,writingPlan:plan});
  assert.equal(result.source,'gemini-api');assert.equal(result.paragraphs.length,2);
- assert.match(received.userPrompt,/정태훈 카페 운영자/);assert.match(received.userPrompt,/화상 사고/);
+ assert.match(received.userPrompt,/정태훈/);assert.match(received.userPrompt,/화상/);
  assert.match(received.userPrompt,/"targetChars":300/);assert.doesNotMatch(received.userPrompt,/"essays":|"speeches":/);
  assert.throws(()=>questions.validate({paragraphs:[{...valid.paragraphs[0],contextQuote:'자료에 없는 해외 주거 통계입니다.'},valid.paragraphs[1]]},lesson,plan));
  assert.throws(()=>questions.validate({paragraphs:[{...valid.paragraphs[0],terms:['교사가 등록하지 않은 말']},valid.paragraphs[1]]},lesson,plan));

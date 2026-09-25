@@ -28,7 +28,7 @@
             card.append(ui.node('h3',label,'learning-section-title'),ui.node('p',value,'learning-question'));
             pair.append(card);
           }
-          copy.append(pair,ui.node('h3','핵심 개념'),ui.node('p','단어를 누르면 쉬운 뜻풀이가 열립니다.'),ui.concepts(current.conceptDefinitions),ui.node('p',current.textbookRef,'source-note'));
+          copy.append(pair,ui.node('h3','핵심 개념'),...(current.coreConceptText?[ui.node('p',current.coreConceptText,'episode-source-text')]:[]),ui.node('p','단어를 누르면 쉬운 뜻풀이가 열립니다.'),ui.concepts(current.conceptDefinitions),ui.node('p',current.textbookRef,'source-note'));
           activities.replaceChildren(ui.node('span','다음 활동','learning-kicker'),ui.node('h2','이 주제로 무엇을 해 볼까요?'),ui.node('p','활동을 고르면 소크라AI가 질문과 도움말로 함께합니다. 내 생각을 먼저 쓰거나 말한 뒤 피드백을 받아 보세요.'),ui.activityCards(lesson));
         }
         else{

@@ -18,3 +18,6 @@
 @media(max-width:767px){.scenario-characters{grid-template-columns:1fr}.scenario-visual{margin:-18px -18px 18px}.scenario-visual img{aspect-ratio:2/1}.scenario-person{padding:17px}}
 
 .learning-topic-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:24px 0}.learning-topic-card{min-width:0;padding:18px 20px;border:1px solid #3d5b70;border-radius:14px;background:#102031}.learning-topic-card .learning-section-title{font-size:1rem!important;margin:0 0 10px!important}.learning-topic-card .learning-question{font-size:1.1rem!important;line-height:1.55;margin:0!important;overflow-wrap:anywhere}@media(max-width:720px){.learning-topic-pair{grid-template-columns:1fr;gap:12px}.learning-topic-card{padding:16px}.learning-topic-card .learning-question{font-size:1.02rem!important}}
+
+/* Preserve workbook episode and issue line breaks as authored. */
+.episode-verbatim > p, .episode-source-text { white-space: pre-wrap; overflow-wrap: anywhere; }

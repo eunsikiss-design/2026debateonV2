@@ -5,6 +5,12 @@ const root=path.resolve(__dirname,'..'),source=process.argv[2];
 if(!source)throw Error('Provide the integrated source JSON path');
 function normalize(value){if(Array.isArray(value))return value.map(normalize);if(value&&typeof value==='object'){const keys=Object.keys(value);if(keys.length&&keys.every((k,i)=>k===String(i)))return keys.map(k=>normalize(value[k]));return Object.fromEntries(keys.map(k=>[k,normalize(value[k])]));}return value;}
 const input=normalize(JSON.parse(fs.readFileSync(source,'utf8')));
+const workbookPath=process.argv[3];
+if(!workbookPath)throw Error('Provide extracted workbook cells as the second input');
+const workbook=JSON.parse(fs.readFileSync(workbookPath,'utf8'));
+const workbookRows=workbook.rows.filter(r=>/^\d+$/.test(r.cells.A||''));
+if(workbook.sheet!=='20대 정예논제 총괄 총람'||workbookRows.length!==20)throw Error('Expected the 20-topic workbook sheet');
+for(const s of input){const row=workbookRows.find(r=>r.cells.B===s.unitCode);if(!row||['E','G','H','I'].some(c=>!row.cells[c]))throw Error('Missing mandatory workbook cells: '+s.unitCode);Object.assign(s,{topic:row.cells.E,concepts:row.cells.G,episode:row.cells.H,issues:row.cells.I});}
 if(input.length!==20||new Set(input.map(x=>x.no)).size!==20)throw Error('Expected exactly 20 unique topics');
 // Classroom adaptations: preserve the dispute, make each stakeholder visible,
 // and distinguish fictional conditions from real statistics/legal findings.
@@ -35,14 +41,20 @@ const dictionary=JSON.parse(fs.readFileSync(path.join(root,'data/keyword-diction
 const definitions=new Map([...oldKeywords.keywords,...dictionary.keywords].map(w=>[w.term,w.definition]));
 for(const [term,definition] of Object.entries(require('./twenty-topic-definitions.cjs')))definitions.set(term,definition);
 const topics=[],plans={},materials=[];
-const sourceNote='교사가 제공한 2022개정 통합사회2 20논제 통합 자료를 수업용으로 재구성했습니다. 쪽수·성취기준은 제공 자료의 표기이며, 가상 인물과 상황은 교과서 원문이나 실제 사건·통계가 아닙니다.';
+const sourceNote='교사 제공 엑셀 「20대 정예논제 총괄 총람」의 E열 논제, G열 핵심 교과 개념, H열 에피소드, I열 필수 쟁점을 수록했습니다. 에피소드의 문구와 어투는 원문을 유지합니다.';
 for(const s of input){
  const [title,a,ac,b,bc,draftedEssay,proposition]=rows[s.no-1],id='episode2026_'+s.unitCode.replace('-','_'),cid='episode2026-'+s.unitCode;
  const essay=s.rawAttractive?.essayTask||draftedEssay;
  const concepts=s.concepts.split(/,\s*(?![^()]*\))/).filter(Boolean),checks=s.issues.split('\n').map(x=>x.replace(/^\d+\.\s*/,''));
  const plan={question:s.topic,essayPrompt:essay,textbookRef:s.pages,debateGoal:`${title}에 관한 두 입장의 이익과 부담을 비교하고 자신의 판단을 근거와 함께 설명합니다.`,essayGoal:essay.replace(/하시오\.$/,'합니다.'),setting:`다음은 ‘${title}’에 관해 검토하기 위한 수업용 가상 상황입니다. 등장인물은 ${a}, ${b}입니다. 서로 다른 처지와 이해관계를 비교합니다. 아래 주장은 검토 대상이며, 실제 통계나 법적 판단으로 확정된 내용이 아닙니다.`,characters:[{name:a,context:ac,position:`‘${proposition}’라는 주장에 동의하는 입장입니다.`},{name:b,context:bc,position:`이 주장에 동의하지 않거나, 현재의 조건에서는 시행하기 어렵다는 입장입니다.`}],claimant:a,proposition,issue:checks[0].replace(/^쟁점:\s*/,'').replace(/[?？]$/,''),advancedComplication:`정책을 결정하는 회의에서 ${a}는 자신의 요구를 바로 반영해 달라고 요청하고, ${b}는 부담을 줄일 조건부터 마련해 달라고 요청합니다. 예산과 준비 기간에는 한계가 있습니다. 시행 범위·예외·비용 분담·효과 확인 방법을 정하고, 자신의 방안으로도 해결되지 않는 문제를 설명해야 합니다.`,conceptApplications:concepts.map(term=>({term,application:`${title}에서 ${a}와 ${b}의 처지와 판단 기준을 ‘${term}’의 의미에 비추어 비교합니다.`})),feedbackPoints:checks};
  plans[id]=plan;
- topics.push({topicId:id,curriculumId:cid,title,unit:'통합사회2 '+['','Ⅰ. 인권 보장과 헌법','Ⅱ. 사회 정의와 불평등','Ⅲ. 시장경제와 지속가능발전','Ⅳ. 세계화와 평화','Ⅴ. 미래와 지속가능한 삶'][Number(s.unitCode[0])],chapter:title,question:s.topic,essayPrompt:essay,background:plan.setting,keyConcepts:concepts,textbookRef:s.pages,sourceType:'교사 제공 20논제 · 수업용 재구성',sourceUrl:'',difficulty:'중급',recommendedLevel:1,recommendedBadge:'badge_reasoning'});
+ plan.preserveEpisode=true;
+ plan.setting=s.episode;
+ plan.coreConceptText=s.concepts;
+ plan.issue=s.issues;
+ plan.conceptApplications=concepts.map(term=>({term,application:`「${term}」의 뜻을 에피소드 속 주장과 이해관계에 적용하여 필수 쟁점을 검토합니다.`}));
+ plan.advancedComplication='에피소드의 조건을 바탕으로 자신의 판단을 설명하고, 필수 쟁점에 따라 다른 주장의 근거와 예상되는 결과를 비교합니다. 필요한 적용 조건이나 예외가 있다면 이유와 함께 제안합니다.';
+ topics.push({topicId:id,curriculumId:cid,title,unit:'통합사회2 '+['','Ⅰ. 인권 보장과 헌법','Ⅱ. 사회 정의와 불평등','Ⅲ. 시장경제와 지속가능발전','Ⅳ. 세계화와 평화','Ⅴ. 미래와 지속가능한 삶'][Number(s.unitCode[0])],chapter:title,question:s.topic,essayPrompt:essay,background:plan.setting,coreConceptText:s.concepts,requiredIssues:s.issues,keyConcepts:concepts,textbookRef:s.pages,sourceType:'교사 제공 엑셀 · E·G·H·I 원문 수록',sourceUrl:'',difficulty:'중급',recommendedLevel:1,recommendedBadge:'badge_reasoning'});
  const base={id:cid,title,unit:s.unit,primaryStandard:s.standard,standard:{summary:'제공 자료의 성취기준 코드입니다. 아래 평가는 수업용 관찰 기준이며 공식 성취수준 판정이 아닙니다.',A:'개념·근거·반론·조건을 종합하여 판단합니다.',B:'개념과 근거를 연결하고 다른 입장을 검토합니다.',C:'자신의 판단과 관련된 이유를 설명합니다.',D:'쟁점과 이유의 연결을 보완합니다.',E:'개념과 쟁점의 뜻부터 확인합니다.'},case:plan.setting,taskChecks:checks,caution:'예시답안의 수치·법령 해석·일반화는 제공 자료의 주장입니다. 현실의 사실로 활용하기 전 출처 확인이 필요합니다. 찬반 선택 자체로 수준을 판단하지 않습니다.',sources:{provided:'교사 제공 20논제 통합 자료집',printedPages:s.pages},rubric:['개념의 뜻과 상황 적용','주장과 근거의 연결','다른 입장과 조건 검토'].map(criterion=>({criterion,target:essay,'5':'개념과 상황을 정확히 연결하고 반론과 적용 조건까지 설명합니다.','4':'근거와 다른 입장을 비교하지만 일부 조건의 설명이 부족합니다.','3':'입장과 관련된 이유를 설명합니다.','2':'입장은 있으나 이유와의 연결이 불분명합니다.','1':'의견을 제시하지만 이유를 확인하기 어렵습니다.'})),essays:['A','B','C'].map((level,i)=>({level,label:['제공 예시 1','제공 예시 2','제공 예시 3'][i],paragraphs:[s['student'+level]],judgment:'제공 파일의 예시 구분입니다. 내용의 정확성과 개념 적용, 주장·이유의 연결을 교사가 확인하여 판단합니다.',standardLink:'연결 성취기준: '+s.standard,nextStep:'검증되지 않은 사실 표현을 구별하고 반대 입장이 제기할 조건을 검토합니다.'})),speeches:{},dialogues:[{direction:'찬반 입장 비교',question:checks[0],answer:'찬성 측 참고 논거: '+s.pro,counter:'반대 측 참고 논거: '+s.con,rebuttal:'반대 우려가 실제로 생기는 조건을 검토하고 자신의 방안을 수정하거나 보완합니다.',judge:'근거의 정확성과 개념 적용, 상대 논거에 직접 답하는지 살핍니다.'}]};
  // Detailed models supplied for five topics remain teacher references, separately labelled.
  base.originalEpisode=s.episode;
