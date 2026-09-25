@@ -3,6 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const topics=require('../data/topics.json');
 const materials=require('../data/learning-materials.json');
 const defaults=require('../data/keywords.json').keywords;
+const {mergeDictionary,dictionary}=require('./keywordDictionary');
 const lessonPlan=require('./lessonPlan');
 const BASIC_RUBRIC=[
  {name:'내 생각',description:'이 상황에서 내가 어떤 선택을 할지 분명하게 말했나요?'},
@@ -18,20 +19,36 @@ const ACTIVITIES=[
 function fail(message,status=400,code='INVALID_KEYWORD'){throw Object.assign(new Error(message),{status,code});}
 class LearningService {
  constructor(file=process.env.TEACHING_CONFIG_PATH||path.join(process.env.DATA_STORE_PATH?path.dirname(path.resolve(process.env.DATA_STORE_PATH)):path.join(__dirname,'../data'),'teaching-config.json')){this.file=file;this.drafts=new (require('./learningDraftStore').LearningDraftStore)(file+'.drafts.json');}
- read(){if(!fs.existsSync(this.file))return {version:1,schools:{}};const db=JSON.parse(fs.readFileSync(this.file,'utf8'));if(db.version!==1||!db.schools||typeof db.schools!=='object')throw Error('TEACHING_STORE_INVALID');return db;}
+ read(){
+  if(!fs.existsSync(this.file))return {version:1,schools:{}};
+  const db=JSON.parse(fs.readFileSync(this.file,'utf8'));
+  if(db.version!==1||!db.schools||typeof db.schools!=='object')throw Error('TEACHING_STORE_INVALID');
+  let changed=false;
+  for(const [scope,current] of Object.entries(db.schools)){
+   const next=mergeDictionary(current,{saved:true});
+   if(next!==current){db.schools[scope]=next;changed=true;}
+  }
+  if(changed){
+   const backup=this.file+'.before-'+dictionary.id+'.bak';
+   if(!fs.existsSync(backup))fs.copyFileSync(this.file,backup,fs.constants.COPYFILE_EXCL);
+   const temp=this.file+'.'+crypto.randomUUID()+'.tmp';
+   try{fs.writeFileSync(temp,JSON.stringify(db,null,2),{encoding:'utf8',mode:0o600});fs.renameSync(temp,this.file);}finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
+  }
+  return db;
+ }
  scope(user){if(!user?.schoolId)fail('학교 정보가 없어 핵심 단어를 불러올 수 없습니다.',403,'SCHOOL_REQUIRED');return crypto.createHash('sha256').update(String(user.schoolId)).digest('hex');}
- config(user){const db=this.read(),saved=db.schools[this.scope(user)];return saved||{revision:0,keywords:structuredClone(defaults)};}
+ config(user){const db=this.read(),saved=db.schools[this.scope(user)];return saved||mergeDictionary({revision:0,keywords:structuredClone(defaults)});}
  keywords(user){return structuredClone(this.config(user));}
  mutate(user,method,id,input={}){
   if(user?.role!=='teacher')fail('교사만 핵심 단어를 변경할 수 있습니다.',403,'TEACHER_REQUIRED');
-  const db=this.read(),scope=this.scope(user),current=db.schools[scope]||{revision:0,keywords:structuredClone(defaults)};
+  const db=this.read(),scope=this.scope(user),current=db.schools[scope]||mergeDictionary({revision:0,keywords:structuredClone(defaults)});
   if(!Number.isInteger(input.revision)||input.revision!==current.revision)fail('다른 곳에서 변경했습니다. 새로고침 후 다시 저장하세요.',409,'REVISION_CONFLICT');
   const list=structuredClone(current.keywords),index=list.findIndex(w=>w.id===id);
   if(method!=='POST'&&index<0)fail('해당 단어를 찾을 수 없습니다.',404,'KEYWORD_NOT_FOUND');
   if(method==='DELETE')list.splice(index,1);
   else {
    const term=String(input.term||'').trim(),definition=String(input.definition||'').trim(),source=String(input.source||'교사 편집').trim();
-   if(!term||term.length>80||!definition||definition.length>800||source.length>180)fail('단어(1~80자), 뜻풀이(1~800자), 출처 메모(180자 이내)를 확인하세요.');
+   if(!term||term.length>80||!definition||definition.length>800||source.length>1200)fail('단어(1~80자), 뜻풀이(1~800자), 출처 메모(1200자 이내)를 확인하세요.');
    if(!Array.isArray(input.topicIds)||!input.topicIds.length||input.topicIds.some(t=>!topics.some(x=>x.topicId===t)))fail('적용할 주제를 한 개 이상 선택하세요.');
    if(list.some(w=>w.id!==id&&w.term.normalize('NFC')===term.normalize('NFC')))fail('같은 이름의 단어가 있습니다. 기존 단어의 적용 주제를 수정하세요.',409,'DUPLICATE_KEYWORD');
    if(method==='POST'&&list.length>=400)fail('핵심 단어는 최대 400개까지 저장할 수 있습니다.');

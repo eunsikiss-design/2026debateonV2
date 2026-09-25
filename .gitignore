@@ -12,6 +12,7 @@ data/*
 !data/lesson-plans.json
 !data/keywords.json
 !data/keyword-definitions.json
+!data/keyword-dictionary.json
 reports/
 *.log
 .tmp/
