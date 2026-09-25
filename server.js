@@ -50,6 +50,25 @@ function restoreStoredStudentProfile(profile) {
   };
 }
 
+function teacherClasses(user) {
+  const rosterSchool = process.env.STUDENT_SCHOOL_ID || process.env.ADMIN_SCHOOL_ID || user.schoolId;
+  if (user.schoolId !== rosterSchool) return [{ grade: Number(user.grade), classId: Number(user.classId) }];
+  const classes = new Map();
+  for (const student of studentRoster.students) {
+    if (!Number.isInteger(student.grade) || !Number.isInteger(student.classId)) continue;
+    classes.set(`${student.grade}-${student.classId}`, { grade: student.grade, classId: student.classId });
+  }
+  classes.set(`${user.grade}-${user.classId}`, { grade: Number(user.grade), classId: Number(user.classId) });
+  return [...classes.values()].sort((a,b) => a.grade-b.grade || a.classId-b.classId);
+}
+
+function teacherClass(user, classValue) {
+  if (!classValue) return { schoolId: user.schoolId, grade: Number(user.grade), classId: Number(user.classId) };
+  const selected = teacherClasses(user).find(item => `${item.grade}-${item.classId}` === classValue);
+  if (!selected) throw Object.assign(new Error('담당 학교 명단에 없는 학급입니다.'), { status: 403 });
+  return { schoolId: user.schoolId, ...selected };
+}
+
 function broadcastDebate(roomId, event, payload) {
   const clients = debateStreams.get(roomId);
   if (!clients) return;
@@ -391,10 +410,18 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/api/teacher/classes') {
+    const classes = teacherClasses(req.auth);
+    sendJSON(res, 200, { success: true, classes }); return;
+  }
+
   // 7. 교사용 학급 설정: GET /api/teacher/class-settings & POST
   if (pathname === '/api/teacher/class-settings') {
     if (req.method === 'GET') {
-      const {schoolId,grade,classId}=req.auth;
+      let scope;
+      try { scope = teacherClass(req.auth, queryParams.get('class')); }
+      catch (error) { sendJSON(res,error.status,{success:false,message:error.message});return; }
+      const {schoolId,grade,classId}=scope;
       const settings = storageService.getClassSettings(schoolId, grade, classId);
       sendJSON(res, 200, { success: true, settings });
       return;
@@ -403,11 +430,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST') {
       try {
         const body = await parseRequestBody(req);
-        const { requiredBadgeCount, activeTopicId } = body; const {schoolId,grade,classId,uid:teacherUid}=req.auth;
+        const { requiredBadgeCount, activeTopicId } = body; const {schoolId,grade,classId}=teacherClass(req.auth,body.class); const teacherUid=req.auth.uid;
         const updated = storageService.updateClassSettings(schoolId, grade, classId, { requiredBadgeCount, activeTopicId }, teacherUid);
         sendJSON(res, 200, { success: true, settings: updated });
       } catch (err) {
-        sendJSON(res, 400, { success: false, error: err.message });
+        sendJSON(res, err.status || 400, { success: false, error: err.message });
       }
       return;
     }
@@ -415,7 +442,10 @@ const server = http.createServer(async (req, res) => {
 
   // 8. 교사용 학급 학생 현황: GET /api/teacher/students-status
   if (req.method === 'GET' && pathname === '/api/teacher/students-status') {
-    const {schoolId,grade,classId}=req.auth;
+    let scope;
+    try { scope = teacherClass(req.auth, queryParams.get('class')); }
+    catch (error) { sendJSON(res,error.status,{success:false,message:error.message});return; }
+    const {schoolId,grade,classId}=scope;
     const students = storageService.getClassStudentsStatus(schoolId, grade, classId);
     sendJSON(res, 200, { success: true, students });
     return;
@@ -423,6 +453,8 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && pathname === '/api/teacher/registration-status') {
     res.setHeader('Cache-Control','private, no-store');
+    const rosterSchool = process.env.STUDENT_SCHOOL_ID || process.env.ADMIN_SCHOOL_ID || req.auth.schoolId;
+    if (req.auth.schoolId !== rosterSchool) { sendJSON(res,403,{success:false,error:'SCHOOL_SCOPE_REQUIRED'});return; }
     const registrations=studentRoster.registrationStatus(storageService.getUsers());
     sendJSON(res,200,{success:true,total:registrations.length,registered:registrations.filter(item=>item.registered).length,registrations});return;
   }
@@ -442,7 +474,10 @@ const server = http.createServer(async (req, res) => {
 
   // 8-2. 교사용 학급 전체 역량 분석 및 다음 수업 추천: GET /api/teacher/class-analytics (지시서 제79, 80조)
   if (req.method === 'GET' && pathname === '/api/teacher/class-analytics') {
-    const {schoolId,grade,classId}=req.auth;
+    let scope;
+    try { scope = teacherClass(req.auth, queryParams.get('class')); }
+    catch (error) { sendJSON(res,error.status,{success:false,message:error.message});return; }
+    const {schoolId,grade,classId}=scope;
     const analytics = storageService.getClassAnalytics(schoolId, grade, classId);
     sendJSON(res, 200, { success: true, analytics });
     return;
@@ -951,4 +986,3 @@ server.listen(PORT, HOST, () => {
   console.log(`- Active School: 예시고등학교 (고1 통합사회2)`);
   console.log(`=======================================================`);
 });
-

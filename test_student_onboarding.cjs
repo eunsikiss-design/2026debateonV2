@@ -20,5 +20,7 @@ test('registration status joins roster slots to completed student profiles',()=>
     fs.writeFileSync(file,JSON.stringify({version:1,students:[{studentNumber:'10101',name:'등록학생'},{studentNumber:'10102',name:null}]}));
     const roster=new StudentRoster(file),status=roster.registrationStatus([{uid:'u',role:'student',studentNumber:'10101',name:'등록학생',onboardingComplete:true,privacyConsentAt:'2026-09-23T00:00:00Z'}]);
     assert.equal(status.length,2);assert.equal(status[0].registered,true);assert.equal(status[1].registered,false);assert.equal(status[1].transferSlot,true);
+    const withEmail=roster.registrationStatus([{uid:'u',role:'student',studentNumber:'10101',name:'등록학생',email:'student@example.com',onboardingComplete:true}]);
+    assert.equal(withEmail[0].email,'student@example.com');assert.equal(withEmail[1].email,null);
   }finally{fs.rmSync(root,{recursive:true,force:true});}
 });

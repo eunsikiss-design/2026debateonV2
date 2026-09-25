@@ -17,7 +17,15 @@ test('persistent enrollment restores onboarding status on later sessions',async(
 test('advanced writing and speech submissions use the authenticated student identity',async()=>{let r=await request('/api/practice/advanced/submit','POST','student',{userId:'forged',topicId:'curriculum_1_01',studentDraft:'학생 논술',paragraphLevel:3});assert.equal(r.status,200);r=await request('/api/speech/submit','POST','student',{userId:'forged',topicId:'curriculum_1_01',transcript:'학생 발화',durationSeconds:30});assert.equal(r.status,200);assert.deepEqual(savedSessions.map(item=>item.userId),['student','student']);assert.deepEqual(savedSessions.map(item=>item.mode),['advanced_essay','speech_timer']);});
 test('students cannot call teacher APIs',async()=>assert.equal((await request('/api/teacher/class-settings','GET','student')).status,403));
 test('teacher class scope comes from verified profile, not query',async()=>{const r=await request('/api/teacher/class-settings?schoolId=other&grade=9&classId=9','GET','teacher');assert.equal(r.status,200);assert.deepEqual(captured,['school-a',1,2]);});
+test('teacher may select a roster class but cannot request an invented class',async()=>{
+  roster.students=[{grade:1,classId:3}];
+  const allowed=await request('/api/teacher/class-settings?class=1-3','GET','teacher');
+  assert.equal(allowed.status,200);assert.deepEqual(captured,['school-a',1,3]);
+  const forbiddenClass=await request('/api/teacher/class-settings?class=9-9','GET','teacher');
+  assert.equal(forbiddenClass.status,403);
+  const forbiddenSave=await request('/api/teacher/class-settings','POST','teacher',{class:'9-9',requiredBadgeCount:1});
+  assert.equal(forbiddenSave.status,403);
+});
 test('students can only request their own detailed growth record',async()=>assert.equal((await request('/api/growth/student/other','GET','student')).status,403));
 test('student room response omits teacher observations',async()=>{const r=await request('/api/debate/room/r','GET','student');assert.equal(r.status,200);assert.equal(r.json().teacherObservations,undefined);});
 test('teacher-only room initialization is enforced',async()=>assert.equal((await request('/api/debate/room/init','POST','student',{})).status,403));
-
