@@ -4,6 +4,7 @@ const topics=require('../data/topics.json');
 const materials=require('../data/learning-materials.json');
 const defaults=require('../data/keywords.json').keywords;
 const {mergeDictionary,dictionary}=require('./keywordDictionary');
+const {migrateCatalogue,VERSION}=require('./catalogueMigration');
 const lessonPlan=require('./lessonPlan');
 const BASIC_RUBRIC=[
  {name:'내 생각',description:'이 상황에서 내가 어떤 선택을 할지 분명하게 말했나요?'},
@@ -25,11 +26,11 @@ class LearningService {
   if(db.version!==1||!db.schools||typeof db.schools!=='object')throw Error('TEACHING_STORE_INVALID');
   let changed=false;
   for(const [scope,current] of Object.entries(db.schools)){
-   const next=mergeDictionary(current,{saved:true});
-   if(next!==current){db.schools[scope]=next;changed=true;}
+   const next=migrateCatalogue(mergeDictionary(current,{saved:true}),{saved:true});
+   if(next!==current){next.revision=current.revision+1;db.schools[scope]=next;changed=true;}
   }
   if(changed){
-   const backup=this.file+'.before-'+dictionary.id+'.bak';
+   const backup=this.file+'.before-'+VERSION+'.bak';
    if(!fs.existsSync(backup))fs.copyFileSync(this.file,backup,fs.constants.COPYFILE_EXCL);
    const temp=this.file+'.'+crypto.randomUUID()+'.tmp';
    try{fs.writeFileSync(temp,JSON.stringify(db,null,2),{encoding:'utf8',mode:0o600});fs.renameSync(temp,this.file);}finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
@@ -37,11 +38,11 @@ class LearningService {
   return db;
  }
  scope(user){if(!user?.schoolId)fail('학교 정보가 없어 핵심 단어를 불러올 수 없습니다.',403,'SCHOOL_REQUIRED');return crypto.createHash('sha256').update(String(user.schoolId)).digest('hex');}
- config(user){const db=this.read(),saved=db.schools[this.scope(user)];return saved||mergeDictionary({revision:0,keywords:structuredClone(defaults)});}
+ config(user){const db=this.read(),saved=db.schools[this.scope(user)];return saved||migrateCatalogue(mergeDictionary({revision:0,keywords:structuredClone(defaults)}));}
  keywords(user){return structuredClone(this.config(user));}
  mutate(user,method,id,input={}){
   if(user?.role!=='teacher')fail('교사만 핵심 단어를 변경할 수 있습니다.',403,'TEACHER_REQUIRED');
-  const db=this.read(),scope=this.scope(user),current=db.schools[scope]||mergeDictionary({revision:0,keywords:structuredClone(defaults)});
+  const db=this.read(),scope=this.scope(user),current=db.schools[scope]||migrateCatalogue(mergeDictionary({revision:0,keywords:structuredClone(defaults)}));
   if(!Number.isInteger(input.revision)||input.revision!==current.revision)fail('다른 곳에서 변경했습니다. 새로고침 후 다시 저장하세요.',409,'REVISION_CONFLICT');
   const list=structuredClone(current.keywords),index=list.findIndex(w=>w.id===id);
   if(method!=='POST'&&index<0)fail('해당 단어를 찾을 수 없습니다.',404,'KEYWORD_NOT_FOUND');
@@ -65,6 +66,7 @@ class LearningService {
  plan(id,config){const p=config.lessons?.[id]||lessonPlan.defaults[id];if(!p)fail('수업 자료를 찾을 수 없습니다.',404,'TOPIC_NOT_FOUND');return structuredClone(p);}
  savePlan(id,user,input){
   if(user.role!=='teacher')fail('교사만 수업 자료를 수정할 수 있습니다.',403,'TEACHER_REQUIRED');
+  if(!topics.some(t=>t.topicId===id))fail('현재 수업 목록의 주제가 아닙니다.',404,'TOPIC_NOT_FOUND');
   const db=this.read(),scope=this.scope(user),current=this.config(user);this.plan(id,current);
   if(!Number.isInteger(input.revision)||input.revision!==current.revision)fail('다른 곳에서 변경했습니다. 최신 자료를 불러와 비교한 뒤 저장하세요.',409,'REVISION_CONFLICT');
   const plan=lessonPlan.validate(input.plan);

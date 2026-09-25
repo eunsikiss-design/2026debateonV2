@@ -15,7 +15,7 @@ function seed(){
  if(fs.existsSync(storeFile))return;
  const now=new Date().toISOString(),users={},practiceSessions=[],studentBadges=[];
  users.teacher={uid:'teacher',role:'teacher',name:'가상 담임교사',schoolId,grade,classId,authProvider:'simulation',onboardingComplete:true,createdAt:now};
- const topics=['curriculum_1_01','curriculum_1_02','curriculum_2_01'];
+ const topics=require('../data/topics.json').slice(0,3).map(t=>t.topicId);
  for(let i=1;i<=24;i++){
   const studentUid=uid(i),studentNumber=number(i);
   users[studentUid]={uid:studentUid,role:'student',name:name(i),studentNumber,email:studentUid+'@example.invalid',schoolId,grade,classId,authProvider:'simulation',dataOrigin:'verified',onboardingComplete:true,registeredAt:now,privacyConsentAt:now,createdAt:now,lastLoginAt:now};
@@ -28,7 +28,7 @@ function seed(){
   }
   if(count>=2)studentBadges.push({id:'sim-badge-'+studentNumber,userId:studentUid,badgeType:'badge_reasoning',badgeName:'가상 연습 뱃지',earnedAt:now});
  }
- const store={users,classSettings:{[`${schoolId}_${grade}_${classId}`]:{schoolId,grade,classId,requiredBadgeCount:1,activeTopicId:'curriculum_1_01',updatedBy:'simulation',updatedAt:now}},studentBadges,practiceSessions,teacherObservations:[],auditLogs:[]};
+ const store={users,classSettings:{[`${schoolId}_${grade}_${classId}`]:{schoolId,grade,classId,requiredBadgeCount:1,activeTopicId:topics[0],updatedBy:'simulation',updatedAt:now}},studentBadges,practiceSessions,teacherObservations:[],auditLogs:[]};
  fs.writeFileSync(storeFile,JSON.stringify(store,null,2),{mode:0o600});
 }
 

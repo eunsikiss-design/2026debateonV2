@@ -147,22 +147,24 @@ class StorageService {
         grade,
         classId,
         requiredBadgeCount: 1,
-        activeTopicId: "topic_justice_basic_income",
+        activeTopicId: this.getTopics()[0]?.topicId,
         updatedBy: "system",
         updatedAt: new Date().toISOString()
       };
       this._write(store);
     }
-    return store.classSettings[key];
+    const settings=store.classSettings[key];
+    if(!this.getTopic(settings.activeTopicId))return {...settings,previousTopicId:settings.activeTopicId,activeTopicId:this.getTopics()[0]?.topicId};
+    return settings;
   }
 
   updateClassSettings(schoolId, grade, classId, options, updatedBy = "demo_teacher") {
     const store = this._read();
     const key = `${schoolId}_${grade}_${classId}`;
-    const prev = store.classSettings[key] || { requiredBadgeCount: 1, activeTopicId: "topic_justice_basic_income" };
+    const prev = store.classSettings[key] || { requiredBadgeCount: 1, activeTopicId: this.getTopics()[0]?.topicId };
 
     let requiredBadgeCount = prev.requiredBadgeCount || 1;
-    let activeTopicId = prev.activeTopicId || "topic_justice_basic_income";
+    let activeTopicId = this.getTopic(prev.activeTopicId)?prev.activeTopicId:this.getTopics()[0]?.topicId;
 
     if (typeof options === "number" || typeof options === "string") {
       requiredBadgeCount = parseInt(options, 10);

@@ -9,9 +9,9 @@ test('two students receive live messages; room scope, membership, team and finis
  const call=async(url,id,body)=>{const res=await fetch(app.origin+url,{method:body===undefined?'GET':'POST',headers:{cookie:'test_uid='+id,origin:app.origin,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return {status:res.status,data:await res.json()};};
  try{
   assert.equal((await call('/api/debate/current','one')).data.room,null);
-  assert.equal((await call('/api/debate/room/init','one',{topicId:'curriculum_1_01'})).status,403);
-  const created=await call('/api/debate/room/init','teacher',{topicId:'curriculum_1_01',durationMinutes:10});assert.equal(created.status,200);const roomId=created.data.room.roomId;
-  assert.equal((await call('/api/debate/room/init','teacher',{topicId:'curriculum_1_01'})).status,409);
+  assert.equal((await call('/api/debate/room/init','one',{topicId:'episode2026_1_01'})).status,403);
+  const created=await call('/api/debate/room/init','teacher',{topicId:'episode2026_1_01',durationMinutes:10});assert.equal(created.status,200);const roomId=created.data.room.roomId;
+  assert.equal((await call('/api/debate/room/init','teacher',{topicId:'episode2026_1_01'})).status,409);
   assert.equal((await call('/api/debate/room/'+roomId,'outsider')).status,403);
   assert.equal((await call('/api/debate/join','outsider',{roomId})).status,403);
   assert.equal((await call('/api/debate/join','unbadged',{roomId,teamId:'pro'})).data.eligible,false);

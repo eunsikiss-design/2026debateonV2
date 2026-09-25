@@ -1,12 +1,12 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const topics=require('./data/topics.json');
-test('40 curriculum topics cover five units with unique IDs and complete writing tasks',()=>{
+test('20 teacher-supplied topics cover five units with unique IDs and complete writing tasks',()=>{
  const curriculum=topics.filter(t=>t.curriculumId);
- assert.equal(curriculum.length,40);assert.equal(new Set(topics.map(t=>t.topicId)).size,topics.length);
+ assert.equal(curriculum.length,20);assert.equal(new Set(topics.map(t=>t.topicId)).size,topics.length);
  const groups=Object.groupBy(curriculum,t=>t.unit);assert.equal(Object.keys(groups).length,5);
- for(const group of Object.values(groups))assert.equal(group.length,8);
+ assert.deepEqual(Object.values(groups).map(group=>group.length),[4,5,4,3,4]);
  for(const t of curriculum){assert.ok(t.question&&t.essayPrompt&&t.sourceType&&t.textbookRef);assert.ok(t.keyConcepts.length>=2);}
- for(const id of ['topic_justice_basic_income','topic_sns_shutdown','topic_affirmative_action'])assert.ok(topics.some(t=>t.topicId===id));
+ for(const id of ['episode2026_1_01','episode2026_1_02','episode2026_2_02'])assert.ok(topics.some(t=>t.topicId===id));
 });
 test('every curriculum topic resolves through storage and coaches use its own concepts',async()=>{
  const storage=require('./services/storageService'),coach=require('./services/geminiService');

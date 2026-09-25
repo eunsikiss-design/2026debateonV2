@@ -1,7 +1,7 @@
 (() => {
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
   const state=$('#teacher-state'), toast=$('#teacher-toast'); let teacher=null, students=[],registrations=[],connected=false,currentPanel='overview';
-  const pageTitles={overview:'학급 운영 대시보드',registration:'학생 가입 현황',students:'학생별 준비도',assignments:'수업 논제와 배틀 기준',battle:'실시간 토론 관찰',keywords:'핵심 단어 관리',materials:'40논제 수업 자료',rubric:'수행평가 기준',evidence:'교과 근거 라이브러리',growth:'학급 성장 근거',records:'세특 작성 지원',sync:'보고용 데이터 동기화'};
+  const pageTitles={overview:'학급 운영 대시보드',registration:'학생 가입 현황',students:'학생별 준비도',assignments:'수업 논제와 배틀 기준',battle:'실시간 토론 관찰',keywords:'핵심 단어 관리',materials:'20논제 수업 자료',rubric:'수행평가 기준',evidence:'교과 근거 라이브러리',growth:'학급 성장 근거',records:'세특 작성 지원',sync:'보고용 데이터 동기화'};
   function show(message){toast.textContent=message;toast.hidden=false;clearTimeout(show.t);show.t=setTimeout(()=>toast.hidden=true,5000);}
   function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   async function api(url,options){const res=await fetch(url,options);const body=await res.json().catch(()=>({}));if(!res.ok)throw Object.assign(new Error(body.message||body.error||'요청을 처리하지 못했습니다.'),{status:res.status});return body;}
