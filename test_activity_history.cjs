@@ -7,6 +7,7 @@ test('a student can revisit their own topic-specific writing and speech, includi
   const h=build(path.join(dir,'teaching.json')),server=await h.start();t.after(server.close);
   const topicId='episode2026_1_01',otherTopic='episode2026_1_02';
   const call=async(url,role='student',method='GET',body)=>fetch(server.origin+url,{method,headers:{cookie:role?'test_role='+role:'','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+  const script=await fetch(server.origin+'/assets/activity-history.js');assert.equal(script.status,200);assert.match(await script.text(),/activity-history-list/);
   let response=await call('/api/learning/drafts/'+topicId,'student','PUT',{mode:'speech',revision:0,content:{sourceText:'말하기 준비 글',claim:'나의 주장',reason:'핵심 이유',condition:'다른 의견',transcript:'연습 중인 말',targetDurationSeconds:90}});
   assert.equal(response.status,200);
   response=await call('/api/practice/submit','student','POST',{topicId,stance:'con',claim:'고친 주장',reason:'피드백 후 다시 쓴 이유',rebuttal:'다른 사람의 걱정',attemptCount:2,evaluation:{feedback:{question:'왜 그런가요?'}}});
