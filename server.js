@@ -267,6 +267,7 @@ const server = http.createServer(async (req, res) => {
   if(pathname==='/api/learning/history'&&req.method==='GET'){
     try{
       if(req.auth.role!=='student')throw Object.assign(Error('학생 활동 기록만 조회할 수 있습니다.'),{status:403});
+      const {hasDraftContent}=require('./services/learningDraftStore');
       const topicId=new URLSearchParams(urlParts[1]||'').get('topicId');
       if(topicId)learningService.topic(topicId,req.auth);
       const titles=new Map(learningService.list(req.auth).map(t=>[t.topicId,t.title]));
@@ -274,7 +275,7 @@ const server = http.createServer(async (req, res) => {
       const entries=[];
       for(const [id,modes] of Object.entries(drafts)){
         if(topicId&&id!==topicId)continue;
-        for(const mode of ['basic','advanced','speech'])if(modes[mode]){entries.push({kind:'draft',mode,topicId:id,topicTitle:titles.get(id)||id,updatedAt:modes[mode].updatedAt,content:modes[mode].content});for(const v of modes[mode].versions||[])entries.push({kind:'snapshot',mode,topicId:id,topicTitle:titles.get(id)||id,...v});}
+        for(const mode of ['basic','advanced','speech'])if(modes[mode]){if(hasDraftContent(mode,modes[mode].content))entries.push({kind:'draft',mode,topicId:id,topicTitle:titles.get(id)||id,updatedAt:modes[mode].updatedAt,content:modes[mode].content});for(const v of modes[mode].versions||[])if(hasDraftContent(mode,v.content))entries.push({kind:'snapshot',mode,topicId:id,topicTitle:titles.get(id)||id,...v});}
       }
       for(const s of storageService.getStudentPracticeSessions(req.auth.uid)){
         if(topicId&&s.topicId!==topicId)continue;

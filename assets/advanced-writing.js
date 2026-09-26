@@ -36,6 +36,8 @@
   }
   function build(){
     currentInputs().forEach((n,i)=>{paragraphDrafts[i]=n.value;});
+    const requested=plan(),preserved=planning.preserveParagraphs(requested,paragraphDrafts);setGoals(preserved);
+    if(preserved.targetParagraphs>requested.targetParagraphs)draftStatus.textContent='작성한 문단을 보존했습니다. 문단 수를 줄이려면 뒤 문단의 글을 먼저 옮겨 주세요.';
     const holder=$('paragraph-prompts');holder.replaceChildren();
     for(let i=0;i<plan().targetParagraphs;i++){
       const box=ui.node('section',undefined,'guided-paragraph guided-form');box.append(ui.node('h3',(i+1)+'문단'),ui.node('div',undefined,'paragraph-guidance'));

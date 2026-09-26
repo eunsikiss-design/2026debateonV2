@@ -1,6 +1,10 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 function error(message,status=400){throw Object.assign(Error(message),{status});}
+function hasDraftContent(mode,content={}){
+ const values=mode==='advanced'?content.paragraphs||[]:mode==='basic'?[content.reason,content.rebuttal]:[content.sourceText,content.claim,content.reason,content.condition,content.transcript];
+ return values.some(value=>typeof value==='string'&&value.trim());
+}
 class LearningDraftStore{
  constructor(file){this.file=file;}
  read(){return fs.existsSync(this.file)?JSON.parse(fs.readFileSync(this.file,'utf8')):{version:1,users:{}};}
@@ -12,6 +16,7 @@ class LearningDraftStore{
   let value;if(mode==='basic'){value={};for(const field of ['claim','reason','rebuttal']){if(typeof content[field]!=='string'||content[field].length>10000)error('초안은 항목별 10000자 이내로 입력하세요.');value[field]=content[field];}value.stance=content.stance==='con'?'con':'pro';}
   else if(mode==='advanced'){if(!Array.isArray(content.paragraphs)||content.paragraphs.length>20||content.paragraphs.some(p=>typeof p!=='string'||p.length>10000)||content.paragraphs.join('').length>40000)error('논술 초안 분량을 확인하세요.');value={paragraphs:content.paragraphs,writingPlan:require('../assets/writing-plan').normalize(content.writingPlan)};}
   else{value={};for(const field of ['sourceText','claim','reason','condition','transcript']){if(typeof content[field]!=='string'||content[field].length>40000)error('말하기 초안 분량을 확인하세요.');value[field]=content[field];}value.targetDurationSeconds=[45,90,180,300].includes(Number(content.targetDurationSeconds))?Number(content.targetDurationSeconds):45;}
+  if(input.snapshot===true&&!hasDraftContent(mode,value))error('저장할 내용이 없습니다. 글이나 말한 내용을 작성한 뒤 저장해 주세요.');
   const db=this.read(),key=this.key(user),current=db.users[key]?.[topicId]?.[mode];if(revision!==(current?.revision||0))error('다른 화면에서 초안을 변경했습니다. 현재 글을 복사해 보관한 뒤 새로고침하세요.',409);
   const versions=current?.versions||[];
   if(input.snapshot===true)versions.push({version:versions.length+1,content:structuredClone(value),updatedAt:new Date().toISOString()});
@@ -21,4 +26,4 @@ class LearningDraftStore{
   return draft;
  }
 }
-module.exports={LearningDraftStore};
+module.exports={LearningDraftStore,hasDraftContent};

@@ -8,5 +8,6 @@
     return {targetChars,targetSentences,targetParagraphs};
   }
   function normalize(input={}){const base=recommend('paragraphs',input.targetParagraphs);return {targetChars:limit(input.targetChars,50,4000,base.targetChars),targetSentences:limit(input.targetSentences,1,80,base.targetSentences),targetParagraphs:base.targetParagraphs};}
-  return {recommend,normalize};
+  function preserveParagraphs(input,paragraphs){const result=normalize(input);const last=paragraphs.reduce((last,text,i)=>text.trim()?i+1:last,0);result.targetParagraphs=Math.max(result.targetParagraphs,last);return result;}
+  return {recommend,normalize,preserveParagraphs};
 });

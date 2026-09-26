@@ -20,3 +20,16 @@ test('speech feedback can switch text and Korean audio, stop, and explain unsupp
  node('feedback-delivery').value='text';node('feedback-delivery').fire('change');assert.equal(node('feedback-audio-controls').hidden,true);
  window.speechSynthesis=null;node('feedback-play').fire('click');assert.match(node('feedback-audio-status').textContent,/지원하지 않습니다/);
 });
+
+test('reducing writing goals preserves written paragraphs through saving and speech import',()=>{
+ const planning=require('./assets/writing-plan');
+ const paragraphs=['','둘째 문단에 쓴 글','마지막 문단에 쓴 글'];
+ const plan=planning.preserveParagraphs(planning.recommend('chars',50),paragraphs);
+ assert.equal(plan.targetParagraphs,3);
+ const content={paragraphs:paragraphs.slice(0,plan.targetParagraphs),writingPlan:plan};
+ const source=loader().writingSource({drafts:{advanced:{content}}},'advanced');
+ assert.deepEqual(source.content.paragraphs,paragraphs);
+ assert.equal(planning.preserveParagraphs(planning.recommend('paragraphs',1),['첫 문단','','']).targetParagraphs,1);
+ const history={drafts:{advanced:{content:{paragraphs:['']},versions:[{version:1,content,updatedAt:'2026-09-26T12:00:00Z'}]}}};
+ assert.equal(loader().writingSource(history,'advanced').kind,'snapshot');
+});

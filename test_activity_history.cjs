@@ -44,4 +44,15 @@ test('a student can revisit their own topic-specific writing and speech, includi
   assert.ok(portfolio.sources.some(e=>e.label.includes('2차 저장본')&&e.text.includes('다시 작성한 이유')));
   assert.equal(history.entries.find(e=>e.kind==='draft'&&e.mode==='basic').content.reason,'최신 자동 저장');
   assert.equal((await call(url,'student','PUT',{mode:'basic',revision:1,snapshot:true,content:{claim:'',reason:'stale',rebuttal:''}})).status,409);
+  const empty={mode:'advanced',revision:0,content:{paragraphs:['   '],writingPlan:{targetParagraphs:1}}};
+  assert.equal((await call(url,'student','PUT',empty)).status,200);
+  const afterEmpty=await (await call('/api/learning/history?topicId='+topicId)).json();
+  assert.ok(!afterEmpty.entries.some(e=>e.kind==='draft'&&e.mode==='advanced'));
+  assert.equal((await call(url,'student','PUT',{...empty,revision:1,snapshot:true})).status,400);
+  const advanced={mode:'advanced',revision:1,snapshot:true,content:{paragraphs:['첫 문단','둘째 문단'],writingPlan:{targetParagraphs:2}}};
+  assert.equal((await call(url,'student','PUT',advanced)).status,200);
+  const available=await (await call(url)).json();
+  assert.deepEqual(available.drafts.advanced.versions[0].content.paragraphs,['첫 문단','둘째 문단']);
+  const finalHistory=await (await call('/api/learning/history?topicId='+topicId)).json();
+  assert.ok(finalHistory.entries.some(e=>e.kind==='snapshot'&&e.mode==='advanced'&&e.content.paragraphs.join(' ')==='첫 문단 둘째 문단'));
 });
