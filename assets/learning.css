@@ -21,3 +21,5 @@
 
 /* Preserve workbook episode and issue line breaks as authored. */
 .episode-verbatim > p, .episode-source-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.scenario-visual-episode a{display:block;cursor:zoom-in}.scenario-visual-episode img{aspect-ratio:auto;height:auto;max-height:none;object-fit:contain}.scenario-visual-episode figcaption{font-size:.82rem}
+@media(max-width:767px){.scenario-visual-episode img{aspect-ratio:auto}}

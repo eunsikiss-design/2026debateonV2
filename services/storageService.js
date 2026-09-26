@@ -281,6 +281,77 @@ class StorageService {
   }
 
   // --- 감사 로그 (Audit Logs, 지시서 제84조) ---
+  getStudentRecordEvidence(student) {
+    const store = this._read();
+    const rooms = Object.values(store.debateRooms || {}).filter(r => r.schoolId === student.schoolId && Number(r.grade) === Number(student.grade) && Number(r.classId) === Number(student.classId));
+    const roomIds = new Set(rooms.map(r => r.roomId));
+    return {
+      sessions: (store.practiceSessions || []).filter(s => s.userId === student.uid),
+      messages: rooms.flatMap(r => (r.messages || []).filter(m => m.authorUid === student.uid && m.dataOrigin === 'verified').map(m => ({...m, topicId:r.topicId, roomId:r.roomId}))),
+      observations: (store.teacherObservations || []).filter(o => o.studentUid === student.uid && roomIds.has(o.debateId))
+    };
+  }
+
+  getRecordSheetConfig(schoolId) {
+    return this._read().recordSheetConfigs?.['school:'+schoolId] || null;
+  }
+
+  getRecordSheetPendingCount(schoolId) {
+    const store=this._read(),id=store.recordSheetConfigs?.['school:'+schoolId]?.spreadsheetId;
+    return Object.values(store.users).filter(s=>{
+      if(s.schoolId!==schoolId||s.role!=='student')return false;
+      const key='student:'+s.uid,draft=store.schoolRecordDrafts?.[key],sync=store.recordSheetSync?.[key];
+      return draft?.status==='teacher-reviewed'&&(!id||sync?.spreadsheetId!==id||sync.status!=='synced'||sync.revision!==draft.revision);
+    }).length;
+  }
+
+  saveRecordSheetConfig(schoolId, config) {
+    const store=this._read(); store.recordSheetConfigs ||= {};
+    store.recordSheetConfigs['school:'+schoolId]=config;
+    if(!this._write(store))throw new Error('Sheet configuration persistence failed');
+    return config;
+  }
+
+  getRecordSheetSync(studentId) {
+    return this._read().recordSheetSync?.['student:'+studentId] || null;
+  }
+
+  saveRecordSheetSync(studentId, state) {
+    const store=this._read();store.recordSheetSync ||= {};
+    store.recordSheetSync['student:'+studentId]=state;
+    if(!this._write(store))throw new Error('Sheet sync state persistence failed');
+    return state;
+  }
+
+  getSchoolRecordDraft(studentId) {
+    return this._read().schoolRecordDrafts?.['student:'+studentId] || null;
+  }
+
+  getSchoolRecordAnalysis(studentId) {
+    return this._read().schoolRecordAnalyses?.['student:'+studentId] || null;
+  }
+
+  saveSchoolRecordAnalysis(studentId, analysis) {
+    const store = this._read();
+    store.schoolRecordAnalyses ||= {};
+    store.schoolRecordAnalyses['student:'+studentId] = analysis;
+    if (!this._write(store)) throw new Error('Record analysis storage failed');
+    return analysis;
+  }
+
+  saveSchoolRecordDraft(studentId, input, teacherUid) {
+    const store = this._read(), key = 'student:'+studentId;
+    store.schoolRecordDrafts ||= {};
+    const previous = store.schoolRecordDrafts[key];
+    if (input.revision !== (previous?.revision || 0)) throw Object.assign(new Error('다른 수정 내용이 저장되었습니다. 학생 기록을 다시 불러온 뒤 비교해 주세요.'), {status:409});
+    const record = {...input, studentId, revision:(previous?.revision || 0)+1, updatedBy:teacherUid, updatedAt:new Date().toISOString()};
+    store.schoolRecordDrafts[key] = record;
+    store.schoolRecordHistory ||= [];
+    if (previous) store.schoolRecordHistory.push(previous);
+    if (!this._write(store)) throw new Error('Record storage failed');
+    return record;
+  }
+
   addAuditLog(logEntry) {
     const store = this._read();
     const log = {

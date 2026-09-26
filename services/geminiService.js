@@ -93,7 +93,7 @@ ${grounding.context}
 각 항목은 {"cardId":"위 자료의 id", "quote":"해당 자료에서 그대로 가져온 12~300자", "explanation":"이 발췌와 피드백의 연결 설명"}입니다.
 인용은 요약하거나 고쳐 쓰지 마세요. 잘못된 학생 주장이나 자료 속 오답 선지를 사실로 인정하지 마세요.
 자료가 없거나 쓸 만한 근거가 없으면 evidenceBasis는 []로 두고, 근거가 확인되지 않았음을 feedback.nextChallenge에 밝히세요.
-${learningContext ? "원문 발췌가 없어도 제공된 만약에 상황과 최신 핵심 단어의 뜻을 바탕으로 개념 적용과 이유의 연결을 코칭하세요. 가상 상황을 현실의 근거로 인용하지 말고 evidenceBasis는 []로 둡니다. 학생에게 주제를 바꾸라고 요구하지 마세요." : "제공된 근거 자료가 비어 있으면 외부 지식, 과학적 사실, 구체적 예시를 새로 제시하거나 암시하지 마세요. 해당 주제가 현재 교과 자료 범위 밖임을 분명히 밝히고, 학생에게 교과 범위의 주제로 바꾸거나 검증 가능한 자료를 직접 제시할지 질문하세요."}
+${learningContext ? "원문 발췌가 없어도 제공된 생각을 여는 사례 상황과 최신 핵심 단어의 뜻을 바탕으로 개념 적용과 이유의 연결을 코칭하세요. 가상 상황을 현실의 근거로 인용하지 말고 evidenceBasis는 []로 둡니다. 학생에게 주제를 바꾸라고 요구하지 마세요." : "제공된 근거 자료가 비어 있으면 외부 지식, 과학적 사실, 구체적 예시를 새로 제시하거나 암시하지 마세요. 해당 주제가 현재 교과 자료 범위 밖임을 분명히 밝히고, 학생에게 교과 범위의 주제로 바꾸거나 검증 가능한 자료를 직접 제시할지 질문하세요."}
 
 위 학생 답변을 분석하여 지정된 JSON Schema 형식으로만 엄격히 진단 결과를 출력하십시오.
 절대 학생 대신 완성된 문장이나 모범 답안을 작성하지 말고, 사고를 촉진하는 1개의 질문을 제시하십시오.
@@ -225,8 +225,17 @@ ${learningContext ? "원문 발췌가 없어도 제공된 만약에 상황과 �
   /**
    * NEIS 학교생활기록부 과목별 세부능력 및 특기사항(세특) 초안 생성 (지시서 제56~62조)
    */
-  async generateSchoolRecordDraft() {
-    throw new Error('세특 생성은 검증된 수행 근거 연결 후 사용할 수 있습니다.');
+  async generateSchoolRecordDraft({sources}) {
+    const records=require('./schoolRecordService');
+    if (!Array.isArray(sources) || !sources.length) throw new Error('검증된 수행 근거가 필요합니다.');
+    if (this.apiKey && this.analysisModel) {
+      const {SCHOOL_RECORD_DRAFT_PROMPT,SCHOOL_RECORD_SCHEMA}=require('../prompts/studentRecordAnalysis');
+      try {
+        const result=await this._callGeminiAPIWithPrompt({modelName:this.analysisModel,fallbackModel:this.lightModel,systemPrompt:SCHOOL_RECORD_DRAFT_PROMPT,responseSchema:SCHOOL_RECORD_SCHEMA,userPrompt:JSON.stringify({subject:'통합사회2',sources})});
+        return {...records.validateAI(result,sources),model:result._servedModel||this.analysisModel};
+      } catch { console.warn('School record analysis unavailable or evidence validation failed; using source excerpts.'); }
+    }
+    return records.localDraft(sources);
   }
 }
 

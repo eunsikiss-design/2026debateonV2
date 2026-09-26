@@ -14,10 +14,14 @@
     "knowledge:model": "node scripts/download-embedding-model.cjs",
     "knowledge:verify-live": "node scripts/verify-grounding-live.cjs",
     "auth:provision-admin": "node scripts/provision-admin.cjs",
-    "test:learning": "node --test test_learning_flow.cjs test_topic_catalog.cjs test_stage4_auth.cjs test_stage10_ai.cjs test_stage6_speech.cjs test_connection_ui.cjs test_writing_questions.cjs test_teacher_lessons.cjs test_keyword_dictionary.cjs"
+    "test:learning": "node --test test_learning_flow.cjs test_topic_catalog.cjs test_stage4_auth.cjs test_stage10_ai.cjs test_stage6_speech.cjs test_connection_ui.cjs test_writing_questions.cjs test_teacher_lessons.cjs test_keyword_dictionary.cjs",
+    "test:reports": "node --test test_school_records.cjs test_student_reports.cjs"
   },
   "dependencies": {
+    "@huggingface/transformers": "3.8.1",
+    "exceljs": "4.4.0",
     "firebase-admin": "^14.4.0",
-    "@huggingface/transformers": "3.8.1"
+    "google-auth-library": "10.3.0",
+    "pdfkit": "0.17.2"
   }
 }

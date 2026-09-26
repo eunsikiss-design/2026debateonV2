@@ -21,10 +21,10 @@ function validate(input){
 function scenario(p){
  if(p.preserveEpisode){
   const choiceQuestion=`“${p.proposition}”라는 주장에 동의합니까, 동의하지 않습니까? 에피소드와 필수 쟁점을 바탕으로 자신의 판단과 이유를 설명해 주십시오.`;
-  return {title:'만약에',preserveEpisode:true,setting:p.setting,story:p.setting,characters:[],role:'에피소드 속 당사자',claimant:'',proposition:p.proposition,coreConceptText:p.coreConceptText,requiredIssues:p.issue,issue:p.issue,complication:'',advancedComplication:p.advancedComplication,choiceQuestion,invitation:choiceQuestion,options:[{value:'pro',label:'동의한다',claim:`내 생각에는 “${p.proposition}”라는 주장에 동의합니다.`},{value:'con',label:'동의하지 않는다',claim:`내 생각에는 “${p.proposition}”라는 주장에 동의하지 않습니다.`}]};
+  return {title:'생각을 여는 사례',preserveEpisode:true,setting:p.setting,story:p.setting,characters:[],role:'에피소드 속 당사자',claimant:'',proposition:p.proposition,coreConceptText:p.coreConceptText,requiredIssues:p.issue,issue:p.issue,complication:'',advancedComplication:p.advancedComplication,choiceQuestion,invitation:choiceQuestion,options:[{value:'pro',label:'동의한다',claim:`내 생각에는 “${p.proposition}”라는 주장에 동의합니다.`},{value:'con',label:'동의하지 않는다',claim:`내 생각에는 “${p.proposition}”라는 주장에 동의하지 않습니다.`}]};
  }
  const choiceQuestion=`${p.claimant}의 입장에서 제시한 “${p.proposition}”라는 주장에 동의합니까, 동의하지 않습니까? 자신의 판단을 밝히고, 다른 입장이 제기할 수 있는 걱정과 필요한 조건도 함께 설명해 주십시오.`;
- return {title:'만약에',setting:p.setting,role:p.claimant,claimant:p.claimant,proposition:p.proposition,characters:p.characters,
+ return {title:'생각을 여는 사례',setting:p.setting,role:p.claimant,claimant:p.claimant,proposition:p.proposition,characters:p.characters,
   story:p.setting+'\n\n'+p.characters.map(c=>`${c.name}: ${c.context}\n${c.position}`).join('\n\n'),
   complication:'핵심 쟁점은 '+p.issue+'입니다.',advancedComplication:p.advancedComplication,issue:p.issue,
   invitation:choiceQuestion,choiceQuestion,

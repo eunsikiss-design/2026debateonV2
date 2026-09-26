@@ -29,6 +29,10 @@ const firebaseAuth = require('./services/firebaseAuth');
 const socialAuth = require('./services/socialAuth');
 const studentRoster = require('./services/studentRoster');
 const learningService = require('./services/learningService');
+const schoolRecords = require('./services/schoolRecordService');
+const studentReports = require('./services/studentReportService');
+let recordSheetsInstance;
+function recordSheets(){return recordSheetsInstance ||= new (require('./services/schoolRecordSheets').SchoolRecordSheets)(storageService);}
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const ROOT = path.resolve(__dirname);
@@ -67,6 +71,15 @@ function teacherClass(user, classValue) {
   const selected = teacherClasses(user).find(item => `${item.grade}-${item.classId}` === classValue);
   if (!selected) throw Object.assign(new Error('담당 학교 명단에 없는 학급입니다.'), { status: 403 });
   return { schoolId: user.schoolId, ...selected };
+}
+
+function studentRecordPortfolio(teacher, studentId) {
+  const student = storageService.getUser(studentId);
+  if (!student || student.role !== 'student' || student.schoolId !== teacher.schoolId) throw Object.assign(new Error('담당 학교의 학생만 검토할 수 있습니다.'), {status:403});
+  teacherClass(teacher, `${student.grade}-${student.classId}`);
+  return schoolRecords.portfolio(storageService, student, id => {
+    try { return learningService.topic(id, teacher); } catch { return storageService.getTopic(id); }
+  });
 }
 
 function broadcastDebate(roomId, event, payload) {
@@ -922,26 +935,68 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 25. NEIS 학교생활기록부 세특 초안 생성: POST /api/teacher/generate-record (지시서 제56~62조)
+  if (req.method === 'GET' && pathname === '/api/teacher/student-report') {
+    try {
+      const format=queryParams.get('format');
+      if(!['xlsx','pdf'].includes(format))throw Object.assign(new Error('엑셀 또는 PDF 형식을 선택하세요.'),{status:400});
+      const portfolio=studentRecordPortfolio(req.auth,queryParams.get('studentId'));
+      const report=studentReports.build(portfolio,queryParams.get('revision'));
+      const buffer=await studentReports[format](report);
+      const name=`${report.student.isTestAccount?'시험용_':''}${report.student.studentNumber||'학생'}_토론활동보고서_v${report.revision}.${format}`;
+      res.writeHead(200,{'Content-Type':format==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition':`attachment; filename="student-report.${format}"; filename*=UTF-8''${encodeURIComponent(name)}`,'Content-Length':buffer.length,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});res.end(buffer);
+    }catch(err){sendJSON(res,err.status||500,{success:false,message:err.status?err.message:'보고서를 만들지 못했습니다. 다시 시도하세요.'});}
+    return;
+  }
+
+  if(pathname==='/api/teacher/record-sheets'&&['GET','PUT','DELETE'].includes(req.method)){
+    try{
+      res.setHeader('Cache-Control','no-store');
+      if(req.method==='PUT'){const body=await parseRequestBody(req);sendJSON(res,200,{success:true,...await recordSheets().connect(req.auth.schoolId,body.spreadsheetUrl,req.auth.uid)});}
+      else if(req.method==='DELETE')sendJSON(res,200,{success:true,...await recordSheets().disconnect(req.auth.schoolId)});
+      else{const uid=queryParams.get('studentId');if(uid)studentRecordPortfolio(req.auth,uid);sendJSON(res,200,{success:true,...recordSheets().status(req.auth.schoolId,uid)});}
+    }catch(err){sendJSON(res,err.status||500,{success:false,message:err.status?err.message:'시트 연결 설정을 처리하지 못했습니다.'});}
+    return;
+  }
+
+  if(req.method==='POST'&&pathname==='/api/teacher/record-sheets/sync'){
+    try{const body=await parseRequestBody(req),p=studentRecordPortfolio(req.auth,body.studentId);sendJSON(res,200,{success:true,...await recordSheets().sync(p.student,body.revision)});}
+    catch(err){sendJSON(res,err.status||500,{success:false,message:err.status?err.message:'시트 연동에 실패했습니다. 저장한 내용은 유지됩니다.'});}
+    return;
+  }
+
+  if (pathname === '/api/teacher/student-record' && ['GET','PUT'].includes(req.method)) {
+    try {
+      res.setHeader('Cache-Control','no-store');
+      const body=req.method==='PUT'?await parseRequestBody(req):null;
+      const studentId=body?.studentId||queryParams.get('studentId');
+      if(typeof studentId!=='string'||!studentId)throw Object.assign(new Error('학생을 선택하세요.'),{status:400});
+      const portfolio=studentRecordPortfolio(req.auth,studentId);
+      if(!body){sendJSON(res,200,{success:true,...portfolio});return;}
+      const sources=schoolRecords.selection(portfolio,body.evidenceIds),fingerprint=schoolRecords.fingerprint(sources);
+      if(body.evidenceFingerprint!==fingerprint)throw Object.assign(new Error('원문이나 수업 정보가 변경되었습니다. 다시 불러와 근거를 확인하세요.'),{status:409});
+      if(typeof body.draftText!=='string'||!body.draftText.trim()||body.draftText.length>10000)throw Object.assign(new Error('초안을 1~10,000자로 작성하세요.'),{status:400});
+      if(portfolio.student.isTestAccount&&body.reviewed===true)throw Object.assign(new Error('가상 학생 기록은 시험용 초안으로만 저장할 수 있습니다.'),{status:400});
+      const generated=[storageService.getSchoolRecordAnalysis(studentId),portfolio.saved?.generated].find(g=>g?.generationId&&g.generationId===body.generationId&&g.evidenceFingerprint===fingerprint)||null;
+      const saved=storageService.saveSchoolRecordDraft(studentId,{revision:body.revision,draftText:body.draftText.trim(),evidenceIds:sources.map(s=>s.id),evidenceFingerprint:fingerprint,evidence:sources,generated,reviewed:body.reviewed===true,status:portfolio.student.isTestAccount?'test-draft':body.reviewed===true?'teacher-reviewed':'draft'},req.auth.uid);
+      let sheetSync=null;
+      if(saved.status==='teacher-reviewed'&&recordSheets().status(req.auth.schoolId).connected){
+        try{sheetSync=await recordSheets().sync(portfolio.student,saved.revision);}
+        catch(err){sheetSync={...recordSheets().status(req.auth.schoolId,studentId),message:err.status?err.message:'초안은 저장했지만 시트 연동에 실패했습니다. 다시 시도하세요.'};}
+      }
+      sendJSON(res,200,{success:true,saved,sheetSync});
+    } catch(err){sendJSON(res,err.status||500,{success:false,message:err.status?err.message:'초안을 저장하거나 불러오지 못했습니다. 작성 내용은 유지됩니다.'});}
+    return;
+  }
+
+  // Grounded teacher draft; never sends records to Sheets or NEIS automatically.
   if (req.method === 'POST' && pathname === '/api/teacher/generate-record') {
     try {
       const body = await parseRequestBody(req);
-      const { studentId, roomId = "room_gangseo_1_3" } = body; if(!studentId){sendJSON(res,400,{success:false,error:'STUDENT_REQUIRED'});return;} const student=storageService.getUser(studentId); if(!student||!firebaseAuth.sameClass(req.auth,student.schoolId,student.grade,student.classId)){sendJSON(res,403,{success:false,error:'CLASS_SCOPE_REQUIRED'});return;}
-      const practiceSessions = storageService.getStudentPracticeSessions(studentId);
-      const room = storageService.getDebateRoom(roomId);
-      const debateMessages = room ? (room.messages || []) : [];
-      const teacherObservations = storageService.getTeacherObservations(roomId);
-      const badges = storageService.getStudentBadges(studentId);
-
-      const draft = await geminiService.generateSchoolRecordDraft({
-        student,
-        practiceSessions,
-        debateMessages,
-        teacherObservations,
-        badges
-      });
-
-      sheetSyncQueue.enqueue('SCHOOL_RECORD_DRAFT', { studentId, draft });
+      const {studentId}=body;
+      if(typeof studentId!=='string'||!studentId)throw Object.assign(new Error('학생을 선택하세요.'),{status:400});
+      const portfolio=studentRecordPortfolio(req.auth,studentId),sources=schoolRecords.selection(portfolio,body.evidenceIds);
+      const draft={...await geminiService.generateSchoolRecordDraft({sources}),generationId:require('node:crypto').randomUUID(),evidenceIds:sources.map(s=>s.id),evidenceFingerprint:schoolRecords.fingerprint(sources),generatedAt:new Date().toISOString(),isTestAccount:portfolio.student.isTestAccount};
+      storageService.saveSchoolRecordAnalysis(studentId,draft);
       sendJSON(res, 200, { success: true, draft });
     } catch (err) {
       sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
@@ -955,7 +1010,7 @@ const server = http.createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
   const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html','14_user_guide.html']);
-  const allowed = reqUrl === '/index.html' || ['/assets/speech-outline.js','/assets/learning-drafts.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
+  const allowed = reqUrl === '/index.html' || ['/assets/teacher-records.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||
     (/^\/assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:png|jpg|jpeg|svg|webp|ico|css|woff2?)$/.test(reqUrl));
   if (!allowed || reqUrl.includes('..') || reqUrl.includes('\\')) { res.writeHead(404); res.end('Not Found'); return; }

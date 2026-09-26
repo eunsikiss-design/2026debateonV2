@@ -76,7 +76,7 @@ class LearningService {
   return this.teacherMaterial(id,user);
  }
  topic(id,user,config=this.config(user)){const original=topics.find(t=>t.topicId===id);if(!original)fail('주제를 찾을 수 없습니다.',404,'TOPIC_NOT_FOUND');const words=config.keywords.filter(w=>w.topicIds.includes(id)),p=this.plan(id,config);return {...original,question:p.question,essayPrompt:p.essayPrompt,textbookRef:p.textbookRef,coreConceptText:p.coreConceptText,requiredIssues:p.preserveEpisode?p.issue:undefined,keyConcepts:words.map(w=>w.term),conceptDefinitions:words,keywordRevision:config.revision};}
- lesson(id,user){const config=this.config(user),topic=this.topic(id,user,config),p=this.plan(id,config),s=lessonPlan.scenario(p),conceptApplications=p.conceptApplications.filter(c=>topic.keyConcepts.includes(c.term));return {topic,scenario:s,speechScenario:{...s,title:'만약에 · 쟁점 토론',perspectives:s.characters.map(c=>({label:c.name,reason:c.position}))},pedagogy:{debateGoal:p.debateGoal,essayGoal:p.essayGoal,conceptApplications,textbookRef:p.textbookRef,sourceNote:lessonPlan.sourceNote},feedbackPoints:p.feedbackPoints,basicRubric:BASIC_RUBRIC,activities:ACTIVITIES,hasMaterials:!!this.material(id)};}
+ lesson(id,user){const config=this.config(user),topic=this.topic(id,user,config),p=this.plan(id,config),s=lessonPlan.scenario(p),conceptApplications=p.conceptApplications.filter(c=>topic.keyConcepts.includes(c.term));return {topic,scenario:s,speechScenario:{...s,title:'생각을 여는 사례 · 쟁점 토론',perspectives:s.characters.map(c=>({label:c.name,reason:c.position}))},pedagogy:{debateGoal:p.debateGoal,essayGoal:p.essayGoal,conceptApplications,textbookRef:p.textbookRef,sourceNote:lessonPlan.sourceNote},feedbackPoints:p.feedbackPoints,basicRubric:BASIC_RUBRIC,activities:ACTIVITIES,hasMaterials:!!this.material(id)};}
  list(user){const config=this.config(user);return topics.map(t=>this.topic(t.topicId,user,config));}
  teacherMaterial(id,user){if(user.role!=='teacher')fail('교사만 예시 자료를 볼 수 있습니다.',403,'TEACHER_REQUIRED');const config=this.config(user);return {lesson:this.lesson(id,user),plan:this.plan(id,config),revision:config.revision,material:this.material(id),notice:materials.notice,sourceNote:lessonPlan.sourceNote};}
  coaching(id,user,mode){const lesson=this.lesson(id,user),m=this.material(id);return {...lesson,scenario:mode==='speech'&&lesson.speechScenario?lesson.speechScenario:lesson.scenario,mode,requiredConcepts:lesson.topic.conceptDefinitions.slice(0,1),optionalConcepts:lesson.topic.conceptDefinitions.slice(1),teacherReference:m?{rubric:mode==='basic'?BASIC_RUBRIC:m.rubric,conceptCaution:m.caution,levelComparisons:m.essays.map(e=>({level:e.level,judgment:e.judgment})),argumentModels:mode==='speech'?m.speeches:null,questionPaths:m.dialogues,essayModels:mode==='advanced'?m.essays:null}:null};}
@@ -89,7 +89,7 @@ scenario.preserveEpisode가 true이면 scenario.story는 교사가 지정한 에
 핵심 단어의 최신 정의는 topic.conceptDefinitions를 따른다. 삭제된 단어를 필수 용어나 사용 여부 점검 대상으로 되살리지 않는다.
 뜻을 자기 말로 바르게 설명한 경우도 인정한다. 단어 개수나 글의 길이로 개념 이해·논리의 타당성을 확정하지 않는다.
 고1 학생이 이해할 쉬운 한국어를 사용한다. 교과 핵심 단어 외에 어려운 학술 용어는 일상 표현으로 풀어 쓴다. 핵심 단어도 필요하면 짧게 뜻을 설명한다.
-‘만약에’는 가상 이야기이다. 이야기 속 조건을 현실의 사실이나 통계로 주장하지 않는다. 조건을 바꾸거나 제3의 대안을 낸 답변도 살핀다.
+‘생각을 여는 사례’는 가상 이야기이다. 이야기 속 조건을 현실의 사실이나 통계로 주장하지 않는다. 조건을 바꾸거나 제3의 대안을 낸 답변도 살핀다.
 feedbackPoints는 도움이 되는 관찰 방향이며 필수 답안 목록이 아니다. 여기에 없는 타당한 개념 적용과 새로운 이유도 살핀다.
 teacherReference의 예시답안·입론·문답은 내부 비교 자료이다. 학생에게 복사하거나 특정 찬반 결론으로 이끌지 않는다. A~E를 학생의 확정 성적으로 사용하지 않는다.
 기초 연습에서는 개념의 뜻→상황 적용→이유→주장의 연결을 우선한다. 실제 통계가 없거나 선택 사항인 반론을 쓰지 않았다는 이유만으로 부족하다고 하지 않는다.
