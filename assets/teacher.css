@@ -22,3 +22,5 @@
 .record-sheet-panel a[hidden] { display: none; }
 .record-sheet-panel p { overflow-wrap: anywhere; }
 .record-sheet-panel summary { cursor: pointer; padding: .75rem 0; }
+
+.teacher-metrics [role=button]:focus-visible{outline:2px solid var(--neon-cyan);outline-offset:3px}.teacher-metrics [role=button]:hover{border-color:var(--neon-cyan)}#growth-content details{margin:16px 0;padding:16px;border:1px solid var(--hud-border);border-radius:10px}#growth-content summary{cursor:pointer;color:var(--neon-cyan)}#growth-content p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8}

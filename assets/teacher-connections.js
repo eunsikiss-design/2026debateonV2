@@ -24,7 +24,9 @@
    syncDetails.replaceChildren(node('p','최신 초안·각 저장본·완료 글·스피치 전사·토론 발언을 학생 활동 탭에 약 1분 간격으로 전송합니다. 원문은 앱에 먼저 저장되며, 실패한 전송은 재시도합니다. 세특은 교사가 검토 완료한 내용만 별도 세특 탭에 저장합니다.'));
    if(d.spreadsheetUrl){const link=node('a','연결된 Google 스프레드시트 열기');link.href=d.spreadsheetUrl;link.target='_blank';link.rel='noopener';syncDetails.append(link);}
    const button=node('button','지금 전송 · 실패 재시도');button.className='neon-button';button.disabled=!d.connected;button.onclick=()=>loadSync(true);syncDetails.append(button);
-   for(const s of d.students){const line=node('p',`${s.studentNumber} ${s.name} · ${s.entryCount}건 · ${s.status==='synced'?'전송 완료':s.status==='empty'?'저장된 활동 없음':'전송 대기'}${s.syncedAt?' · 마지막 성공 '+new Date(s.syncedAt).toLocaleString('ko-KR'):''}${s.message?' · '+s.message:''} `),b=node('button','기록 확인');b.onclick=()=>review(s);line.append(b);syncDetails.append(line);}
+   const filters=node('div'),list=node('div');filters.className='record-toolbar';list.setAttribute('aria-live','polite');syncDetails.append(filters,list);
+   const show=state=>{const items=d.students.filter(s=>!state||s.status===state);list.replaceChildren();if(!items.length)list.append(node('p','해당 학생이 없습니다.'));for(const s of items){const line=node('p',`${s.studentNumber} ${s.name} · ${s.entryCount}건 · ${s.status==='synced'?'전송 완료':s.status==='empty'?'저장된 활동 없음':'전송 대기'}${s.syncedAt?' · 마지막 성공 '+new Date(s.syncedAt).toLocaleString('ko-KR'):''}${s.message?' · '+s.message:''} `),b=node('button','기록 확인');b.className='neon-button';b.onclick=()=>review(s);line.append(b);list.append(line);}};
+   for(const [label,state] of [[`전체 ${d.students.length}명`,null],[`전송 완료 ${d.syncedCount}명`,'synced'],[`전송 대기 ${d.pendingCount}명`,'pending'],[`활동 없음 ${d.students.filter(s=>s.status==='empty').length}명`,'empty']]){const b=node('button',label);b.onclick=()=>show(state);filters.append(b);}show(null);
   }catch(e){syncDetails.replaceChildren(node('p',e.message));}
  }
  async function growth(){
