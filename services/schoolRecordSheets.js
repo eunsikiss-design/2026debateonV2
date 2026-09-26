@@ -34,17 +34,18 @@ class SchoolRecordSheets {
    fail('Google Sheets에 연결하지 못했습니다. 저장한 초안은 유지됩니다. 다시 시도하세요.',502);
   }
  }
- async ensureTab(id,title){
+ async ensureTab(id,title,headers=HEADERS){
+  const columns=headers.length,lastColumn=String.fromCharCode(64+columns);
   let meta=await this.request(id,'?fields=spreadsheetId,properties(title),sheets(properties)');
   let tab=meta.sheets?.find(s=>s.properties.title===title)?.properties;
-  if(!tab){const result=await this.request(id,':batchUpdate','POST',{requests:[{addSheet:{properties:{title,gridProperties:{rowCount:1000,columnCount:10,frozenRowCount:1}}}}]});tab=result.replies[0].addSheet.properties;}
-  const range=encodeURIComponent(`'${title}'!A1:J1`),old=await this.request(id,`/values/${range}`);
+  if(!tab){const result=await this.request(id,':batchUpdate','POST',{requests:[{addSheet:{properties:{title,gridProperties:{rowCount:1000,columnCount:columns,frozenRowCount:1}}}}]});tab=result.replies[0].addSheet.properties;}
+  const range=encodeURIComponent(`'${title}'!A1:${lastColumn}1`),old=await this.request(id,`/values/${range}`);
   if(old.values?.length&&old.values[0].some(v=>String(v).trim())){
-   if(JSON.stringify(old.values[0])!==JSON.stringify(HEADERS))fail(`${title} 탭의 열 구성이 다릅니다. 기존 자료를 보호하기 위해 연결을 중단했습니다.`,409);
+   if(JSON.stringify(old.values[0])!==JSON.stringify(headers))fail(`${title} 탭의 열 구성이 다릅니다. 기존 자료를 보호하기 위해 연결을 중단했습니다.`,409);
   }else{
-   await this.request(id,`/values/${range}?valueInputOption=RAW`,'PUT',{values:[HEADERS]});
+   await this.request(id,`/values/${range}?valueInputOption=RAW`,'PUT',{values:[headers]});
    await this.request(id,':batchUpdate','POST',{requests:[
-    {repeatCell:{range:{sheetId:tab.sheetId,startRowIndex:0,endRowIndex:1,startColumnIndex:0,endColumnIndex:10},cell:{userEnteredFormat:{backgroundColor:{red:.93,green:.94,blue:.96},textFormat:{bold:true},wrapStrategy:'WRAP'}},fields:'userEnteredFormat'}},
+    {repeatCell:{range:{sheetId:tab.sheetId,startRowIndex:0,endRowIndex:1,startColumnIndex:0,endColumnIndex:columns},cell:{userEnteredFormat:{backgroundColor:{red:.93,green:.94,blue:.96},textFormat:{bold:true},wrapStrategy:'WRAP'}},fields:'userEnteredFormat'}},
     {updateSheetProperties:{properties:{sheetId:tab.sheetId,gridProperties:{frozenRowCount:1}},fields:'gridProperties.frozenRowCount'}},
     {updateDimensionProperties:{range:{sheetId:tab.sheetId,dimension:'COLUMNS',startIndex:0,endIndex:10},properties:{pixelSize:130},fields:'pixelSize'}},
     {updateDimensionProperties:{range:{sheetId:tab.sheetId,dimension:'COLUMNS',startIndex:5,endIndex:6},properties:{pixelSize:650},fields:'pixelSize'}}

@@ -53,7 +53,7 @@
   function showIdentity(user) {
     if(!identity)return;const provider=String(user.authProvider||'계정').replace('.com','');
     identity.replaceChildren(element('strong','',user.role==='teacher'?'교사 관리자':`학번 ${user.studentNumber||'미등록'}`),element('span','',`${user.name||'이름 미등록'} (${user.email||`이메일 미제공 · ${provider}`})`));
-    const logout=element('button','hud-account-switch','로그아웃');logout.type='button';logout.addEventListener('click',async()=>{await fetch('/api/auth/logout',{method:'POST'}).catch(()=>{});localStorage.removeItem('debateon_user');location.href=routes.auth;});identity.append(logout);identity.hidden=false;
+    const logout=element('button','hud-account-switch','로그아웃');logout.type='button';logout.addEventListener('click',async()=>{logout.disabled=true;try{await window.LearningDrafts?.flushAll();const response=await fetch('/api/auth/logout',{method:'POST'});if(!response.ok)throw Error('로그아웃하지 못했습니다. 다시 시도해 주세요.');localStorage.removeItem('debateon_user');location.href=routes.auth;}catch(e){logout.disabled=false;logout.textContent='저장 확인 후 로그아웃 재시도';alert(e.message);}});identity.append(logout);identity.hidden=false;
   }
   async function checkConnection() {
     if(checking)return;checking=true;retry.disabled=true;state.setAttribute('aria-busy','true');

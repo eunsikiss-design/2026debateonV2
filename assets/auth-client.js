@@ -15,6 +15,16 @@
   async function configureProviders(){try{const data=await api('/api/auth/providers');for(const [name,button] of [['naver',naverButton],['kakao',kakaoButton]]){const enabled=Boolean(data.providers?.[name]);button.disabled=!enabled;const note=button.querySelector('.provider-note');if(note)note.textContent=enabled?'':'현재 연결 준비 중';}}catch{message('로그인 서버 상태를 확인할 수 없습니다.');}}
   async function checkSession(){try{const data=await api('/api/auth/me');continueWith(data.user);return true;}catch(error){if(error.status!==401)message(error.message);return false;}}
   googleButton.addEventListener('click',signInWithGoogle);
+  function emailError(error){return ({'auth/email-already-in-use':'이미 가입된 이메일입니다. 로그인하거나 비밀번호를 재설정하세요.','auth/invalid-credential':'이메일 또는 비밀번호를 확인해 주세요.','auth/wrong-password':'이메일 또는 비밀번호를 확인해 주세요.','auth/user-not-found':'이메일 또는 비밀번호를 확인해 주세요.','auth/invalid-email':'올바른 이메일 주소를 입력해 주세요.','auth/weak-password':'비밀번호는 6자 이상으로 설정해 주세요.','auth/operation-not-allowed':'이메일 로그인이 아직 활성화되지 않았습니다. 교사에게 알려 주세요.','auth/too-many-requests':'요청이 많습니다. 잠시 뒤 다시 시도해 주세요.'})[error.code]||'로그인을 완료하지 못했습니다. 연결을 확인하고 다시 시도해 주세요.';}
+  async function emailSignIn(signup){
+    if(signingIn||!$('email-form').reportValidity())return;signingIn=true;
+    const buttons=['email-login','email-signup','email-reset'].map($);buttons.forEach(b=>b.disabled=true);message('이메일 계정을 확인하고 있습니다.');
+    try{const {auth,authModule}=await firebaseClient();auth.languageCode='ko';const method=signup?authModule.createUserWithEmailAndPassword:authModule.signInWithEmailAndPassword;const credential=await method(auth,$('email-address').value.trim(),$('email-password').value);$('email-password').value='';await exchangeSession(await credential.user.getIdToken(true));await authModule.signOut(auth);}
+    catch(error){message(emailError(error));}finally{signingIn=false;buttons.forEach(b=>b.disabled=false);}
+  }
+  $('email-form')?.addEventListener('submit',e=>{e.preventDefault();emailSignIn(false);});
+  $('email-signup')?.addEventListener('click',()=>emailSignIn(true));
+  $('email-reset')?.addEventListener('click',async()=>{if(signingIn||!$('email-address').reportValidity())return;signingIn=true;try{const {auth,authModule}=await firebaseClient();auth.languageCode='ko';await authModule.sendPasswordResetEmail(auth,$('email-address').value.trim());message('가입된 이메일이라면 비밀번호 재설정 메일이 발송됩니다. 메일함과 스팸함을 확인하세요.');}catch(error){message(emailError(error));}finally{signingIn=false;}});
   naverButton.addEventListener('click',()=>{if(!naverButton.disabled)location.href='/api/auth/naver/start';});
   kakaoButton.addEventListener('click',()=>{if(!kakaoButton.disabled)location.href='/api/auth/kakao/start';});
   $('onboarding-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('complete-signup-btn');button.disabled=true;message('학교 명단과 가입 정보를 확인하고 있습니다.');try{const form=event.currentTarget,data=await api('/api/auth/onboarding',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({studentNumber:form.elements.studentNumber.value.trim(),name:form.elements.name.value.trim(),privacyConsent:form.elements.privacyConsent.checked})});continueWith(data.user);}catch(error){message(error.message);button.disabled=false;}});

@@ -45,19 +45,20 @@ class StorageService {
       const raw = fs.readFileSync(STORE_PATH, 'utf-8');
       return JSON.parse(raw);
     } catch (err) {
-      console.error('Storage read error, using initial store:', err);
-      return INITIAL_STORE;
+      throw new Error('저장된 기록을 읽지 못했습니다. 원본 파일을 확인해야 합니다.',{cause:err});
     }
   }
 
   _write(data) {
     try {
       this._ensureStore();
-      fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+      const temp=STORE_PATH+'.'+require('crypto').randomUUID()+'.tmp';
+      try{fs.writeFileSync(temp,JSON.stringify(data,null,2),{encoding:'utf8',mode:0o600});fs.renameSync(temp,STORE_PATH);}
+      finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
       return true;
     } catch (err) {
       console.error('Storage write error:', err);
-      return false;
+      throw new Error('기록 저장에 실패했습니다. 화면의 내용을 보관하고 다시 시도하세요.',{cause:err});
     }
   }
 
@@ -262,7 +263,7 @@ class StorageService {
   // --- 연습 세션 (Practice Sessions) ---
   savePracticeSession(sessionData) {
     const store = this._read();
-    const sessionId = sessionData.sessionId || `session_${Date.now()}`;
+    const sessionId = sessionData.sessionId || `session_${require('crypto').randomUUID()}`;
     const session = {
       ...sessionData,
       sessionId,
@@ -295,6 +296,9 @@ class StorageService {
   getRecordSheetConfig(schoolId) {
     return this._read().recordSheetConfigs?.['school:'+schoolId] || null;
   }
+
+  getActivitySheetSync(uid){return this._read().activitySheetSync?.[uid]||null;}
+  saveActivitySheetSync(uid,state){const db=this._read();db.activitySheetSync||={};db.activitySheetSync[uid]=state;this._write(db);return state;}
 
   getRecordSheetPendingCount(schoolId) {
     const store=this._read(),id=store.recordSheetConfigs?.['school:'+schoolId]?.spreadsheetId;

@@ -33,6 +33,8 @@ const schoolRecords = require('./services/schoolRecordService');
 const studentReports = require('./services/studentReportService');
 let recordSheetsInstance;
 function recordSheets(){return recordSheetsInstance ||= new (require('./services/schoolRecordSheets').SchoolRecordSheets)(storageService);}
+let activitySheetsInstance;
+function activitySheets(){return activitySheetsInstance ||= new (require('./services/activitySheets').ActivitySheets)(storageService,learningService,recordSheets());}
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const ROOT = path.resolve(__dirname);
@@ -487,7 +489,12 @@ const server = http.createServer(async (req, res) => {
     try { scope = teacherClass(req.auth, queryParams.get('class')); }
     catch (error) { sendJSON(res,error.status,{success:false,message:error.message});return; }
     const {schoolId,grade,classId}=scope;
-    const students = storageService.getClassStudentsStatus(schoolId, grade, classId);
+    const students = storageService.getClassStudentsStatus(schoolId, grade, classId).map(s=>{
+      const user=storageService.getUser(s.uid),drafts=user?learningService.drafts.list(user):{};
+      let savedCount=0,draftCount=0;const {hasDraftContent}=require('./services/learningDraftStore');
+      for(const modes of Object.values(drafts))for(const mode of ['basic','advanced','speech']){const d=modes[mode];if(!d)continue;if(hasDraftContent(mode,d.content))draftCount++;savedCount+=(d.versions||[]).filter(v=>hasDraftContent(mode,v.content)).length;}
+      return {...s,savedCount,draftCount};
+    });
     sendJSON(res, 200, { success: true, students });
     return;
   }
@@ -496,7 +503,7 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Cache-Control','private, no-store');
     const rosterSchool = process.env.STUDENT_SCHOOL_ID || process.env.ADMIN_SCHOOL_ID || req.auth.schoolId;
     if (req.auth.schoolId !== rosterSchool) { sendJSON(res,403,{success:false,error:'SCHOOL_SCOPE_REQUIRED'});return; }
-    const registrations=studentRoster.registrationStatus(storageService.getUsers());
+    const registrations=studentRoster.registrationStatus(storageService.getUsers().filter(u=>u.schoolId===req.auth.schoolId));
     sendJSON(res,200,{success:true,total:registrations.length,registered:registrations.filter(item=>item.registered).length,registrations});return;
   }
 
@@ -976,6 +983,10 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if(pathname==='/api/teacher/activity-sheets'&&['GET','POST'].includes(req.method)){
+    try{const body=req.method==='POST'?await parseRequestBody(req):{},scope=teacherClass(req.auth,body.class||queryParams.get('class'));res.setHeader('Cache-Control','no-store');sendJSON(res,200,{success:true,...await (req.method==='POST'?activitySheets().syncAll(scope):activitySheets().status(scope))});}
+    catch(e){sendJSON(res,e.status||500,{success:false,message:e.status?e.message:'활동 연동 상태를 확인하지 못했습니다.'});}return;
+  }
   if(pathname==='/api/teacher/record-sheets'&&['GET','PUT','DELETE'].includes(req.method)){
     try{
       res.setHeader('Cache-Control','no-store');
@@ -1038,7 +1049,7 @@ const server = http.createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
   const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html','14_user_guide.html']);
-  const allowed = reqUrl === '/index.html' || ['/assets/teacher-records.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/activity-history.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
+  const allowed = reqUrl === '/index.html' || ['/assets/teacher-connections.js','/assets/teacher-records.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/activity-history.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||
     (/^\/assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:png|jpg|jpeg|svg|webp|ico|css|woff2?)$/.test(reqUrl));
   if (!allowed || reqUrl.includes('..') || reqUrl.includes('\\')) { res.writeHead(404); res.end('Not Found'); return; }
@@ -1064,6 +1075,8 @@ const server = http.createServer(async (req, res) => {
 
 const HOST = process.env.HOST || '0.0.0.0';
 server.listen(PORT, HOST, () => {
+  const sync=()=>activitySheets().tick().catch(()=>console.warn('Activity sheet sync deferred; records retained.'));
+  setTimeout(sync,3000).unref();setInterval(sync,60000).unref();
   console.log(`=======================================================`);
   console.log(`[DebateOn] AI Coach Server listening on ${HOST}:${PORT}`);
   console.log(`- Authentication: ${firebaseAuth.isConfigured() ? 'Firebase session enabled' : 'Firebase setup required'}`);

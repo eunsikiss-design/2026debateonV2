@@ -1,6 +1,6 @@
 (() => {
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-  const state=$('#teacher-state'), toast=$('#teacher-toast'); let teacher=null, students=[],registrations=[],connected=false,currentPanel='overview';
+  const state=$('#teacher-state'), toast=$('#teacher-toast'); let registrationFilter='class'; let teacher=null, students=[],registrations=[],connected=false,currentPanel='overview';
   const pageTitles={overview:'학급 운영 대시보드',registration:'학생 가입 현황',students:'학생별 검토',assignments:'수업 논제와 배틀 기준',battle:'실시간 토론 관찰',keywords:'핵심 단어 관리',materials:'20논제 수업 자료',rubric:'수행평가 기준',evidence:'교과 근거 라이브러리',growth:'학급 성장 근거',records:'학생 기록 분석 · 세특',sync:'보고용 데이터 동기화'};
   function show(message){toast.textContent=message;toast.hidden=false;clearTimeout(show.t);show.t=setTimeout(()=>toast.hidden=true,5000);}
   function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -14,12 +14,12 @@
   function renderRegistrations(){
     const body=$('#registration-rows'),classValue=$('#teacher-class-select').value,query=$('#registration-search').value.trim().toLocaleLowerCase();
     body.replaceChildren();
-    for(const item of registrations.filter(item=>`${item.grade}-${item.classId}`===classValue && (!query || [item.studentNumber,item.name,item.email].some(value=>String(value||'').toLocaleLowerCase().includes(query))))) {
+    for(const item of registrations.filter(item=>(registrationFilter==='class'?`${item.grade}-${item.classId}`===classValue:registrationFilter==='complete'?item.registered:registrationFilter==='pending'?!item.registered:true) && (!query || [item.studentNumber,item.name,item.email].some(value=>String(value||'').toLocaleLowerCase().includes(query))))) {
       const row=document.createElement('tr');
       row.innerHTML=`<td>${esc(item.studentNumber)}</td><td>${esc(item.name||'전입생용 빈 자리')}</td><td>${esc(item.grade)}-${esc(item.classId)}</td><td>${item.registered?'완료':'대기'}</td><td>${esc(item.authProvider||'—')}</td><td>${item.email?`<span class="student-email">${esc(item.email)}</span>`:'—'}</td><td>${visitDate(item.registeredAt)}</td><td>${visitDate(item.lastAccessAt)}</td><td>${visitTime(item.lastAccessAt)}</td><td>${item.visitCount??'—'}</td>`;
       body.append(row);
     }
-    $('#registration-table-title').textContent=`${$('#teacher-class-select').selectedOptions[0]?.textContent||'선택한 학급'} 학생`;
+    $('#registration-table-title').textContent=registrationFilter==='class'?`${$('#teacher-class-select').selectedOptions[0]?.textContent||'선택한 학급'} 학생`:'학교 전체 · '+({all:'전체 명단',complete:'가입 완료',pending:'가입 대기'}[registrationFilter]);
     const complete=registrations.filter(item=>item.registered).length,total=registrations.length,rate=total?Math.round(complete/total*100):0;
     $('#registration-total').textContent=total;$('#registration-complete').textContent=complete;$('#registration-pending').textContent=total-complete;
     const overall=$('#registration-overall-gauge');overall.style.setProperty('--rate',`${rate}%`);overall.setAttribute('aria-valuenow',String(rate));$('#registration-overall-rate').textContent=`${rate}%`;$('#registration-overall-caption').textContent=`${complete}명 / ${total}명 가입 완료`;
@@ -36,6 +36,7 @@
   }
   function showSheetStatus(sync){$('#metric-sync').textContent=sync.queueLength??'—';$('#sync-state').textContent=sync.connected?`세특 Google Sheets 연결됨 · 연동 대기 ${sync.queueLength||0}명`:'Google Sheets 연결 전';}
   document.addEventListener('teacher-record-sheet-change',event=>showSheetStatus(event.detail));
+  document.addEventListener('teacher-registration-filter',event=>{registrationFilter=event.detail;$('#registration-search').value='';renderRegistrations();});
   async function load(){connected=false;state.className='connection-state';state.innerHTML='<div><strong>CONNECTING</strong><span>교사 권한과 담당 학급을 확인하고 있습니다.</span></div>';
     try{const me=await api('/api/auth/me');if(me.user.role!=='teacher')throw Object.assign(new Error('교사 계정으로 로그인해야 합니다.'),{status:403});teacher=me.user;$('#teacher-identity').textContent=`${teacher.name||'교사'} · TEACHER`;
       const classSelect=$('#teacher-class-select'),previous=classSelect.disabled?'':classSelect.value,classData=await api('/api/teacher/classes');classSelect.replaceChildren();for(const item of classData.classes){const option=document.createElement('option');option.value=`${item.grade}-${item.classId}`;option.textContent=`${item.grade}학년 ${item.classId}반`;classSelect.append(option);}classSelect.value=previous&&[...classSelect.options].some(o=>o.value===previous)?previous:`${teacher.grade}-${teacher.classId}`;classSelect.disabled=false;
