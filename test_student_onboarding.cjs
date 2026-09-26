@@ -2,6 +2,27 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {StudentRoster}=require('./services/studentRoster');
 const storageService=require('./services/storageService');
+const {build}=require('./tests/helpers/learning-server.cjs');
+
+test('onboarding without school configuration places students in the default teacher school',async()=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'debateon-onboarding-'));
+  const student={uid:'new-student',role:'student',onboardingComplete:false};
+  let saved;
+  const harness=build(path.join(root,'learning.json'),null,{
+    users:{student},
+    storage:{getUser:()=>student,findUserByStudentNumber:()=>null,saveUser:profile=>{saved=profile;},recordStudentVisit:()=>null},
+    studentRoster:{students:[{}],verify:()=>({studentNumber:'10326',verifiedName:'테스트학생',grade:1,classId:3,transferSlot:true})}
+  });
+  const server=await harness.start();
+  try{
+    const response=await fetch(server.origin+'/api/auth/onboarding',{method:'POST',headers:{'Content-Type':'application/json',Cookie:'test_role=student'},body:JSON.stringify({studentNumber:'10326',name:'테스트학생',privacyConsent:true})});
+    assert.equal(response.status,200);
+    const result=await response.json();
+    assert.equal(result.user.schoolId,'default-school');
+    assert.equal(saved.schoolId,'default-school');
+    assert.equal(saved.grade,1);assert.equal(saved.classId,3);assert.equal(saved.onboardingComplete,true);
+  }finally{await server.close();fs.rmSync(root,{recursive:true,force:true});}
+});
 
 test('roster requires matching names and permits named claims for blank transfer slots',()=>{
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'debateon-roster-')),file=path.join(root,'roster.json');
