@@ -10,6 +10,7 @@ function build(file,coach,options={}){
  services.studentReportService=require('../../services/studentReportService');
  services.learningDraftStore=require('../../services/learningDraftStore');
  services.activitySheets=require('../../services/activitySheets');
+ services.appSchool=require('../../services/appSchool');
  services.schoolRecordSheets=options.schoolRecordSheets||require('../../services/schoolRecordSheets');
  let handler;const env={APP_ORIGIN:'http://127.0.0.1:3000'};
  vm.runInNewContext(fs.readFileSync(path.join(root,'server.js'),'utf8'),{require:id=>{if(id==='http')return {createServer:fn=>(handler=fn,{listen(){}})};if(id.startsWith('./services/')){const key=id.split('/').pop();if(!services[key])throw Error('Unexpected service '+key);return services[key];}return require(id);},__dirname:root,process:{env,loadEnvFile(){}},console:{log(){},warn(){}},URLSearchParams,Buffer,setTimeout,clearTimeout,setInterval,clearInterval});

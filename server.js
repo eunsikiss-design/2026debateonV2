@@ -57,7 +57,7 @@ function restoreStoredStudentProfile(profile) {
 }
 
 function teacherClasses(user) {
-  const rosterSchool = process.env.STUDENT_SCHOOL_ID || process.env.ADMIN_SCHOOL_ID || user.schoolId;
+  const rosterSchool = process.env.ADMIN_SCHOOL_ID || process.env.STUDENT_SCHOOL_ID || user.schoolId;
   if (user.schoolId !== rosterSchool) return [{ grade: Number(user.grade), classId: Number(user.classId) }];
   const classes = new Map();
   for (const student of studentRoster.students) {
@@ -230,7 +230,7 @@ const server = http.createServer(async (req, res) => {
       const verified=studentRoster.verify(body.studentNumber,body.name),claimed=storageService.findUserByStudentNumber(verified.studentNumber);
       if(claimed&&claimed.uid!==req.auth.uid){sendJSON(res,409,{success:false,error:'STUDENT_NUMBER_ALREADY_REGISTERED',message:'이미 가입에 사용된 학번입니다. 교사에게 문의해 주세요.'});return;}
       const now=new Date().toISOString(),profileData={name:verified.verifiedName,
-        schoolId:process.env.STUDENT_SCHOOL_ID||process.env.ADMIN_SCHOOL_ID||'default-school',grade:verified.grade,classId:verified.classId,
+        schoolId:require('./services/appSchool').id(),grade:verified.grade,classId:verified.classId,
         studentNumber:verified.studentNumber,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1'},profile={...req.auth,...profileData,onboardingComplete:true};
       storageService.saveUser({...profile,studentNumber:verified.studentNumber,name:verified.verifiedName,grade:verified.grade,classId:verified.classId,
         onboardingComplete:true,transferSlot:verified.transferSlot,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1',registeredAt:claimed?.registeredAt||now,dataOrigin:'verified'});
@@ -501,7 +501,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && pathname === '/api/teacher/registration-status') {
     res.setHeader('Cache-Control','private, no-store');
-    const rosterSchool = process.env.STUDENT_SCHOOL_ID || process.env.ADMIN_SCHOOL_ID || req.auth.schoolId;
+    const rosterSchool = process.env.ADMIN_SCHOOL_ID || process.env.STUDENT_SCHOOL_ID || req.auth.schoolId;
     if (req.auth.schoolId !== rosterSchool) { sendJSON(res,403,{success:false,error:'SCHOOL_SCOPE_REQUIRED'});return; }
     const registrations=studentRoster.registrationStatus(storageService.getUsers().filter(u=>u.schoolId===req.auth.schoolId));
     sendJSON(res,200,{success:true,total:registrations.length,registered:registrations.filter(item=>item.registered).length,registrations});return;

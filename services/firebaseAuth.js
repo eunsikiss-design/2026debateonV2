@@ -68,7 +68,7 @@ async function profileFor(decoded) {
   if (!['student','teacher'].includes(role)) throw Object.assign(new Error('승인된 역할 정보가 없습니다.'), { code:'ROLE_NOT_ASSIGNED' });
   if (role === 'teacher' && decoded.admin !== true) throw Object.assign(new Error('관리자 권한이 없습니다.'), { code:'ADMIN_REQUIRED' });
   return { uid: decoded.uid, email: decoded.email || null, name: data.name || decoded.name || null, role,
-    schoolId: data.schoolId || decoded.schoolId || null, grade: Number(data.grade ?? decoded.grade) || null,
+    schoolId: require('./appSchool').id(), grade: Number(data.grade ?? decoded.grade) || null,
     classId: Number(data.classId ?? decoded.classId) || null, studentNumber: data.studentNumber || null,
     authProvider: data.authProvider || decoded.firebase?.sign_in_provider || decoded.sourceProvider || 'unknown',
     onboardingComplete: role === 'teacher' || data.onboardingComplete === true,
@@ -120,7 +120,7 @@ async function createSession(idToken) {
 }
 async function completeStudentProfile(user, input) {
   if (!user?.uid || user.role !== 'student') throw Object.assign(new Error('학생 계정이 필요합니다.'), { code:'STUDENT_REQUIRED' });
-  const data={ name:input.name, role:'student', schoolId:input.schoolId, grade:Number(input.grade), classId:Number(input.classId),
+  const data={ name:input.name, role:'student', schoolId:require('./appSchool').id(), grade:Number(input.grade), classId:Number(input.classId),
     studentNumber:String(input.studentNumber), onboardingComplete:true, privacyConsentAt:input.privacyConsentAt,
     privacyConsentVersion:input.privacyConsentVersion, updatedAt:new Date().toISOString() };
   await getFirestore(getApp()).collection('users').doc(user.uid).set(data,{merge:true});

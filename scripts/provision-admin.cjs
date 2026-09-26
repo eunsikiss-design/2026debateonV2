@@ -29,7 +29,7 @@ async function main() {
     user = await auth.createUser({ email, password, displayName: '관리자', emailVerified: true });
   }
   await auth.updateUser(user.uid, { password, disabled: false });
-  const schoolId = process.env.ADMIN_SCHOOL_ID || 'default-school';
+  const schoolId = require('../services/appSchool').id();
   const grade = Number(process.env.ADMIN_GRADE || 1);
   const classId = Number(process.env.ADMIN_CLASS_ID || 1);
   await auth.setCustomUserClaims(user.uid, { admin: true, role: 'teacher', schoolId, grade, classId });
