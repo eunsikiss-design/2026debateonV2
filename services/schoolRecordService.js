@@ -4,7 +4,7 @@ const labels={basic:'기초 논리 연습',advanced:'심화 논술',speech:'스�
 const hash=value=>crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status});};
 const string=value=>typeof value==='string'?value.trim():'';
-function portfolio(storage,student,topicFor){
+function portfolio(storage,student,topicFor,drafts={}){
  const raw=storage.getStudentRecordEvidence(student),sources=[],topicCache=new Map();
  const add=(kind,id,topicId,createdAt,text)=>{
   if(!string(text))return;
@@ -16,6 +16,17 @@ function portfolio(storage,student,topicFor){
   const kind=s.mode==='speech_timer'?'speech':s.mode==='advanced_essay'?'advanced':'basic';
   const text=kind==='speech'?s.transcript:kind==='advanced'?s.studentDraft:[s.claim,s.reason,s.rebuttal].filter(v=>typeof v==='string'&&v.trim()).join('\n\n');
   add(kind,[s.sessionId,index],s.topicId,s.createdAt||s.submittedAt,text);
+ }
+ for(const [topicId,modes] of Object.entries(drafts)){
+  for(const kind of ['basic','advanced','speech']){
+   const draft=modes[kind],content=draft?.content;if(!content)continue;
+   // A supplied claim or speaking outline alone is not a student's written response.
+   if(kind==='basic'&&!string(content.reason)&&!string(content.rebuttal))continue;
+   const text=kind==='basic'?[content.claim,content.reason,content.rebuttal].filter(string).join('\n\n'):kind==='advanced'?(content.paragraphs||[]).filter(string).join('\n\n'):content.transcript;
+   if(!string(text)||sources.some(s=>s.kind===kind&&s.topicId===topicId&&s.text===string(text)))continue;
+   add(kind,['draft',topicId,draft.revision],topicId,draft.updatedAt,text);
+   const source=sources.at(-1);source.status='draft';source.label+=' · 작성 중인 초안';
+  }
  }
  for(const m of raw.messages)add('debate',m.roomId+':'+m.messageId,m.topicId,m.createdAt||m.timestamp,m.content);
  for(const o of raw.observations)add('observation',o.id,null,o.timestamp,o.note);

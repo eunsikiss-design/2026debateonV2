@@ -3,6 +3,22 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'school-records-'));process.env.DATA_STORE_PATH=path.join(dir,'store.json');
 const storage=require('./services/storageService'),records=require('./services/schoolRecordService'),{build}=require('./tests/helpers/learning-server.cjs');
 test.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+test('teacher School Record includes saved writing drafts with scope, draft labels and no duplicated submission',async t=>{
+ const base={schoolId:'draft-school',grade:1,classId:1,onboardingComplete:true};
+ const users={teacher:{...base,uid:'draft-teacher',role:'teacher'},student:{...base,uid:'draft-student',name:'초안 검증 학생',role:'student'},other:{...base,uid:'draft-other',role:'student'}};
+ Object.values(users).forEach(u=>storage.saveUser(u));
+ const h=build(path.join(dir,'draft-teaching.json'),null,{storage,users});
+ const id='episode2026_1_01';
+ h.learning.drafts.save(users.student,id,{mode:'basic',revision:0,content:{claim:'권리 보장',reason:'학생이 저장한 기초 이유',rebuttal:'다른 의견',stance:'pro'}});
+ h.learning.drafts.save(users.student,id,{mode:'advanced',revision:0,content:{paragraphs:['학생이 저장한 논술 첫 문단','학생이 저장한 논술 두 번째 문단']}});
+ h.learning.drafts.save(users.other,id,{mode:'basic',revision:0,content:{claim:'타인 주장',reason:'다른 학생 비공개 초안',rebuttal:'',stance:'pro'}});
+ const app=await h.start();t.after(app.close);
+ const get=async who=>fetch(app.origin+'/api/teacher/student-record?studentId=draft-student',{headers:{cookie:'test_uid='+who}});
+ const response=await get('teacher');assert.equal(response.status,200);let data=await response.json();assert.equal(data.sources.length,2);assert.ok(data.sources.every(s=>s.status==='draft'&&s.label.includes('작성 중인 초안')));assert.match(JSON.stringify(data),/학생이 저장한 기초 이유/);assert.match(JSON.stringify(data),/논술 두 번째 문단/);assert.doesNotMatch(JSON.stringify(data),/다른 학생 비공개/);
+ storage.savePracticeSession({userId:users.student.uid,topicId:id,mode:'advanced_essay',studentDraft:'학생이 저장한 논술 첫 문단\n\n학생이 저장한 논술 두 번째 문단'});
+ data=await (await get('teacher')).json();assert.equal(data.sources.filter(s=>s.kind==='advanced').length,1);assert.equal(data.sources.find(s=>s.kind==='advanced').status,undefined);
+ assert.equal((await get('student')).status,403);
+});
 test('portfolio excludes other authors and schools, outline-only speech, AI scores and badges; no evidence means no draft',()=>{
  const student={uid:'one',name:'학생',studentNumber:'10101',role:'student',schoolId:'test',grade:1,classId:1};storage.saveUser(student);
  storage.savePracticeSession({sessionId:'basic-1',userId:'one',topicId:'episode2026_1_01',claim:'참정권은 권리입니다.',reason:'참여하지 않을 자유도 고려해야 합니다.',analysis:{claim:99}});

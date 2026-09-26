@@ -79,7 +79,7 @@ function studentRecordPortfolio(teacher, studentId) {
   teacherClass(teacher, `${student.grade}-${student.classId}`);
   return schoolRecords.portfolio(storageService, student, id => {
     try { return learningService.topic(id, teacher); } catch { return storageService.getTopic(id); }
-  });
+  },learningService.drafts.list(student));
 }
 
 function broadcastDebate(roomId, event, payload) {
@@ -291,7 +291,8 @@ const server = http.createServer(async (req, res) => {
     try{
       res.setHeader('Cache-Control','no-store');learningService.topic(draftRoute[1],req.auth);
       if(req.method==='GET'){
-        const previous=storageService.getStudentPracticeSessions(req.auth.uid).filter(s=>s.topicId===draftRoute[1]&&s.mode!=='speech_timer').slice(0,30).reverse().map(s=>({mode:s.mode==='advanced_essay'?'advanced':'basic',content:s.studentDraft?{paragraphs:s.studentDraft.split(/\n\s*\n/),writingPlan:s.writingPlan}:{claim:s.claim||'',reason:s.reason||'',rebuttal:s.rebuttal||'',stance:s.stance||'pro'},updatedAt:s.createdAt||s.submittedAt}));
+        const counts={basic:0,advanced:0};
+        const previous=storageService.getStudentPracticeSessions(req.auth.uid).filter(s=>{if(s.topicId!==draftRoute[1]||s.mode==='speech_timer')return false;const mode=s.mode==='advanced_essay'?'advanced':'basic';return ++counts[mode]<=30;}).reverse().map(s=>({mode:s.mode==='advanced_essay'?'advanced':'basic',content:s.studentDraft?{paragraphs:s.studentDraft.split(/\n\s*\n/),writingPlan:s.writingPlan}:{claim:s.claim||'',reason:s.reason||'',rebuttal:s.rebuttal||'',stance:s.stance||'pro'},updatedAt:s.createdAt||s.submittedAt}));
         sendJSON(res,200,{success:true,drafts:learningService.drafts.get(req.auth,draftRoute[1]),previous});
       }else if(req.method==='PUT')sendJSON(res,200,{success:true,draft:learningService.drafts.save(req.auth,draftRoute[1],await parseRequestBody(req))});
       else sendJSON(res,405,{error:'METHOD_NOT_ALLOWED'});

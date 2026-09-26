@@ -1,6 +1,12 @@
 (() => {
  const sessions=new Set();
  async function fetchDrafts(topic){const r=await fetch('/api/learning/drafts/'+encodeURIComponent(topic),{cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.error||'초안을 불러오지 못했습니다.');return d;}
+ function writingSource(data,mode){
+  const hasText=content=>mode==='basic'?Boolean(content?.reason?.trim()||content?.rebuttal?.trim()):Boolean(content?.paragraphs?.some(p=>p.trim()));
+  const candidates=(data.previous||[]).filter(p=>p.mode===mode&&hasText(p.content)).map(p=>({...p,kind:'record'}));
+  const draft=data.drafts?.[mode];if(draft&&hasText(draft.content))candidates.push({...draft,kind:'draft'});
+  return candidates.reduce((latest,item)=>!latest||(Date.parse(item.updatedAt)||0)>=(Date.parse(latest.updatedAt)||0)?item:latest,null);
+ }
  async function open(topic,mode,status){
   const data=await fetchDrafts(topic),stored=data.drafts[mode];let revision=stored?.revision||0,pending=null,timer=null,running=null,blocked=false;
   const session={content:stored?.content||data.previous.filter(p=>p.mode===mode).at(-1)?.content||null,
@@ -13,5 +19,5 @@
  async function flushAll(){await Promise.all([...sessions].map(s=>s.flush()));}
  document.addEventListener('click',async e=>{const a=e.target.closest('a[href]');if(!a||e.defaultPrevented||e.ctrlKey||e.metaKey||e.shiftKey||a.target==='_blank'||a.origin!==location.origin||a.hash&&a.pathname===location.pathname)return;if(!sessions.size)return;e.preventDefault();try{await flushAll();location.href=a.href;}catch{}});
  window.addEventListener('beforeunload',e=>{if(document.querySelector('[data-draft-unsaved="true"]')){e.preventDefault();e.returnValue='';}});
- window.LearningDrafts={open,fetch:fetchDrafts,flushAll};
+ window.LearningDrafts={open,fetch:fetchDrafts,flushAll,writingSource};
 })();

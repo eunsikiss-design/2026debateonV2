@@ -1,7 +1,7 @@
 (() => {
  const root=document.getElementById('student-record-workspace');if(!root)return;
  const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
- const status=el('p','학생을 선택하면 작성 글과 토론 발언을 모아 볼 수 있습니다.','record-status');status.setAttribute('role','status');
+ const status=el('p','학생을 선택하면 저장한 글과 토론 발언을 모아 볼 수 있습니다. 작성 중인 초안은 별도로 표시됩니다.','record-status');status.setAttribute('role','status');
  const select=el('select'),selectLabel=el('label','검토할 학생'),reload=el('button','기록 새로 불러오기');select.id='record-student-select';selectLabel.append(select);reload.type='button';
  const toolbar=el('div',undefined,'record-toolbar');toolbar.append(selectLabel,reload);
  const badge=el('p','', 'record-test-notice');badge.hidden=true;
@@ -55,10 +55,10 @@
   try{
    const data=await api('/api/teacher/student-record?studentId='+encodeURIComponent(uid));if(own!==ticket)return;portfolio=data;select.value=uid;
    kind.value='';topic.replaceChildren(new Option('전체 주제',''));for(const [id,title] of new Map(data.sources.filter(s=>s.topicId).map(s=>[s.topicId,s.title])))topic.add(new Option(title,id));
-   selected=new Set(data.saved?.evidenceIds||data.sources.slice(0,30).map(s=>s.id));selected=new Set([...selected].filter(id=>data.sources.some(s=>s.id===id)));revision=data.saved?.revision||0;
+   selected=new Set(data.saved?.evidenceIds||data.sources.filter(s=>s.status!=='draft').slice(0,30).map(s=>s.id));selected=new Set([...selected].filter(id=>data.sources.some(s=>s.id===id)));revision=data.saved?.revision||0;
    badge.hidden=!data.student.isTestAccount;badge.textContent='가상 학생의 시험용 기록입니다. 실제 학생의 세특으로 확정하지 않습니다.';
    if(data.saved){draft.value=data.saved.draftText;binding={evidenceIds:data.saved.evidenceIds,evidenceFingerprint:data.saved.evidenceFingerprint,generationId:data.saved.generated?.generationId};reviewed.checked=data.saved.reviewed===true;showAnalysis(data.saved.generated);message(`저장된 ${data.saved.status==='teacher-reviewed'?'교사 검토본':'초안'}을 불러왔습니다. 새 분석은 버튼을 눌러 진행하세요.`);}
-   else message(data.sources.length?'원문을 확인하고 분석에 사용할 기록을 선택하세요.':'작성한 기록이 없어 분석할 수 없습니다.');
+   else message(data.sources.length?'원문을 확인하고 분석에 사용할 기록을 선택하세요. 작성 중인 초안도 확인할 수 있으며, 분석에 사용하려면 직접 선택하세요.':'작성한 기록이 없어 분석할 수 없습니다.');
    renderSources();await loadSheet(own);
   }catch(e){if(own===ticket)message(e.message);}finally{if(own===ticket){busy=false;meterUpdate();}}
  }
