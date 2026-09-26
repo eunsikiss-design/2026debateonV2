@@ -7,7 +7,7 @@
     else{targetChars=limit(value,50,4000,600);targetSentences=Math.max(1,Math.round(targetChars/50));targetParagraphs=Math.max(1,Math.ceil(targetSentences/4));}
     return {targetChars,targetSentences,targetParagraphs};
   }
-  function normalize(input={}){const base=recommend('paragraphs',input.targetParagraphs);return {targetChars:limit(input.targetChars,50,4000,base.targetChars),targetSentences:limit(input.targetSentences,1,80,base.targetSentences),targetParagraphs:base.targetParagraphs};}
+  function normalize(input={}){input=input&&typeof input==='object'?input:{};const base=recommend('paragraphs',input.targetParagraphs);return {targetChars:limit(input.targetChars,50,4000,base.targetChars),targetSentences:limit(input.targetSentences,1,80,base.targetSentences),targetParagraphs:base.targetParagraphs};}
   function preserveParagraphs(input,paragraphs){const result=normalize(input);const last=paragraphs.reduce((last,text,i)=>text.trim()?i+1:last,0);result.targetParagraphs=Math.max(result.targetParagraphs,last);return result;}
   return {recommend,normalize,preserveParagraphs};
 });

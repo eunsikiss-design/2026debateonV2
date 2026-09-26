@@ -29,3 +29,5 @@ test('persistent drafts, versions and completed work survive a reopened store an
  fail=true;await svc.syncAll({schoolId:'school-a'});assert.equal(svc.status({schoolId:'school-a'}).pendingCount,1);assert.equal(reopened.get(user,topic).basic.versions.length,3);
  fail=false;await svc.syncAll({schoolId:'school-a'});assert.equal(rows.size,5);assert.equal(svc.status({schoolId:'school-a'}).pendingCount,0);assert.ok([...rows.values()].some(r=>r[9].includes('오프라인 중 새 저장본')));
 });
+
+test('advanced draft without a writing plan can be saved',t=>{const root=fs.mkdtempSync(path.join(os.tmpdir(),'debateon-plan-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));const drafts=new LearningDraftStore(path.join(root,'drafts.json'));const d=drafts.save({uid:'test',schoolId:'school'},'topic',{mode:'advanced',revision:0,snapshot:true,content:{paragraphs:['작성한 글'],writingPlan:null}});assert.equal(d.versions[0].content.paragraphs[0],'작성한 글');assert.equal(d.content.writingPlan.targetParagraphs,3);});
