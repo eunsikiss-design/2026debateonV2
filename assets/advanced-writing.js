@@ -72,6 +72,7 @@
   window.TopicCatalog.ready.then(topicChange);window.addEventListener('curriculum-topic-change',topicChange);
   Object.entries(goal).forEach(([anchor,n])=>n.addEventListener('change',()=>{if(busy)return;setGoals(planning.recommend(anchor,n.value));build();saveDraft();requestQuestions();}));
   $('generate-questions-btn').addEventListener('click',()=>requestQuestions(true));
+  $('save-essay-draft-btn').addEventListener('click',async()=>{if(!draftSession)return;saveDraft();try{await draftSession.flush();$('essay-status').textContent='현재 논술 글을 이 주제의 초안으로 저장했습니다.';window.dispatchEvent(new Event('activity-record-saved'));}catch(e){$('essay-status').textContent=e.message;}});
   $('submit-essay-btn').addEventListener('click',async()=>{
     if(busy||!active)return;
     const parts=currentInputs().map(n=>n.value.trim());if(parts.some(p=>!p)){ $('essay-status').textContent='각 문단의 질문에 답한 뒤 글을 살펴보세요.';currentInputs()[parts.findIndex(p=>!p)].focus();return; }
@@ -79,7 +80,7 @@
     try{
       const r=await fetch('/api/practice/advanced/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topicId:active,studentDraft:$('essay-input').value,paragraphLevel:parts.length,writingPlan:plan()})});
       const data=await r.json();if(!r.ok||!data.evaluation)throw Error(data.error||'글을 살펴보지 못했습니다.');
-      const e=data.evaluation;$('essay-strength').textContent='잘한 점: '+(e.strengths?.[0]||'작성한 글을 확인했습니다.');$('essay-improvement').textContent='다듬을 점: '+(e.focusImprovement||'주장과 이유가 이어지는지 다시 읽어 보세요.');$('essay-question').textContent='다음 질문: '+(e.socraticQuestion||'다른 입장의 이유에는 어떻게 답할까요?');$('essay-feedback').hidden=false;$('essay-status').textContent=e.assessmentLimited?'글을 기록했습니다. AI 응답 대신 기본 도움말을 표시합니다.':'글을 기록하고 피드백을 받았습니다.';
+      const e=data.evaluation;$('essay-strength').textContent='잘한 점: '+(e.strengths?.[0]||'작성한 글을 확인했습니다.');$('essay-improvement').textContent='다듬을 점: '+(e.focusImprovement||'주장과 이유가 이어지는지 다시 읽어 보세요.');$('essay-question').textContent='다음 질문: '+(e.socraticQuestion||'다른 입장의 이유에는 어떻게 답할까요?');$('essay-feedback').hidden=false;$('essay-status').textContent=e.assessmentLimited?'글을 기록했습니다. AI 응답 대신 기본 도움말을 표시합니다.':'글을 기록하고 피드백을 받았습니다.';window.dispatchEvent(new Event('activity-record-saved'));
     }catch(e){$('essay-status').textContent=e.message+' 글은 화면에 그대로 있습니다.';}
     finally{busy=false;$('submit-essay-btn').disabled=false;$('generate-questions-btn').disabled=false;Object.values(goal).forEach(n=>n.disabled=false);currentInputs().forEach(n=>n.readOnly=false);window.TopicCatalog.lock(false);}
   });

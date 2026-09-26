@@ -264,6 +264,29 @@ const server = http.createServer(async (req, res) => {
     catch(error){sendJSON(res,error.status||500,{success:false,error:error.status?error.message:'수업 자료 저장에 실패했습니다.'});}return;
   }
   const draftRoute=pathname.match(/^\/api\/learning\/drafts\/([a-zA-Z0-9_-]+)$/);
+  if(pathname==='/api/learning/history'&&req.method==='GET'){
+    try{
+      if(req.auth.role!=='student')throw Object.assign(Error('학생 활동 기록만 조회할 수 있습니다.'),{status:403});
+      const topicId=new URLSearchParams(urlParts[1]||'').get('topicId');
+      if(topicId)learningService.topic(topicId,req.auth);
+      const titles=new Map(learningService.list(req.auth).map(t=>[t.topicId,t.title]));
+      const drafts=learningService.drafts.list(req.auth);
+      const entries=[];
+      for(const [id,modes] of Object.entries(drafts)){
+        if(topicId&&id!==topicId)continue;
+        for(const mode of ['basic','advanced','speech'])if(modes[mode])entries.push({kind:'draft',mode,topicId:id,topicTitle:titles.get(id)||id,updatedAt:modes[mode].updatedAt,content:modes[mode].content});
+      }
+      for(const s of storageService.getStudentPracticeSessions(req.auth.uid)){
+        if(topicId&&s.topicId!==topicId)continue;
+        const mode=s.mode==='advanced_essay'?'advanced':s.mode==='speech_timer'?'speech':s.mode==='basic'||s.mode==='basic_practice'||!s.mode?'basic':null;
+        if(!mode)continue;
+        const content=mode==='basic'?{stance:s.stance||'pro',claim:s.claim||'',reason:s.reason||'',rebuttal:s.rebuttal||''}:mode==='advanced'?{studentDraft:s.studentDraft||'',writingPlan:s.writingPlan||null}:{transcript:s.transcript||'',outline:s.outline||null,durationSeconds:s.durationSeconds||0};
+        entries.push({kind:'record',mode,topicId:s.topicId,topicTitle:s.topicTitle||titles.get(s.topicId)||s.topicId,updatedAt:s.createdAt||s.submittedAt,sessionId:s.sessionId,content});
+      }
+      entries.sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
+      res.setHeader('Cache-Control','no-store');sendJSON(res,200,{success:true,entries});
+    }catch(error){sendJSON(res,error.status||500,{success:false,error:error.status?error.message:'활동 기록을 불러오지 못했습니다.'});}return;
+  }
   if(draftRoute){
     try{
       res.setHeader('Cache-Control','no-store');learningService.topic(draftRoute[1],req.auth);
@@ -330,6 +353,8 @@ const server = http.createServer(async (req, res) => {
       const session = storageService.savePracticeSession({
         userId: user.uid,
         topicId,
+        topicTitle: learningService.topic(topicId,req.auth).title,
+        mode: 'basic',
         stance,
         claim,
         reason,
@@ -894,6 +919,7 @@ const server = http.createServer(async (req, res) => {
         durationSeconds,
         targetDurationSeconds,
         transcript,
+        outline: learningContext.studentOutline,
         evaluation
       });
 

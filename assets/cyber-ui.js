@@ -69,7 +69,7 @@
   retry.addEventListener('click',()=>{automaticRetries=0;clearTimeout(reconnectTimer);checkConnection();});window.addEventListener('online',()=>{automaticRetries=0;checkConnection();});window.addEventListener('offline',checkConnection);checkConnection();
   const toast=element('div','cyber-toast');toast.hidden=true;toast.setAttribute('role','status');document.body.append(toast);let toastTimer;
   function inform(message) {toast.textContent=message;toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toast.hidden=true;},6500);}
-  const protectedActions=new Set(['request-eval-btn','submit-essay-btn','send-msg-btn','finish-debate-btn','save-obs-btn','final-submit-badge-btn']);
+  const protectedActions=new Set(['request-eval-btn','submit-essay-btn','send-msg-btn','finish-debate-btn','save-obs-btn','final-submit-badge-btn','save-basic-draft-btn','save-essay-draft-btn','save-speech-draft-btn']);
   document.addEventListener('click',event=>{const b=event.target.closest('button');if(b&&protectedActions.has(b.id)&&!signedIn){
     event.preventDefault();event.stopImmediatePropagation();inform('로그인 후 AI 분석·전송·저장을 사용할 수 있습니다. 입력 내용은 이 화면에 유지됩니다.');
   }},true);
@@ -140,4 +140,3 @@
   // Account for the mobile visual viewport instead of covering the software keyboard.
   if(window.visualViewport){let baseHeight=window.visualViewport.height;const viewport=()=>{const v=window.visualViewport;const focused=/INPUT|TEXTAREA/.test(document.activeElement?.tagName||'');const open=focused&&baseHeight-v.height>120;document.body.classList.toggle('keyboard-open',open);document.documentElement.style.setProperty('--keyboard-inset',open?`${Math.max(0,window.innerHeight-v.height-v.offsetTop)}px`:'0px');};window.visualViewport.addEventListener('resize',viewport);document.addEventListener('focusin',viewport);document.addEventListener('focusout',()=>setTimeout(viewport,0));window.addEventListener('orientationchange',()=>{baseHeight=window.visualViewport.height;});}
 })();
-
