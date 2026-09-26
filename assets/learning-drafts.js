@@ -4,15 +4,16 @@
  function writingSource(data,mode){
   const hasText=content=>mode==='basic'?Boolean(content?.reason?.trim()||content?.rebuttal?.trim()):Boolean(content?.paragraphs?.some(p=>p.trim()));
   const candidates=(data.previous||[]).filter(p=>p.mode===mode&&hasText(p.content)).map(p=>({...p,kind:'record'}));
-  const draft=data.drafts?.[mode];if(draft&&hasText(draft.content))candidates.push({...draft,kind:'draft'});
+  const draft=data.drafts?.[mode];for(const version of draft?.versions||[])if(hasText(version.content))candidates.push({...version,kind:'snapshot'});if(draft&&hasText(draft.content))candidates.push({...draft,kind:'draft'});
   return candidates.reduce((latest,item)=>!latest||(Date.parse(item.updatedAt)||0)>=(Date.parse(latest.updatedAt)||0)?item:latest,null);
  }
  async function open(topic,mode,status){
-  const data=await fetchDrafts(topic),stored=data.drafts[mode];let revision=stored?.revision||0,pending=null,timer=null,running=null,blocked=false;
+  const data=await fetchDrafts(topic),stored=data.drafts[mode];let revision=stored?.revision||0,pending=null,timer=null,running=null,snapshotting=null,blocked=false;
   const session={content:stored?.content||data.previous.filter(p=>p.mode===mode).at(-1)?.content||null,
    schedule(content){status.dataset.draftUnsaved='true';if(blocked)return;pending=structuredClone(content);clearTimeout(timer);status.textContent='초안 저장 중입니다.';timer=setTimeout(()=>session.flush().catch(()=>{}),600);},
    async flush(){clearTimeout(timer);if(running)await running;if(blocked)throw Error(status.textContent);if(!pending)return;const content=pending;pending=null;
     running=(async()=>{try{const r=await fetch('/api/learning/drafts/'+encodeURIComponent(topic),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,content,revision})}),d=await r.json();if(!r.ok){if(r.status===409)blocked=true;throw Error(d.error||'초안 저장에 실패했습니다.');}revision=d.draft.revision;session.content=content;if(!pending)status.dataset.draftUnsaved='false';status.textContent='이 주제의 초안이 저장되었습니다.';}catch(e){pending??=content;status.textContent=e.message+' 작성한 내용은 현재 화면에 남아 있습니다.';throw e;}finally{running=null;}})();await running;if(pending&&!blocked)await session.flush();},
+   snapshot(){if(snapshotting)return snapshotting;snapshotting=(async()=>{await session.flush();if(!session.content)return;running=(async()=>{const r=await fetch('/api/learning/drafts/'+encodeURIComponent(topic),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,content:session.content,revision,snapshot:true})}),d=await r.json();if(!r.ok){if(r.status===409)blocked=true;throw Error(d.error||'저장본을 남기지 못했습니다.');}revision=d.draft.revision;return d.draft.versions.at(-1).version;})();try{return await running;}finally{running=null;}})().finally(()=>{snapshotting=null;});return snapshotting;},
    close(){clearTimeout(timer);sessions.delete(session);}
   };sessions.add(session);status.textContent=stored?'저장된 초안을 불러왔습니다.':'입력한 내용은 자동으로 초안에 저장됩니다.';return session;
  }

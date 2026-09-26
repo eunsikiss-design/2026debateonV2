@@ -13,7 +13,9 @@ class LearningDraftStore{
   else if(mode==='advanced'){if(!Array.isArray(content.paragraphs)||content.paragraphs.length>20||content.paragraphs.some(p=>typeof p!=='string'||p.length>10000)||content.paragraphs.join('').length>40000)error('논술 초안 분량을 확인하세요.');value={paragraphs:content.paragraphs,writingPlan:require('../assets/writing-plan').normalize(content.writingPlan)};}
   else{value={};for(const field of ['sourceText','claim','reason','condition','transcript']){if(typeof content[field]!=='string'||content[field].length>40000)error('말하기 초안 분량을 확인하세요.');value[field]=content[field];}value.targetDurationSeconds=[45,90,180,300].includes(Number(content.targetDurationSeconds))?Number(content.targetDurationSeconds):45;}
   const db=this.read(),key=this.key(user),current=db.users[key]?.[topicId]?.[mode];if(revision!==(current?.revision||0))error('다른 화면에서 초안을 변경했습니다. 현재 글을 복사해 보관한 뒤 새로고침하세요.',409);
-  const draft={revision:(current?.revision||0)+1,content:value,updatedAt:new Date().toISOString()};
+  const versions=current?.versions||[];
+  if(input.snapshot===true)versions.push({version:versions.length+1,content:structuredClone(value),updatedAt:new Date().toISOString()});
+  const draft={revision:(current?.revision||0)+1,content:value,updatedAt:new Date().toISOString(),versions};
   db.users[key]??={};db.users[key][topicId]??={};db.users[key][topicId][mode]=draft;
   fs.mkdirSync(path.dirname(this.file),{recursive:true});const temp=this.file+'.'+crypto.randomUUID()+'.tmp';try{fs.writeFileSync(temp,JSON.stringify(db),{encoding:'utf8',mode:0o600});fs.renameSync(temp,this.file);}finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
   return draft;

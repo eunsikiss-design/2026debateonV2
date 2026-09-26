@@ -7,3 +7,16 @@ test('speech imports the newest nonempty own writing and falls back past empty d
  data.drafts.basic.content={claim:'자동 주장만 있음',reason:'   ',rebuttal:''};assert.equal(writingSource(data,'basic').content.reason,'옛 기초 제출');
  assert.equal(writingSource({drafts:{},previous:[]},'basic'),null);
 });
+
+test('speech feedback can switch text and Korean audio, stop, and explain unsupported browsers',()=>{
+ const nodes=new Map();function node(id){if(!nodes.has(id)){const listeners={};nodes.set(id,{value:'',textContent:'',hidden:false,disabled:false,addEventListener:(type,fn)=>listeners[type]=fn,fire:type=>listeners[type]?.(),replaceChildren(){},append(){}});}return nodes.get(id);}
+ const document={getElementById:node,querySelectorAll:()=>[]};const spoken=[];let cancelled=0;
+ const window={speechSynthesis:{cancel(){cancelled++;},speak(u){spoken.push(u);}},SpeechSynthesisUtterance:function(text){this.text=text;},TopicCatalog:{lock(){},ready:new Promise(()=>{})},addEventListener(){}};
+ node('speech-feedback').hidden=false;node('speech-eval-praise').textContent='좋은 점';node('speech-eval-growth').textContent='다음 연습';node('speech-eval-question').textContent='질문';
+ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'assets/speech-live.js'),'utf8'),{window,document,localStorage:{getItem:()=>null,setItem(){}},SpeechSynthesisUtterance:window.SpeechSynthesisUtterance});
+ assert.equal(node('feedback-audio-controls').hidden,true);assert.equal(spoken.length,0);
+ node('feedback-delivery').value='voice';node('feedback-delivery').fire('change');assert.equal(spoken.length,1);assert.equal(spoken[0].lang,'ko-KR');assert.equal(spoken[0].text,'좋은 점 다음 연습 질문');
+ const before=cancelled;node('feedback-stop').fire('click');assert.ok(cancelled>before);
+ node('feedback-delivery').value='text';node('feedback-delivery').fire('change');assert.equal(node('feedback-audio-controls').hidden,true);
+ window.speechSynthesis=null;node('feedback-play').fire('click');assert.match(node('feedback-audio-status').textContent,/지원하지 않습니다/);
+});

@@ -72,7 +72,7 @@
   window.TopicCatalog.ready.then(topicChange);window.addEventListener('curriculum-topic-change',topicChange);
   Object.entries(goal).forEach(([anchor,n])=>n.addEventListener('change',()=>{if(busy)return;setGoals(planning.recommend(anchor,n.value));build();saveDraft();requestQuestions();}));
   $('generate-questions-btn').addEventListener('click',()=>requestQuestions(true));
-  $('save-essay-draft-btn').addEventListener('click',async()=>{if(!draftSession)return;saveDraft();try{await draftSession.flush();$('essay-status').textContent='현재 논술 글을 이 주제의 초안으로 저장했습니다.';window.dispatchEvent(new Event('activity-record-saved'));}catch(e){$('essay-status').textContent=e.message;}});
+  $('save-essay-draft-btn').addEventListener('click',async()=>{if(!draftSession)return;saveDraft();try{const version=await draftSession.snapshot();$('essay-status').textContent=version+'차 저장본을 남겼습니다. 이전 저장본은 내 활동 기록에서 볼 수 있습니다.';window.dispatchEvent(new Event('activity-record-saved'));}catch(e){$('essay-status').textContent=e.message;}});
   $('submit-essay-btn').addEventListener('click',async()=>{
     if(busy||!active)return;
     const parts=currentInputs().map(n=>n.value.trim());if(parts.some(p=>!p)){ $('essay-status').textContent='각 문단의 질문에 답한 뒤 글을 살펴보세요.';currentInputs()[parts.findIndex(p=>!p)].focus();return; }

@@ -1,5 +1,19 @@
 (() => {
   const $=id=>document.getElementById(id);
+  const delivery=$('feedback-delivery'),audioStatus=$('feedback-audio-status');
+  try{delivery.value=localStorage.getItem('debateon-feedback-delivery')==='voice'?'voice':'text';}catch{}
+  function stopFeedback(){window.speechSynthesis?.cancel();audioStatus.textContent='';}
+  function readFeedback(){
+    stopFeedback();if($('speech-feedback').hidden)return;
+    if(!window.speechSynthesis||!window.SpeechSynthesisUtterance){audioStatus.textContent='이 브라우저는 음성 읽기를 지원하지 않습니다. 아래 텍스트를 확인해 주세요.';return;}
+    const utterance=new SpeechSynthesisUtterance(['speech-eval-praise','speech-eval-growth','speech-eval-question'].map(id=>$(id).textContent).join(' '));utterance.lang='ko-KR';
+    utterance.onend=()=>audioStatus.textContent='피드백 읽기를 마쳤습니다.';
+    utterance.onerror=e=>{if(!['canceled','interrupted'].includes(e.error))audioStatus.textContent='음성 재생이 되지 않았습니다. 피드백 듣기를 다시 누르거나 텍스트를 확인해 주세요.';};
+    audioStatus.textContent='피드백을 읽고 있습니다.';window.speechSynthesis.speak(utterance);
+  }
+  function feedbackChoice(){stopFeedback();$('feedback-audio-controls').hidden=delivery.value!=='voice';try{localStorage.setItem('debateon-feedback-delivery',delivery.value);}catch{}}
+  delivery.addEventListener('change',()=>{feedbackChoice();if(delivery.value==='voice')readFeedback();});
+  $('feedback-play').addEventListener('click',readFeedback);$('feedback-stop').addEventListener('click',stopFeedback);window.addEventListener('pagehide',stopFeedback);feedbackChoice();
   const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   $('speech-privacy').textContent='원본 음성은 저장하지 않고 전사문만 제출합니다.';
   let recognition=null,mediaStream=null,finalTranscript='',interimTranscript='',activeSeconds=0,startedAt=0,timer=null,state='READY',outlineReady=false,busy=false,topicId=null;
@@ -24,6 +38,7 @@
   function stopRecognition(){try{recognition?.stop();}catch{}stopMedia();}
   function freezeTime(){if(state==='LISTENING'){activeSeconds+=Math.floor((Date.now()-startedAt)/1000);startedAt=Date.now();clearInterval(timer);renderTimer();}}
   async function listen(){
+    stopFeedback();
     if(!Recognition){setState(state,'이 브라우저는 음성 인식을 지원하지 않습니다. 최신 Chrome 또는 Edge를 사용해 주세요.');return;}
     if(!window.TopicCatalog.current){setState(state,'주제를 먼저 선택해 주세요.');return;}
     try{
@@ -44,7 +59,7 @@
     node.hidden=false;outlineReady=true;setState(state,'개요를 보며 자신의 말로 스피치해 보세요.');saveDraft();
   }
   function reset(){
-    clearInterval(timer);setState('READY','처음부터 다시 시작할 수 있습니다.');stopRecognition();recognition=null;activeSeconds=0;startedAt=0;finalTranscript='';interimTranscript='';$('speech-feedback').hidden=true;renderTimer();renderTranscript();saveDraft();
+    clearInterval(timer);setState('READY','처음부터 다시 시작할 수 있습니다.');stopRecognition();recognition=null;activeSeconds=0;startedAt=0;finalTranscript='';interimTranscript='';$('speech-feedback').hidden=true;stopFeedback();renderTimer();renderTranscript();saveDraft();
   }
   $('show-outline-btn').addEventListener('click',outline);
   async function loadSources(selectAvailable=true){const ticket=++sourceTicket;sources={};sourceLoading=true;$('load-speech-source').disabled=true;$('speech-source-status').textContent='같은 주제로 작성한 내 글을 찾고 있습니다.';try{const d=await window.LearningDrafts.fetch(topicId);if(ticket!==sourceTicket)return false;for(const mode of ['basic','advanced'])sources[mode]=window.LearningDrafts.writingSource(d,mode);const available=Object.keys(sources).filter(k=>sources[k]);if(available.length){if(selectAvailable&&!sources[$('speech-source-kind').value])$('speech-source-kind').value=available[0];$('speech-source-status').textContent=available.map(k=>k==='basic'?'기초 연습':'심화 논술').join(', ')+' 글이 있습니다. 활동을 고르고 내 글 불러오기를 누르세요.';}else $('speech-source-status').textContent='이 주제로 저장한 글이 없습니다. 기초 연습·심화 논술에서 작성하거나 아래에 직접 적을 수 있습니다.';return true;}catch(e){if(ticket===sourceTicket)$('speech-source-status').textContent=e.message+' 잠시 후 내 글 불러오기를 다시 눌러 주세요.';return false;}finally{if(ticket===sourceTicket){sourceLoading=false;$('load-speech-source').disabled=['LISTENING','PAUSED','ANALYZING'].includes(state);}}}
@@ -53,7 +68,7 @@
   $('use-speech-source').addEventListener('click',()=>{const value=text('speech-source-text');if(!value){$('speech-source-status').textContent='말하기에 사용할 글을 먼저 불러오거나 적어 주세요.';return;}const parts=value===sourceOriginal&&sourceContent?.claim?{claim:sourceContent.claim,reason:sourceContent.reason,condition:sourceContent.rebuttal}:window.SpeechOutline.fromText(value);$('speech-claim').value=parts.claim;$('speech-reason').value=parts.reason;$('speech-condition').value=parts.condition;outlineReady=false;$('speech-outline').hidden=true;$('speech-source-status').textContent='내 글을 주장·이유·다른 의견 순서로 나눴습니다. 아래에서 내용의 역할을 확인하고 다듬을 수 있습니다.';outline();});
   ['speech-claim','speech-reason','speech-condition'].forEach(id=>$(id).addEventListener('input',()=>{outlineReady=false;$('speech-outline').hidden=true;setState(state);saveDraft();}));
   $('speech-target').addEventListener('change',saveDraft);
-  $('save-speech-draft-btn').addEventListener('click',async()=>{if(!draftSession)return;saveDraft();try{await draftSession.flush();$('speech-draft-status').textContent='말하기 준비와 전사문 초안을 저장했습니다.';window.dispatchEvent(new Event('activity-record-saved'));}catch(e){$('speech-draft-status').textContent=e.message;}});
+  $('save-speech-draft-btn').addEventListener('click',async()=>{if(!draftSession)return;saveDraft();try{const version=await draftSession.snapshot();$('speech-draft-status').textContent=version+'차 저장본을 남겼습니다. 이전 저장본은 내 활동 기록에서 볼 수 있습니다.';window.dispatchEvent(new Event('activity-record-saved'));}catch(e){$('speech-draft-status').textContent=e.message;}});
   $('start-btn').addEventListener('click',listen);
   $('pause-btn').addEventListener('click',()=>{if(state!=='LISTENING')return;freezeTime();setState('PAUSED','일시 멈췄습니다. 계속하기를 누르면 이어서 말할 수 있습니다.');stopRecognition();});
   $('restart-btn').addEventListener('click',async()=>{reset();if(outlineReady)await listen();});
@@ -64,7 +79,7 @@
     try{
       const response=await fetch('/api/speech/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topicId,transcript,durationSeconds:Math.max(1,activeSeconds),targetDurationSeconds:Number($('speech-target').value),outline:{claim:text('speech-claim'),reason:text('speech-reason'),condition:text('speech-condition')}})});
       const data=await response.json();if(response.status===401)throw Error('학생 계정 로그인이 필요합니다.');if(!response.ok||!data.evaluation)throw Error(data.error||'스피치 피드백을 받지 못했습니다.');
-      const e=data.evaluation;$('speech-eval-praise').textContent='잘한 점: '+e.praise;$('speech-eval-growth').textContent='다음 연습: '+e.growthPoint;$('speech-eval-question').textContent='생각할 질문: '+e.nextSpeechChallenge;$('speech-feedback').hidden=false;busy=false;setState('COMPLETE','말하기 기록과 피드백을 저장했습니다.');finalTranscript=transcript;interimTranscript='';saveDraft();window.dispatchEvent(new Event('activity-record-saved'));
+      const e=data.evaluation;$('speech-eval-praise').textContent='잘한 점: '+e.praise;$('speech-eval-growth').textContent='다음 연습: '+e.growthPoint;$('speech-eval-question').textContent='생각할 질문: '+e.nextSpeechChallenge;$('speech-feedback').hidden=false;if(delivery.value==='voice')readFeedback();busy=false;setState('COMPLETE','말하기 기록과 피드백을 저장했습니다.');finalTranscript=transcript;interimTranscript='';saveDraft();window.dispatchEvent(new Event('activity-record-saved'));
     }catch(e){busy=false;setState('PAUSED',e.message+' 전사문은 화면에 유지됩니다.');}
   });
   async function changeTopic(){const next=window.TopicCatalog.current?.topicId||null;if(topicId===next)return;const ticket=++draftTicket;draftSession?.close();draftSession=null;topicId=next;reset();outlineReady=false;sourceOriginal='';sourceContent=null;$('speech-source-text').value='';$('speech-outline').hidden=true;$('speech-claim').value='';$('speech-reason').value='';$('speech-condition').value='';$('speech-draft-status').textContent='';$('topic-question').textContent=window.TopicCatalog.current?.question||'주제를 선택해 주세요.';setState('READY');if(!topicId)return;loadSources();try{const session=await window.LearningDrafts.open(topicId,'speech',$('speech-draft-status'));if(ticket!==draftTicket){session.close();return;}draftSession=session;const c=session.content;if(c){$('speech-source-text').value=c.sourceText||'';$('speech-claim').value=c.claim||'';$('speech-reason').value=c.reason||'';$('speech-condition').value=c.condition||'';$('speech-target').value=String(c.targetDurationSeconds||45);finalTranscript=c.transcript||'';renderTranscript();if(c.claim&&c.reason)outline();}}catch(e){if(ticket===draftTicket)$('speech-draft-status').textContent=e.message;}}

@@ -19,13 +19,14 @@ function portfolio(storage,student,topicFor,drafts={}){
  }
  for(const [topicId,modes] of Object.entries(drafts)){
   for(const kind of ['basic','advanced','speech']){
-   const draft=modes[kind],content=draft?.content;if(!content)continue;
+   for(const draft of [...(modes[kind]?.versions||[]),modes[kind]]){const content=draft?.content;if(!content)continue;
    // A supplied claim or speaking outline alone is not a student's written response.
    if(kind==='basic'&&!string(content.reason)&&!string(content.rebuttal))continue;
    const text=kind==='basic'?[content.claim,content.reason,content.rebuttal].filter(string).join('\n\n'):kind==='advanced'?(content.paragraphs||[]).filter(string).join('\n\n'):content.transcript;
-   if(!string(text)||sources.some(s=>s.kind===kind&&s.topicId===topicId&&s.text===string(text)))continue;
-   add(kind,['draft',topicId,draft.revision],topicId,draft.updatedAt,text);
-   const source=sources.at(-1);source.status='draft';source.label+=' · 작성 중인 초안';
+   if(!string(text)||(!draft.version&&sources.some(s=>s.kind===kind&&s.topicId===topicId&&s.text===string(text))))continue;
+   add(kind,[draft.version?'snapshot':'draft',topicId,draft.version||draft.revision],topicId,draft.updatedAt,text);
+   const source=sources.at(-1);source.status=draft.version?'snapshot':'draft';source.label+=' · '+(draft.version?draft.version+'차 저장본':'작성 중인 초안');
+   }
   }
  }
  for(const m of raw.messages)add('debate',m.roomId+':'+m.messageId,m.topicId,m.createdAt||m.timestamp,m.content);
