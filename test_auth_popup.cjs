@@ -5,7 +5,7 @@ async function setup({popupError=null,session=false,emailVerified=true}={}){
  const user={uid:'test',role:'student',onboardingComplete:true};const auth={currentUser:null},emailUser={email:'student@example.test',emailVerified,getIdToken:async()=> 'fixture-token'};
  const authModule={getAuth:()=>auth,browserSessionPersistence:{},setPersistence:async()=>{},getRedirectResult:async()=>null,GoogleAuthProvider:class{setCustomParameters(p){calls.push(p);}},signInWithPopup:async()=>{calls.push('popup');if(popupError)throw {code:popupError};return {user:{getIdToken:async()=> 'fixture-token'}};},signInWithEmailAndPassword:async(auth,email,password)=>{calls.push(['email-login',email,password]);auth.currentUser=emailUser;return {user:emailUser};},createUserWithEmailAndPassword:async(auth,email,password)=>{calls.push(['email-signup',email,password]);emailUser.emailVerified=false;auth.currentUser=emailUser;return {user:emailUser};},reload:async()=>calls.push('reload'),sendEmailVerification:async()=>calls.push('verify-email'),sendPasswordResetEmail:async(auth,email)=>calls.push(['email-reset',email]),signOut:async()=>{auth.currentUser=null;calls.push('signOut');}};
  const location={hostname:'example.test',search:'',href:'',replace(){}};
- const fetch=async(url,opts)=>{calls.push(url);if(url==='/api/auth/me')return {ok:session,status:session?200:401,json:async()=>({user})};if(url==='/api/auth/session'){assert.equal(JSON.parse(opts.body).idToken,'fixture-token');return {ok:true,json:async()=>({user})};}return {ok:true,json:async()=>url.endsWith('providers')?{providers:{naver:true,kakao:true}}:{firebase:{projectId:'test'}}};};
+ const fetch=async(url,opts)=>{calls.push(url);if(url==='/api/auth/me')return {ok:session,status:session?200:401,json:async()=>({user})};if(url==='/api/auth/session'){assert.equal(JSON.parse(opts.body).idToken,'fixture-token');return {ok:true,json:async()=>({user})};}if(url==='/api/auth/test-student'){assert.equal(JSON.parse(opts.body).username,'test01');return {ok:true,json:async()=>({user:{uid:'debateon-test01',role:'student',studentNumber:'11301',authProvider:'test',onboardingComplete:false}})};}return {ok:true,json:async()=>url.endsWith('providers')?{providers:{naver:true,kakao:true}}:{firebase:{projectId:'test'}}};};
  vm.runInNewContext(source,{document:{getElementById:node},location,localStorage:{setItem(){},removeItem(){}},fetch,URLSearchParams,console,__import:async url=>{calls.push('import');return url.includes('firebase-app')?{initializeApp:()=>({}),getApps:()=>[]}:authModule;}});
  for(let i=0;i<10;i++)await new Promise(setImmediate);node('email-address');node('email-password');return {nodes,calls,location,emailUser,auth};
 }
@@ -15,6 +15,17 @@ test('existing app session does not depend on loading the Firebase browser SDK',
 test('verified email login exchanges a fresh token for the server session',async()=>{
  const a=await setup();a.nodes['email-address'].value='student@example.test';a.nodes['email-password'].value='test-password';await a.nodes['email-form'].handlers.submit({preventDefault(){}});for(let i=0;i<10;i++)await new Promise(setImmediate);
  assert.ok(a.calls.some(c=>Array.isArray(c)&&c[0]==='email-login'&&c[1]==='student@example.test'));assert.ok(a.calls.includes('/api/auth/session'));assert.equal(a.nodes['email-password'].value,'');assert.match(a.location.href,/13_learning_hub/);
+});
+test('one identifier field routes test01 to the fixed class account without the email flow',async()=>{
+ const loginHtml=fs.readFileSync(require('node:path').join(__dirname,'stitch_screens/04_login_signup.html'),'utf8');assert.doesNotMatch(loginHtml,/1학년 13반 테스트 아이디로 로그인/);
+ const a=await setup();a.nodes['email-address'].value='test01';a.nodes['email-address'].handlers.input();assert.equal(a.nodes['email-signup'].hidden,true);assert.equal(a.nodes['email-reset'].hidden,true);a.nodes['email-password'].value='test01';await a.nodes['email-form'].handlers.submit({preventDefault(){}});for(let i=0;i<10;i++)await new Promise(setImmediate);
+ assert.ok(a.calls.includes('/api/auth/test-student'));assert.ok(!a.calls.some(c=>Array.isArray(c)&&c[0]==='email-login'));assert.ok(!a.calls.includes('/api/auth/session'));
+ assert.equal(a.nodes['student-number'].value,'11301');assert.equal(a.nodes['student-number'].readOnly,true);assert.equal(a.nodes['onboarding-step'].hidden,false);
+});
+test('signup and password reset still require a personal email address',async()=>{
+ const a=await setup();a.nodes['email-address'].value='test01';a.nodes['email-password'].value='test01';await a.nodes['email-signup'].handlers.click();await a.nodes['email-reset'].handlers.click();
+ assert.ok(!a.calls.some(c=>Array.isArray(c)&&['email-signup','email-reset'].includes(c[0])));assert.ok(!a.calls.includes('/api/auth/test-student'));
+ assert.match(a.nodes['auth-status'].textContent,/이메일 주소/);
 });
 test('new email signup sends verification, then waits for confirmed ownership before roster enrollment',async()=>{
  const a=await setup();a.nodes['email-address'].value='student@example.test';a.nodes['email-password'].value='test-password';await a.nodes['email-signup'].handlers.click();
