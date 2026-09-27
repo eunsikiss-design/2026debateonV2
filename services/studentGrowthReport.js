@@ -32,7 +32,7 @@ async function pdf(report){
    body('DebateOn · MY LEARNING',10,'#12606B');body('나의 역량 분석 보고서',24);body('비교보다, 나의 변화',13);body(`출력 시각 ${date(report.exportedAt)} (한국 시간)`,9,'#526579');
    if(report.student.isTestAccount)body('가상 학생 시험용',10,'#855600');
    for(const section of report.sections){heading(section.title);for(const [label,text] of section.items){space(70);body(label,11,'#12606B');body(text);}}
-   doc.addPage();heading('부록 · 분석에 연결된 활동 원문');body('본문의 [원문 번호]와 연결됩니다. 작성 중인 초안은 잠정 기록으로 표시합니다.',9,'#526579');
+   doc.moveDown(1);space(180);heading('부록 · 분석에 연결된 활동 원문');body('본문의 [원문 번호]와 연결됩니다. 작성 중인 초안은 잠정 기록으로 표시합니다.',9,'#526579');
    report.sources.forEach((s,i)=>{space(110);body(`[원문 ${i+1}] ${s.title}`,12,'#12606B');body(`${s.label||names[s.kind]} · ${s.status==='draft'?'작성 중인 초안':s.status==='snapshot'?'저장본':'완료 기록'}\n${date(s.createdAt)} (한국 시간)`,9,'#526579');body(s.text);});
    const pages=doc.bufferedPageRange();for(let i=0;i<pages.count;i++){doc.switchToPage(i);doc.page.margins.bottom=0;doc.fontSize(8).fillColor('#526579').text(`DebateOn · ${report.student.studentNumber||''} · 나의 역량 분석     ${i+1} / ${pages.count}`,48,doc.page.height-34,{width,height:20,lineBreak:false});}
    doc.end();
