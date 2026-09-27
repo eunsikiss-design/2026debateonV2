@@ -84,11 +84,33 @@ async function exchangeIdentityToolkit(path, body) {
   return data.idToken;
 }
 async function signInAdmin(username, password) {
-  if (username !== 'admin' || !process.env.ADMIN_EMAIL || !password) throw new Error('Invalid admin credentials');
+  if (!/^(admin|admin(0[1-9]|10))$/.test(String(username)) || !process.env.ADMIN_EMAIL || !password) throw new Error('Invalid admin credentials');
+  const domain = process.env.ADMIN_EMAIL.split('@')[1];
+  if (!domain) throw new Error('Admin email is not configured');
+  const email = username === 'admin' ? process.env.ADMIN_EMAIL : `${username}@${domain}`;
   const idToken = await exchangeIdentityToolkit('accounts:signInWithPassword', {
-    email: process.env.ADMIN_EMAIL, password, returnSecureToken: true
+    email, password, returnSecureToken: true
   });
   return createSession(idToken);
+}
+async function provisionTeacherBatch(password) {
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) throw Object.assign(new Error('교사 계정 비밀번호는 8~128자로 입력하세요.'),{status:400});
+  const domain=process.env.ADMIN_EMAIL?.split('@')[1];
+  if (!domain) throw Object.assign(new Error('관리자 이메일 설정이 필요합니다.'),{status:503});
+  const auth=getAuth(getApp()),schoolId=require('./appSchool').id(),accounts=[];
+  for(let i=1;i<=10;i++){
+    const username=`admin${String(i).padStart(2,'0')}`,uid=`debateon-${username}`,email=`${username}@${domain}`;
+    let existing;
+    try{existing=await auth.getUserByEmail(email);}catch(error){if(error.code!=='auth/user-not-found')throw error;}
+    if(existing && existing.uid!==uid)throw Object.assign(new Error(`${username} 계정이 이미 다른 사용자에 연결되어 있습니다.`),{status:409});
+    if(!existing)await auth.createUser({uid,email,password,displayName:`운영교사 ${String(i).padStart(2,'0')}`,emailVerified:true});
+    else await auth.updateUser(uid,{password,disabled:false,emailVerified:true});
+    await auth.setCustomUserClaims(uid,{admin:true,role:'teacher',schoolId,grade:1,classId:13});
+    try{await getFirestore(getApp()).collection('users').doc(uid).set({name:`운영교사 ${String(i).padStart(2,'0')}`,email,role:'teacher',schoolId,grade:1,classId:13,isAdmin:true,updatedAt:new Date().toISOString()},{merge:true});}
+    catch(error){if(!/PERMISSION_DENIED|disabled/i.test(String(error?.message)))throw error;}
+    accounts.push(username);
+  }
+  return accounts;
 }
 async function createSocialSession({ provider, providerUserId, email, name }) {
   const digest = require('crypto').createHash('sha256').update(String(providerUserId)).digest('hex').slice(0, 40);
@@ -159,5 +181,5 @@ function sameClass(user, schoolId, grade, classId) {
 }
 function safeProfile(user) { const { uid,email,name,role,schoolId,grade,classId,studentNumber,authProvider,onboardingComplete,privacyConsentAt }=user;return {uid,email,name,role,schoolId,grade,classId,studentNumber,authProvider,onboardingComplete,privacyConsentAt}; }
 
-module.exports={COOKIE_NAME,isConfigured,serverConfigured,clientConfigured,publicConfig,cookie,createSession,signInAdmin,createSocialSession,completeStudentProfile,authenticate,sameClass,safeProfile,requireVerifiedEmail};
+module.exports={COOKIE_NAME,isConfigured,serverConfigured,clientConfigured,publicConfig,cookie,createSession,signInAdmin,provisionTeacherBatch,createSocialSession,completeStudentProfile,authenticate,sameClass,safeProfile,requireVerifiedEmail};
 

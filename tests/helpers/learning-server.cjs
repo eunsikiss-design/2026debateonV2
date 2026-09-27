@@ -12,7 +12,7 @@ function build(file,coach,options={}){
  services.activitySheets=require('../../services/activitySheets');
  services.appSchool=require('../../services/appSchool');
  services.schoolRecordSheets=options.schoolRecordSheets||require('../../services/schoolRecordSheets');
- let handler;const env={APP_ORIGIN:'http://127.0.0.1:3000'};
+ let handler;const env={APP_ORIGIN:'http://127.0.0.1:3000',...(options.env||{})};
  vm.runInNewContext(fs.readFileSync(path.join(root,'server.js'),'utf8'),{require:id=>{if(id==='http')return {createServer:fn=>(handler=fn,{listen(){}})};if(id.startsWith('./services/')){const key=id.split('/').pop();if(!services[key])throw Error('Unexpected service '+key);return services[key];}return require(id);},__dirname:root,process:{env,loadEnvFile(){}},console:{log(){},warn(){}},URLSearchParams,Buffer,setTimeout,clearTimeout,setInterval,clearInterval});
  return {learning,users,sessions,async start(){const server=http.createServer((req,res)=>Promise.resolve(handler(req,res)).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));}));await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;env.APP_ORIGIN=origin;return {origin,close:()=>new Promise(r=>server.close(r))};}};
 }

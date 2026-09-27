@@ -67,6 +67,7 @@
     finally{retry.disabled=false;state.removeAttribute('aria-busy');checking=false;}
   }
   retry.addEventListener('click',()=>{automaticRetries=0;clearTimeout(reconnectTimer);checkConnection();});window.addEventListener('online',()=>{automaticRetries=0;checkConnection();});window.addEventListener('offline',checkConnection);checkConnection();
+  setInterval(()=>{if(signedIn && document.visibilityState==='visible')fetch('/api/auth/me',{credentials:'same-origin'}).catch(()=>{});},30000);
   const toast=element('div','cyber-toast');toast.hidden=true;toast.setAttribute('role','status');document.body.append(toast);let toastTimer;
   function inform(message) {toast.textContent=message;toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toast.hidden=true;},6500);}
   const protectedActions=new Set(['request-eval-btn','submit-essay-btn','send-msg-btn','finish-debate-btn','save-obs-btn','final-submit-badge-btn','save-basic-draft-btn','save-essay-draft-btn','save-speech-draft-btn']);

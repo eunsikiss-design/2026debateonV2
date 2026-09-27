@@ -4,6 +4,7 @@
 <body data-screen="battle"><header></header><main>
 <section class="battle-room-bar" aria-label="토론방 상태"><div><span class="battle-label" id="battle-class">우리 반 토론</span><h2 id="room-topic-title">토론방을 확인하고 있습니다.</h2></div><div class="battle-live"><span id="battle-live-status" role="status">연결 확인 중</span><strong id="serverTimer">대기</strong><span id="room-members-count">참여 0명</span></div></section>
 <p id="battle-notice" class="battle-notice" role="status"></p>
+<label class="battle-room-picker">참여할 논제<select id="battle-room-select" aria-label="참여할 논제"><option value="">진행 중인 논제 확인 중</option></select></label>
 <form id="teacher-room-form" class="battle-room-controls" hidden><label>토론 주제<select id="teacher-room-topic" required></select></label><label>진행 시간(분)<input id="teacher-room-minutes" type="number" min="1" max="60" value="10"></label><button type="submit" class="battle-primary">새 토론 열기</button><button type="button" id="finish-debate-btn">현재 토론 종료</button></form>
 <div class="battle-mobile-tabs" aria-label="토론 화면 전환"><button id="show-feed" type="button" aria-pressed="true" aria-controls="battle-reader">토론 보기</button><button id="show-writer" type="button" aria-pressed="false" aria-controls="battle-writer">내 글 쓰기</button></div>
 <div class="battle-workspace" data-pane="feed">

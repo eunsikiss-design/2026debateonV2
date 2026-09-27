@@ -7,7 +7,7 @@ function run(fail=false){
  const source=fs.readFileSync('assets/cyber-ui.js','utf8').split("  const toast=")[0]+'})();';
  const context={document,window:{addEventListener(){}},navigator:{onLine:true},AbortSignal,location:{},localStorage:{removeItem(){}},
  fetch:async url=>{if(url==='/api/auth/me'&&fail)throw Error('network');return {ok:true,json:async()=>url==='/api/health'?{authentication:'firebase_session'}:{user:{name:'검증학생',studentNumber:'10325',email:'test@example.test',role:'student',onboardingComplete:true}}}},
- setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){}};
+ setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout(){},setInterval:()=>0};
  vm.runInNewContext(source,context);
  return {nodes,notice,timers,context};
 }

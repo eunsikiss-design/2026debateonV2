@@ -93,7 +93,8 @@ function broadcastDebate(roomId, event, payload) {
 
 function scopedDebateRoom(user, roomId) {
   const room=storageService.getDebateRoom(roomId);
-  if(!firebaseAuth.sameClass(user,room.schoolId,room.grade,room.classId))throw Object.assign(new Error('담당 학급의 토론방만 이용할 수 있습니다.'),{status:403});
+  if(user.role==='teacher'){teacherClass(user,`${room.grade}-${room.classId}`);if(user.schoolId!==room.schoolId)throw Object.assign(new Error('담당 학교의 토론방만 이용할 수 있습니다.'),{status:403});}
+  else if(!firebaseAuth.sameClass(user,room.schoolId,room.grade,room.classId))throw Object.assign(new Error('담당 학급의 토론방만 이용할 수 있습니다.'),{status:403});
   return room;
 }
 
@@ -233,7 +234,7 @@ const server = http.createServer(async (req, res) => {
         schoolId:require('./services/appSchool').id(),grade:verified.grade,classId:verified.classId,
         studentNumber:verified.studentNumber,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1'},profile={...req.auth,...profileData,onboardingComplete:true};
       storageService.saveUser({...profile,studentNumber:verified.studentNumber,name:verified.verifiedName,grade:verified.grade,classId:verified.classId,
-        onboardingComplete:true,transferSlot:verified.transferSlot,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1',registeredAt:claimed?.registeredAt||now,dataOrigin:'verified'});
+        onboardingComplete:true,transferSlot:verified.transferSlot,isTestAccount:verified.testSlot===true,privacyConsentAt:now,privacyConsentVersion:'2026-09-23-v1',registeredAt:claimed?.registeredAt||now,dataOrigin:'verified'});
       storageService.recordStudentVisit(profile.uid,now);
       try{Object.assign(profile,await firebaseAuth.completeStudentProfile(req.auth,profileData));}
       catch(error){console.warn('Firebase student profile sync deferred:',error?.code||error?.name||'unknown');}
@@ -455,7 +456,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && pathname === '/api/teacher/classes') {
     const classes = teacherClasses(req.auth);
-    sendJSON(res, 200, { success: true, classes }); return;
+    sendJSON(res, 200, { success: true, classes, canProvisionTeachers:Boolean(process.env.ADMIN_EMAIL&&req.auth.email?.toLowerCase()===process.env.ADMIN_EMAIL.toLowerCase()) }); return;
   }
 
   // 7. 교사용 학급 설정: GET /api/teacher/class-settings & POST
@@ -506,6 +507,45 @@ const server = http.createServer(async (req, res) => {
     const registrations=studentRoster.registrationStatus(storageService.getUsers().filter(u=>u.schoolId===req.auth.schoolId));
     sendJSON(res,200,{success:true,total:registrations.length,registered:registrations.filter(item=>item.registered).length,registrations});return;
   }
+  if(req.method==='POST'&&pathname==='/api/teacher/provision-test-admins'){
+    if(!process.env.ADMIN_EMAIL||req.auth.email?.toLowerCase()!==process.env.ADMIN_EMAIL.toLowerCase()){
+      sendJSON(res,403,{success:false,error:'PRIMARY_ADMIN_REQUIRED'});return;
+    }
+    try{const body=await parseRequestBody(req),accounts=await firebaseAuth.provisionTeacherBatch(body.password);
+      sendJSON(res,200,{success:true,accounts});
+    }catch(error){sendJSON(res,error.status||500,{success:false,error:error.status?error.message:'교사 계정 발급에 실패했습니다.'});}return;
+  }
+
+  if (pathname === '/api/teacher/battle-plan' && ['GET','POST'].includes(req.method)) {
+    try {
+      const body=req.method==='POST'?await parseRequestBody(req):{};
+      const scope=teacherClass(req.auth,body.class||queryParams.get('class'));
+      const topicId=body.topicId||queryParams.get('topicId');
+      if(!storageService.getTopic(topicId))throw Object.assign(new Error('토론 논제를 선택하세요.'),{status:400});
+      if(req.method==='POST'){
+        const known=new Set(studentRoster.registrationStatus(storageService.getUsers().filter(item=>item.schoolId===scope.schoolId)).filter(item=>item.grade===scope.grade&&item.classId===scope.classId&&item.registered).map(item=>item.studentNumber));
+        if(body.mode==='assigned'&&(!Array.isArray(body.assignments)||body.assignments.some(item=>!known.has(String(item.studentNumber)))))
+          throw Object.assign(new Error('가입한 학급 학생만 지정할 수 있습니다.'),{status:400});
+      }
+      const plan=req.method==='POST'?storageService.saveBattlePlan(scope.schoolId,scope.grade,scope.classId,topicId,body,req.auth.uid):storageService.getBattlePlan(scope.schoolId,scope.grade,scope.classId,topicId);
+      sendJSON(res,200,{success:true,plan});
+    }catch(error){sendJSON(res,error.status||500,{success:false,error:error.message});}return;
+  }
+
+  if(req.method==='GET'&&pathname==='/api/teacher/battle-roster'){
+    try{
+      const scope=teacherClass(req.auth,queryParams.get('class'));
+      const status=new Map(storageService.getClassStudentsStatus(scope.schoolId,scope.grade,scope.classId).map(item=>[String(item.studentNumber),item]));
+      const roster=studentRoster.registrationStatus(storageService.getUsers().filter(item=>item.schoolId===scope.schoolId));
+      sendJSON(res,200,{success:true,students:roster.filter(item=>item.grade===scope.grade&&item.classId===scope.classId).map(item=>{
+        const state=status.get(item.studentNumber),user=state?storageService.getUser(state.uid):null;
+        let saved=0,debate=0;if(user){try{const drafts=learningService.drafts.list(user);for(const modes of Object.values(drafts))for(const draft of Object.values(modes))saved+=draft?.versions?.length||0;}catch{}
+          debate=storageService.getStudentRecordEvidence(user).messages.length;}
+        const activity=[state?.practiceCount?`연습 ${state.practiceCount}`:'',saved?`저장 ${saved}`:'',debate?`토론 ${debate}`:''].filter(Boolean).join(' · ')||'활동 기록 없음';
+        return {...item,...(state||{}),online:Boolean(state?.online),activityStatus:activity,isBattleReady:Boolean(state?.isBattleReady)};
+      })});
+    }catch(error){sendJSON(res,error.status||500,{success:false,error:error.message});}return;
+  }
 
   // 8-1. 교사용 학생 배틀룸 참가 특별 예외 승인/해제: POST /api/teacher/student-override (지시서 제17조)
   if (req.method === 'POST' && pathname === '/api/teacher/student-override') {
@@ -539,16 +579,23 @@ const server = http.createServer(async (req, res) => {
     const room=storageService.getCurrentDebateRoom(req.auth.schoolId,req.auth.grade,req.auth.classId);
     sendJSON(res,200,{success:true,room});return;
   }
+  if(req.method==='GET'&&pathname==='/api/debate/available'){
+    try{const scope=req.auth.role==='teacher'?teacherClass(req.auth,queryParams.get('class')):req.auth;
+      sendJSON(res,200,{success:true,rooms:storageService.getActiveDebateRooms(scope.schoolId,scope.grade,scope.classId)});
+    }catch(error){sendJSON(res,error.status||500,{success:false,error:error.message});}return;
+  }
   // 9. 토론방 초기화/조회: POST /api/debate/room/init
   if (req.method === 'POST' && pathname === '/api/debate/room/init') {
     try {
       const body = await parseRequestBody(req);
-      const active=storageService.getCurrentDebateRoom(req.auth.schoolId,req.auth.grade,req.auth.classId);
+      const scope=teacherClass(req.auth,body.class);
+      const active=storageService.getActiveDebateRooms(scope.schoolId,scope.grade,scope.classId).find(room=>room.topicId===body.topicId);
       if(active?.status==='active'&&new Date(active.endsAt)>new Date()){sendJSON(res,409,{success:false,error:'진행 중인 토론을 종료한 뒤 새 토론을 시작하세요.'});return;}
       const topic=learningService.topic(body.topicId,req.auth);
       body.title=topic.question;body.unit=topic.unit;body.durationMinutes=Math.max(1,Math.min(60,Number(body.durationMinutes)||10));
-      const room = storageService.initDebateRoom({ ...body, hostUid:req.auth.uid, schoolId:req.auth.schoolId,
-        grade:req.auth.grade, classId:req.auth.classId });
+      const plan=storageService.getBattlePlan(scope.schoolId,scope.grade,scope.classId,body.topicId);
+      const room = storageService.initDebateRoom({ ...body, plan, hostUid:req.auth.uid, schoolId:scope.schoolId,
+        grade:scope.grade, classId:scope.classId });
       const remainingSeconds = Math.max(0, Math.floor((new Date(room.endsAt) - Date.now()) / 1000));
       broadcastDebate(room.roomId, 'room', { room:{ ...room, remainingSeconds } });
       sendJSON(res, 200, { success: true, room: { ...room, id: room.roomId, remainingSeconds } });
@@ -572,7 +619,7 @@ const server = http.createServer(async (req, res) => {
       const settings = storageService.getClassSettings(schoolId, grade, classId);
       const required = settings.requiredBadgeCount ?? 1;
       const userRole = role || user.role || 'student';
-      const hasOverride = user.battleOverride === true;
+      const hasOverride = storageService.getUser(userId)?.battleOverride === true;
 
       // 지시서 제16·17조: 배틀룸 참가 자격 엄격 검증 (교사 참관 및 교사 특별 예외 승인은 뱃지 제한 면제)
       if (userRole !== 'teacher' && !hasOverride && badges.length < required) {
@@ -606,7 +653,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && pathname.startsWith('/api/debate/stream/')) {
     const roomId = pathname.split('/').pop();
     let room;try{room = scopedDebateRoom(req.auth,roomId);}catch(error){sendJSON(res,error.status||500,{success:false,error:error.message});return;}
-    if (!room || !firebaseAuth.sameClass(req.auth, room.schoolId, room.grade, room.classId)) {
+    if (!room) {
       sendJSON(res, 403, { success:false, error:'CLASS_SCOPE_REQUIRED' }); return;
     }
     res.writeHead(200, { 'Content-Type':'text/event-stream; charset=utf-8', 'Cache-Control':'no-cache, no-transform',
@@ -1049,7 +1096,7 @@ const server = http.createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
   const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html','14_user_guide.html']);
-  const allowed = reqUrl === '/index.html' || ['/assets/teacher-connections.js','/assets/teacher-records.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/activity-history.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
+  const allowed = reqUrl === '/index.html' || ['/assets/teacher-connections.js','/assets/teacher-records.js','/assets/teacher-battle-planner.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/activity-history.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||
     (/^\/assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:png|jpg|jpeg|svg|webp|ico|css|woff2?)$/.test(reqUrl));
   if (!allowed || reqUrl.includes('..') || reqUrl.includes('\\')) { res.writeHead(404); res.end('Not Found'); return; }
