@@ -412,8 +412,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Student growth: authentic source records, scoped access, and citation-backed feedback.
-  const growthRoute=pathname.match(/^\/api\/growth\/student\/([^/]+)(\/analyze)?$/);
-  if(growthRoute&&((req.method==='GET'&&!growthRoute[2])||(req.method==='POST'&&growthRoute[2]))){
+  const growthRoute=pathname.match(/^\/api\/growth\/student\/([^/]+)(\/analyze|\/report\.pdf)?$/);
+  if(growthRoute&&((req.method==='GET'&&growthRoute[2]!=='/analyze')||(req.method==='POST'&&growthRoute[2]==='/analyze'))){
     res.setHeader('Cache-Control','private, no-store');
     try{
       const uid=growthRoute[1];
@@ -427,6 +427,11 @@ const server = http.createServer(async (req, res) => {
       const report=growth.collect(storageService,learningService,student,topicId),selected=growth.batch(report);
       const prior=storageService.getStudentGrowthAnalysis(student,topicId);
       let analysis=prior?.fingerprint===report.fingerprint?prior:null;
+      if(growthRoute[2]==='/report.pdf'){
+        if(queryParams.has('fingerprint')&&(queryParams.get('fingerprint')!==report.fingerprint||queryParams.get('analysisAt')!==(analysis?.generatedAt||'')))throw Object.assign(Error('기록이나 분석이 변경되었습니다. 기록을 새로고침한 뒤 PDF를 다시 만들어 주세요.'),{status:409});
+        const exporter=require('./services/studentGrowthReport'),document=exporter.build(report,analysis),buffer=await exporter.pdf(document);
+        res.writeHead(200,{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="DebateOn-growth.pdf"; filename*=UTF-8''${encodeURIComponent(exporter.filename(document))}`,'Content-Length':buffer.length,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});res.end(buffer);return;
+      }
       if(req.method==='POST'){
         const body=await parseRequestBody(req);
         if(!selected.sources.length)throw Object.assign(Error('저장한 글이나 전사문, 토론 발언이 한 건 이상 필요합니다.'),{status:400});
@@ -1114,7 +1119,7 @@ const server = http.createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
   const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html','14_user_guide.html']);
-  const allowed = reqUrl === '/index.html' || ['/assets/growth-live.js','/assets/teacher-connections.js','/assets/teacher-records.js','/assets/teacher-battle-planner.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/activity-history.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
+  const allowed = reqUrl === '/index.html' || ['/assets/growth-export.js','/assets/growth-live.js','/assets/teacher-connections.js','/assets/teacher-records.js','/assets/teacher-battle-planner.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/activity-history.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||
     (/^\/assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:png|jpg|jpeg|svg|webp|ico|css|woff2?)$/.test(reqUrl));
   if (!allowed || reqUrl.includes('..') || reqUrl.includes('\\')) { res.writeHead(404); res.end('Not Found'); return; }

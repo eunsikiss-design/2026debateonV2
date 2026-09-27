@@ -9,6 +9,7 @@ function build(file,coach,options={}){
  const services={schoolRecordService:require('../../services/schoolRecordService'),storageService:storage,learningService:learning,geminiService:coach||{evaluateBasicPractice:async()=>{throw Error('No coaching fixture configured');}},firebaseAuth:auth,socialAuth:{},studentRoster:options.studentRoster||{students:[],registrationStatus:()=>[]},knowledgeService:{cards:[],getEvidenceCards:()=>[],getStats:()=>({}),getGlossary:()=>[]},sheetSyncQueue:{enqueue(){},getQueueStatus:()=>({queueLength:0})}};
  services.studentReportService=require('../../services/studentReportService');
  services.studentGrowthService=require('../../services/studentGrowthService');
+ services.studentGrowthReport=require('../../services/studentGrowthReport');
  services.learningDraftStore=require('../../services/learningDraftStore');
  services.activitySheets=require('../../services/activitySheets');
  services.appSchool=require('../../services/appSchool');
