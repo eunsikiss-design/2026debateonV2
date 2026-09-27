@@ -449,6 +449,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/api/teacher/classes') {
+    res.setHeader('Cache-Control', 'private, no-store');
+    sendJSON(res, 200, { success: true, classes: teacherClasses(req.auth), canProvisionTeachers: Boolean(process.env.ADMIN_EMAIL && req.auth.email?.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase()) });
+    return;
+  }
+
   // 7. 교사용 학급 설정: GET /api/teacher/class-settings & POST
   if (pathname === '/api/teacher/class-settings') {
     if (req.method === 'GET') {

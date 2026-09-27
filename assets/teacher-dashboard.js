@@ -46,7 +46,15 @@
       $('#badge-requirement').value=String(settings.settings?.requiredBadgeCount??1);const topicSelect=$('#topic-assignment');topicSelect.replaceChildren();(topics.topics||topics||[]).forEach(t=>{const o=document.createElement('option');o.value=t.topicId||t.id;o.textContent=t.title||t.topic;o.selected=o.value===settings.settings?.activeTopicId;topicSelect.append(o);});
       const cards=evidence.cards||[];$('#metric-evidence').textContent=cards.length;$('#metric-verified').textContent=cards.filter(c=>c.verificationStatus==='verified').length;$('#growth-content').textContent=analytics.analytics?.hasSufficientData?'실제 수행 기록을 바탕으로 학급 성장 분석을 확인할 수 있습니다.':'분석할 실제 수행 기록이 충분하지 않습니다.';$('#sync-state').textContent=sync.connected?'Google Sheets 연결됨':`연결 전 · 대기 ${sync.queueLength||0}건`;
       state.innerHTML='<div><strong>교사 로그인 확인</strong><span>교사 계정으로 로그인했습니다. 선택한 학급 자료를 확인할 수 있습니다.</span></div>';connected=true;view(currentPanel);document.dispatchEvent(new CustomEvent('teacher-students-loaded',{detail:{students,classValue:selected}}));
-    }catch(error){document.dispatchEvent(new CustomEvent('teacher-records-disconnected'));state.className='connection-state error';state.innerHTML=`<div><strong>${error.status===401?'SIGN IN REQUIRED':'ACCESS DENIED'}</strong><span>${esc(error.message)}</span></div><a class="neon-button" href="/stitch_screens/04_login_signup.html">로그인 화면</a>`;$$('#teacher-main .teacher-panel').forEach(p=>p.hidden=true);}
+    }catch(error){
+      document.dispatchEvent(new CustomEvent('teacher-records-disconnected'));state.className='connection-state error';
+      const authError=error.status===401||error.status===403;
+      const title=error.status===401?'로그인 필요':error.status===403?'접근 권한 확인':'자료 불러오기 오류';
+      state.innerHTML=`<div><strong>${title}</strong><span>${esc(error.message)}${authError?'':' 잠시 후 다시 불러와 주세요.'}</span></div>`;
+      if(authError){const link=document.createElement('a');link.className='neon-button';link.href='/stitch_screens/04_login_signup.html';link.textContent='로그인 화면';state.append(link);}
+      else{const retry=document.createElement('button');retry.type='button';retry.className='neon-button';retry.textContent='다시 불러오기';retry.addEventListener('click',load);state.append(retry);}
+      $$('#teacher-main .teacher-panel').forEach(p=>p.hidden=true);
+    }
   }
   $('#settings-form').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/teacher/class-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({class:$('#teacher-class-select').value,requiredBadgeCount:Number($('#badge-requirement').value),activeTopicId:$('#topic-assignment').value})});$('#settings-result').textContent='선택한 학급 설정을 저장했습니다.';show('학급 설정이 저장되었습니다.');}catch(error){$('#settings-result').textContent=error.message;}});
   $('#registration-search').addEventListener('input',renderRegistrations);$('#teacher-class-select').addEventListener('change',()=>{$('#registration-search').value='';load();});$('#refresh-dashboard').addEventListener('click',load);$('#logout-btn').addEventListener('click',async()=>{await fetch('/api/auth/logout',{method:'POST'});location.href='/stitch_screens/04_login_signup.html';});load();
