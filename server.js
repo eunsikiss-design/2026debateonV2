@@ -39,6 +39,7 @@ function activitySheets(){return activitySheetsInstance ||= new (require('./serv
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const ROOT = path.resolve(__dirname);
 const debateStreams = new Map();
+const growthJobs = new Map();
 
 function restoreStoredStudentProfile(profile) {
   if (!profile || profile.role !== 'student') return profile;
@@ -410,66 +411,42 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 6. 학생 성장 기록 및 배틀룸 준비도 조회: GET /api/growth/student/:userId
-  if (req.method === 'GET' && pathname.startsWith('/api/growth/student/')) {
-    try {
-      const userId = pathname.split('/').pop();
-      if(req.auth.role!=='teacher'&&userId!==req.auth.uid){sendJSON(res,403,{success:false,error:'OWN_RECORDS_ONLY'});return;}
-      const user = storageService.getUser(userId);
-
-      if (!user) {
-        sendJSON(res, 404, { success: false, error: 'User not found' });
-        return;
+  // Student growth: authentic source records, scoped access, and citation-backed feedback.
+  const growthRoute=pathname.match(/^\/api\/growth\/student\/([^/]+)(\/analyze)?$/);
+  if(growthRoute&&((req.method==='GET'&&!growthRoute[2])||(req.method==='POST'&&growthRoute[2]))){
+    res.setHeader('Cache-Control','private, no-store');
+    try{
+      const uid=growthRoute[1];
+      if(req.auth.role!=='teacher'&&uid!==req.auth.uid)throw Object.assign(Error('본인의 활동 기록만 확인할 수 있습니다.'),{status:403});
+      const student=storageService.getUser(uid);
+      if(!student||student.role!=='student')throw Object.assign(Error('학생 기록을 찾을 수 없습니다.'),{status:404});
+      if(req.auth.role==='teacher')studentRecordPortfolio(req.auth,uid);
+      const topicId=queryParams.get('topic')||'';
+      if(topicId.length>100||topicId&&!/^[a-zA-Z0-9_-]+$/.test(topicId))throw Object.assign(Error('주제를 확인하세요.'),{status:400});
+      const growth=require('./services/studentGrowthService');
+      const report=growth.collect(storageService,learningService,student,topicId),selected=growth.batch(report);
+      const prior=storageService.getStudentGrowthAnalysis(student,topicId);
+      let analysis=prior?.fingerprint===report.fingerprint?prior:null;
+      if(req.method==='POST'){
+        const body=await parseRequestBody(req);
+        if(!selected.sources.length)throw Object.assign(Error('저장한 글이나 전사문, 토론 발언이 한 건 이상 필요합니다.'),{status:400});
+        if(!analysis||analysis.source!=='gemini-api'||body.force===true){
+          const jobKey=JSON.stringify([student.schoolId,uid,topicId,report.fingerprint]);
+          if(!growthJobs.has(jobKey)){
+            const job=(async()=>{
+              const result=await geminiService.analyzeStudentGrowth(selected);
+              const latest=growth.collect(storageService,learningService,student,topicId);
+              if(latest.fingerprint!==report.fingerprint)throw Object.assign(Error('분석 중 활동 기록이 변경되었습니다. 새로고침 후 다시 분석해 주세요.'),{status:409});
+              return storageService.saveStudentGrowthAnalysis(student,topicId,{...result,fingerprint:report.fingerprint,generatedAt:new Date().toISOString(),analyzedCount:selected.sources.length,excludedCount:selected.excludedCount,truncatedCount:selected.truncatedCount});
+            })();growthJobs.set(jobKey,job);job.finally(()=>growthJobs.delete(jobKey)).catch(()=>{});
+          }
+          analysis=await growthJobs.get(jobKey);
+        }
       }
-
-      const badges = storageService.getStudentBadges(user.uid);
-      const sessions = storageService.getStudentPracticeSessions(user.uid);
-      const classSetting = storageService.getClassSettings(user.schoolId, user.grade, user.classId);
-      const requiredBadges = classSetting.requiredBadgeCount || 1;
-      const earnedCount = badges.length;
-      const isBattleReady = (earnedCount >= requiredBadges) || (user.battleOverride === true);
-
-      // 5대 핵심 역량 산출 (기본값 + 세션 기반 누적)
-      let claimTotal = 90, reasonTotal = 88, conceptTotal = 92, rebuttalTotal = 84, expressionTotal = 80;
-      if (sessions.length > 0) {
-        const lastSession = sessions[0];
-        claimTotal = Math.min(99, 80 + (lastSession.analysis?.claim || 2) * 6);
-        reasonTotal = Math.min(99, 78 + (lastSession.analysis?.evidence || 2) * 6);
-        conceptTotal = Math.min(99, 82 + (lastSession.analysis?.concept || 2) * 5);
-        rebuttalTotal = Math.min(99, 76 + (lastSession.analysis?.rebuttal || 2) * 6);
-      }
-
-      sendJSON(res, 200, {
-        success: true,
-        user,
-        readiness: {
-          earnedBadges: earnedCount,
-          requiredBadges,
-          missingBadges: isBattleReady ? 0 : Math.max(0, requiredBadges - earnedCount),
-          isBattleReady,
-          hasOverride: user.battleOverride === true,
-          progressPercent: isBattleReady ? 100 : Math.min(100, Math.round((earnedCount / Math.max(1, requiredBadges)) * 100))
-        },
-        competencies: {
-          claim: claimTotal,
-          reasoning: reasonTotal,
-          concept: conceptTotal,
-          rebuttal: rebuttalTotal,
-          expression: expressionTotal,
-          overallScore: ((claimTotal + reasonTotal + conceptTotal + rebuttalTotal + expressionTotal) / 5).toFixed(1)
-        },
-        badges,
-        recentSessions: sessions.slice(0, 5)
-      });
-    } catch (err) {
-      sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
-    }
+      const badges=storageService.getStudentBadges(uid),required=storageService.getClassSettings(student.schoolId,student.grade,student.classId).requiredBadgeCount??1;
+      sendJSON(res,200,{success:true,...report,axes:growth.AXES,analysis,analysisStale:Boolean(prior&&!analysis),analysisScope:{includedCount:selected.sources.length,excludedCount:selected.excludedCount},readiness:{earnedBadges:badges.length,requiredBadges:required,isBattleReady:badges.length>=required||student.battleOverride===true}});
+    }catch(error){sendJSON(res,error.status||500,{success:false,message:error.status?error.message:'역량 기록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'});}
     return;
-  }
-
-  if (req.method === 'GET' && pathname === '/api/teacher/classes') {
-    const classes = teacherClasses(req.auth);
-    sendJSON(res, 200, { success: true, classes, canProvisionTeachers:Boolean(process.env.ADMIN_EMAIL&&req.auth.email?.toLowerCase()===process.env.ADMIN_EMAIL.toLowerCase()) }); return;
   }
 
   // 7. 교사용 학급 설정: GET /api/teacher/class-settings & POST
@@ -1131,7 +1108,7 @@ const server = http.createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
   const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html','14_user_guide.html']);
-  const allowed = reqUrl === '/index.html' || ['/assets/teacher-connections.js','/assets/teacher-records.js','/assets/teacher-battle-planner.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/activity-history.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
+  const allowed = reqUrl === '/index.html' || ['/assets/growth-live.js','/assets/teacher-connections.js','/assets/teacher-records.js','/assets/teacher-battle-planner.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/activity-history.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||
     (/^\/assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:png|jpg|jpeg|svg|webp|ico|css|woff2?)$/.test(reqUrl));
   if (!allowed || reqUrl.includes('..') || reqUrl.includes('\\')) { res.writeHead(404); res.end('Not Found'); return; }

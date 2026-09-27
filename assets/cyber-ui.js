@@ -121,16 +121,6 @@
   }
 
   document.getElementById('topic-select')?.parentElement.classList.add('topic-toolbar');
-  if(page==='growth'){
-    if(layout){layout.hidden=true;layout.setAttribute('aria-hidden','true');}
-    const empty=element('div','growth-empty');
-    const matrix=element('section','cyber-panel');matrix.append(element('span','tech-label','GROWTH MATRIX / NO DATA'),element('h2','','나의 다섯 가지 역량'),element('p','','아직 분석할 수행 기록이 없습니다. 기록이 쌓이면 각 역량의 변화와 근거를 함께 보여드립니다.'));
-    const axes=element('div','growth-axes');['개념 활용','논거 타당성','논리 구조화','반론 대응','전달 및 표현'].forEach(label=>{const row=element('div');row.append(element('span','',label),element('strong','','—'));axes.append(row);});const grid=document.createElementNS('http://www.w3.org/2000/svg','svg');grid.setAttribute('viewBox','0 0 300 240');grid.setAttribute('role','img');grid.setAttribute('aria-label','오각형 역량 분석 격자. 수행 기록이 없어 점수는 표시되지 않습니다.');grid.classList.add('radar-empty');
-    [1,.75,.5,.25].forEach(scale=>{const polygon=document.createElementNS(grid.namespaceURI,'polygon');polygon.setAttribute('points',Array.from({length:5},(_,i)=>{const a=-Math.PI/2+i*2*Math.PI/5;return (150+100*scale*Math.cos(a))+','+(120+100*scale*Math.sin(a));}).join(' '));polygon.setAttribute('fill','none');polygon.setAttribute('stroke','#00f2fe');polygon.setAttribute('stroke-opacity','.24');grid.append(polygon);});
-    const label=document.createElementNS(grid.namespaceURI,'text');label.setAttribute('x','150');label.setAttribute('y','125');label.setAttribute('text-anchor','middle');label.setAttribute('fill','#b6c3d4');label.textContent='기록 대기';grid.append(label);matrix.append(grid,axes);
-    const history=element('section','cyber-panel');history.append(element('span','tech-label','LEARNING TIMELINE'),element('h2','','첫 기록을 기다리고 있어요'),element('p','','인증과 저장 연결 후, 기초 연습부터 심화 논술과 토론까지 나의 학습 이력을 확인할 수 있습니다.'));
-    const start=element('a','neon-button','기초 연습으로 이동');start.href=routes.basic;history.append(start);empty.append(matrix,history);main.append(empty);
-  }
   if(page==='advanced'){
     const speech=document.getElementById('speech-workspace');if(speech){speech.replaceChildren(element('section','cyber-panel','음성 인식은 아직 연결되지 않았습니다. 스피치 탭에서 타이머로 연습할 수 있습니다.'));}
     document.querySelectorAll('button').forEach(b=>{if(/작성 가이드|작성가이드/.test(b.textContent))b.addEventListener('click',()=>inform('문단 사이를 한 줄 비워 주장, 근거, 반론과 결론을 작성하세요. 전체 600~800자를 권장합니다.'));if(b.textContent.includes('임시저장'))b.addEventListener('click',()=>inform('기록 저장은 인증 연결 후 사용할 수 있습니다. 현재 글은 화면을 나가면 유지되지 않습니다.'));});

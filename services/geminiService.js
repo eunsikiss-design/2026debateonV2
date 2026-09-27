@@ -225,6 +225,19 @@ ${learningContext ? "원문 발췌가 없어도 제공된 생각을 여는 사�
   /**
    * NEIS 학교생활기록부 과목별 세부능력 및 특기사항(세특) 초안 생성 (지시서 제56~62조)
    */
+  async analyzeStudentGrowth(report) {
+    const growth=require('./studentGrowthService');
+    if(!report.sources?.length)throw new Error('학생 원문이 필요합니다.');
+    if(this.apiKey&&(this.analysisModel||this.coachModel)){
+      const {PROMPT,SCHEMA}=require('../prompts/studentGrowthAnalysis');
+      try{
+        const result=await this._callGeminiAPIWithPrompt({modelName:this.analysisModel||this.coachModel,fallbackModel:this.lightModel,systemPrompt:PROMPT,responseSchema:SCHEMA,userPrompt:JSON.stringify({sources:report.sources,comparisons:report.comparisons})});
+        return growth.validate(result,report);
+      }catch{console.warn('Student growth analysis unavailable or citations invalid; keeping source records.');}
+    }
+    return growth.fallback(report);
+  }
+
   async generateSchoolRecordDraft({sources}) {
     const records=require('./schoolRecordService');
     if (!Array.isArray(sources) || !sources.length) throw new Error('검증된 수행 근거가 필요합니다.');

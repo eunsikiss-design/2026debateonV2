@@ -331,6 +331,16 @@ class StorageService {
     return this._read().schoolRecordDrafts?.['student:'+studentId] || null;
   }
 
+  getStudentGrowthAnalysis(student, topicId='') {
+    return this._read().studentGrowthAnalyses?.[JSON.stringify([student.schoolId,student.uid,topicId])] || null;
+  }
+
+  saveStudentGrowthAnalysis(student, topicId, analysis) {
+    const store=this._read();store.studentGrowthAnalyses ||= {};
+    store.studentGrowthAnalyses[JSON.stringify([student.schoolId,student.uid,topicId])]=analysis;
+    this._write(store);return analysis;
+  }
+
   getSchoolRecordAnalysis(studentId) {
     return this._read().schoolRecordAnalyses?.['student:'+studentId] || null;
   }
