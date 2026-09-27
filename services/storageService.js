@@ -420,8 +420,8 @@ class StorageService {
   saveBattlePlan(schoolId, grade, classId, topicId, input, teacherUid) {
     const mode = input.mode;
     const capacity = Number(input.capacity);
-    if (!['open','assigned'].includes(mode) || !Number.isInteger(capacity) || capacity < 1 || capacity > 99)
-      throw Object.assign(new Error('참여 방식과 정원(1~99명)을 확인하세요.'),{status:400});
+    if (!['open','assigned'].includes(mode) || !Number.isInteger(capacity) || capacity < 2 || capacity > 99)
+      throw Object.assign(new Error('참여 방식과 정원(2~99명)을 확인하세요.'),{status:400});
     const assignments = mode === 'assigned' ? input.assignments : [];
     if (!Array.isArray(assignments) || assignments.length > capacity || (mode === 'assigned' && !assignments.length))
       throw Object.assign(new Error('지정 학생은 한 명 이상이며 정원을 넘을 수 없습니다.'),{status:400});
@@ -431,6 +431,8 @@ class StorageService {
         throw Object.assign(new Error('학생 학번 또는 조 편성을 확인하세요.'),{status:400});
       numbers.add(item.studentNumber);
     }
+    if (mode === 'assigned' && !['pro','con'].every(team => assignments.some(item => item.team === team)))
+      throw Object.assign(new Error('찬성과 반대에 각각 한 명 이상 배정하세요.'),{status:400});
     const store=this._read();store.battlePlans ||= {};
     const plan={schoolId,grade,classId,topicId,mode,capacity,assignments:assignments.map(item=>({studentNumber:String(item.studentNumber),team:item.team})),updatedBy:teacherUid,updatedAt:new Date().toISOString()};
     store.battlePlans[`${schoolId}_${grade}_${classId}_${topicId}`]=plan;
@@ -441,6 +443,8 @@ class StorageService {
   initDebateRoom(roomData) {
     const store = this._read();
     if (!store.debateRooms) store.debateRooms = {};
+    if(roomData.plan&&(roomData.plan.capacity<2||roomData.plan.mode==='assigned'&&!['pro','con'].every(team=>roomData.plan.assignments?.some(item=>item.team===team))))
+      throw Object.assign(new Error('편성을 수정해 주세요. 정원은 2명 이상이며 지정 배정은 찬반에 각각 한 명 이상 필요합니다.'),{status:400});
 
     const activeRooms=Object.values(store.debateRooms).filter(room=>room.schoolId===roomData.schoolId&&
       Number(room.grade)===Number(roomData.grade)&&Number(room.classId)===Number(roomData.classId)&&
@@ -509,7 +513,7 @@ class StorageService {
     return Object.values(this._read().debateRooms||{}).filter(room=>room.schoolId===schoolId&&Number(room.grade)===Number(grade)&&Number(room.classId)===Number(classId)&&room.status==='active'&&Date.parse(room.endsAt)>Date.now()).sort((a,b)=>Date.parse(b.startedAt)-Date.parse(a.startedAt)).map(room=>this.getDebateRoom(room.roomId));
   }
 
-  joinDebateRoom(roomId, profile, teamId = 'pro') {
+  joinDebateRoom(roomId, profile, teamId) {
     const store = this._read();
     if (!store.debateRooms?.[roomId]) throw Object.assign(new Error('교사가 아직 토론방을 열지 않았습니다.'), {status:404});
     const fresh = this._read();
@@ -518,9 +522,11 @@ class StorageService {
       throw Object.assign(new Error('다른 학급 토론에는 참여할 수 없습니다.'),{status:403});
     if (room.status !== 'active' || Date.parse(room.endsAt) <= Date.now())
       throw Object.assign(new Error('종료된 토론입니다.'),{status:409});
+    if (profile.role !== 'student' || !['pro','con'].includes(teamId))
+      throw Object.assign(new Error('학생 계정으로 찬성 또는 반대를 선택하세요.'),{status:400});
     if (!room.participants) room.participants = { teamA: [], teamB: [] };
     const members=[...room.participants.teamA,...room.participants.teamB];
-    const existing=members.some(item=>item.uid===profile.uid);
+    const existing=members.find(item=>item.uid===profile.uid);
     const plan=room.plan||{mode:'open',capacity:99,assignments:[]};
     if (profile.role==='student') {
       if (plan.mode==='assigned') {
@@ -530,6 +536,15 @@ class StorageService {
       }
       if (!existing && members.filter(item=>item.role==='student').length >= Number(plan.capacity||99))
         throw Object.assign(new Error('이 논제의 참가 정원이 찼습니다.'),{status:409});
+      const otherRoom=Object.values(fresh.debateRooms).find(item=>item.roomId!==roomId&&item.status==='active'&&Date.parse(item.endsAt)>Date.now()&&[...(item.participants?.teamA||[]),...(item.participants?.teamB||[])].some(member=>member.uid===profile.uid));
+      if(otherRoom) throw Object.assign(new Error('이미 참여 중인 토론방에서 나간 뒤 다른 방에 입장하세요.'),{status:409});
+      if(existing?.team===teamId) return this.getDebateRoom(roomId);
+      if(plan.mode!=='assigned') {
+        const others=members.filter(item=>item.uid!==profile.uid&&item.role==='student');
+        const chosen=others.filter(item=>item.team===teamId).length,opposite=others.length-chosen;
+        if(chosen>=Math.ceil(Number(plan.capacity||99)/2)||chosen+1>opposite+1)
+          throw Object.assign(new Error('찬반 인원 균형을 위해 인원이 적은 입장을 선택해 주세요.'),{status:409});
+      }
     }
     const key = teamId === 'con' ? 'teamB' : 'teamA';
     for (const list of [room.participants.teamA, room.participants.teamB]) {
@@ -539,6 +554,21 @@ class StorageService {
     room.participants[key].push({ uid:profile.uid, name:profile.name, studentNumber:profile.studentNumber || null,
       team:teamId === 'con' ? 'con' : 'pro', role:profile.role, dataOrigin:'verified', joinedAt:new Date().toISOString() });
     this._write(fresh);
+    return this.getDebateRoom(roomId);
+  }
+
+  leaveDebateRoom(roomId, profile) {
+    const store=this._read(),room=store.debateRooms?.[roomId];
+    if(!room) throw Object.assign(new Error('토론방을 찾을 수 없습니다.'),{status:404});
+    if(room.schoolId!==profile.schoolId||Number(room.grade)!==Number(profile.grade)||Number(room.classId)!==Number(profile.classId))
+      throw Object.assign(new Error('다른 학급 토론에는 접근할 수 없습니다.'),{status:403});
+    const own=[...(room.participants?.teamA||[]),...(room.participants?.teamB||[])].find(item=>item.uid===profile.uid);
+    if(own){
+      room.participationHistory ||= [];
+      room.participationHistory.push({...own,leftAt:new Date().toISOString()});
+      for(const key of ['teamA','teamB'])room.participants[key]=room.participants[key].filter(item=>item.uid!==profile.uid);
+      this._write(store);
+    }
     return this.getDebateRoom(roomId);
   }
 

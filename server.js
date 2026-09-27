@@ -601,7 +601,9 @@ const server = http.createServer(async (req, res) => {
   }
   if(req.method==='GET'&&pathname==='/api/debate/available'){
     try{const scope=req.auth.role==='teacher'?teacherClass(req.auth,queryParams.get('class')):req.auth;
-      sendJSON(res,200,{success:true,rooms:storageService.getActiveDebateRooms(scope.schoolId,scope.grade,scope.classId)});
+      let rooms=storageService.getActiveDebateRooms(scope.schoolId,scope.grade,scope.classId);
+      if(queryParams.get('summary')==='1')rooms=rooms.map(({messages,participationHistory,...room})=>({...room,messageCount:messages.length}));
+      sendJSON(res,200,{success:true,rooms});
     }catch(error){sendJSON(res,error.status||500,{success:false,error:error.message});}return;
   }
   // 9. 토론방 초기화/조회: POST /api/debate/room/init
@@ -614,6 +616,7 @@ const server = http.createServer(async (req, res) => {
       const topic=learningService.topic(body.topicId,req.auth);
       body.title=topic.question;body.unit=topic.unit;body.durationMinutes=Math.max(1,Math.min(60,Number(body.durationMinutes)||10));
       const plan=storageService.getBattlePlan(scope.schoolId,scope.grade,scope.classId,body.topicId);
+      if(body.planUpdatedAt&&body.planUpdatedAt!==plan.updatedAt)throw Object.assign(new Error('다른 교사가 편성을 변경했습니다. 현재 편성을 다시 확인하고 방을 열어 주세요.'),{status:409});
       const room = storageService.initDebateRoom({ ...body, plan, hostUid:req.auth.uid, schoolId:scope.schoolId,
         grade:scope.grade, classId:scope.classId });
       const remainingSeconds = Math.max(0, Math.floor((new Date(room.endsAt) - Date.now()) / 1000));
@@ -629,7 +632,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pathname === '/api/debate/join') {
     try {
       const body = await parseRequestBody(req);
-      const { roomId = "room_gangseo_1_3", teamId = "pro" } = body; const {uid:userId,schoolId,grade,classId,role}=req.auth;
+      const { roomId, teamId } = body; const {uid:userId,schoolId,grade,classId,role}=req.auth;
 
       const user = req.auth;
       const existingRoom=scopedDebateRoom(user,roomId);
@@ -670,6 +673,17 @@ const server = http.createServer(async (req, res) => {
   }
 
   // 인증 세션 쿠키를 사용하는 단방향 실시간 토론 스트림.
+  if(req.method==='POST'&&pathname==='/api/debate/leave') {
+    try {
+      const body=await parseRequestBody(req);
+      scopedDebateRoom(req.auth,body.roomId);
+      const room=storageService.leaveDebateRoom(body.roomId,req.auth);
+      broadcastDebate(room.roomId,'presence',{participants:room.participants});
+      sendJSON(res,200,{success:true,room});
+    } catch(error){sendJSON(res,error.status||500,{success:false,error:error.status?error.message:'퇴장 처리에 실패했습니다. 다시 시도해 주세요.'});}
+    return;
+  }
+
   if (req.method === 'GET' && pathname.startsWith('/api/debate/stream/')) {
     const roomId = pathname.split('/').pop();
     let room;try{room = scopedDebateRoom(req.auth,roomId);}catch(error){sendJSON(res,error.status||500,{success:false,error:error.message});return;}
@@ -716,7 +730,8 @@ const server = http.createServer(async (req, res) => {
       const members=[...(currentRoom.participants?.teamA||[]),...(currentRoom.participants?.teamB||[])];
       const member=members.find(p=>p.uid===authorUid);
       if(!member){sendJSON(res,403,{success:false,error:'입장을 선택하고 토론에 참여한 뒤 전송하세요.'});return;}
-      const target=targetUid?members.find(p=>p.uid===targetUid):null;
+      const previousSpeaker=targetUid?(currentRoom.messages||[]).find(m=>m.authorUid===targetUid):null;
+      const target=targetUid?(members.find(p=>p.uid===targetUid)||(previousSpeaker?{uid:targetUid,name:previousSpeaker.authorName}:null)):null;
       if(targetUid&&!target){sendJSON(res,400,{success:false,error:'답변할 학생을 다시 선택하세요.'});return;}
 
       const trimmed = (content || '').trim();

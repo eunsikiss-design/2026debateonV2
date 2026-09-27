@@ -22,14 +22,14 @@ test('teacher plans per topic and server enforces assignment, team, capacity and
  const app=await build(path.join(dir,'learning.json'),null,{users,storage,studentRoster:roster}).start();
  const call=async(url,id,body)=>{const result=await fetch(app.origin+url,{method:body===undefined?'GET':'POST',headers:{cookie:'test_uid='+id,origin:app.origin,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return {status:result.status,data:await result.json()};};
  try{
-  const assigned=await call('/api/teacher/battle-plan','teacher',{class:'1-13',topicId:'episode2026_1_01',mode:'assigned',capacity:1,assignments:[{studentNumber:'11301',team:'con'}]});assert.equal(assigned.status,200);
+  const assigned=await call('/api/teacher/battle-plan','teacher',{class:'1-13',topicId:'episode2026_1_01',mode:'assigned',capacity:2,assignments:[{studentNumber:'11301',team:'con'},{studentNumber:'11302',team:'pro'}]});assert.equal(assigned.status,200);
   assert.equal((await call('/api/teacher/battle-plan','one',{class:'1-13',topicId:'episode2026_1_01',mode:'open',capacity:2})).status,403);
   const first=await call('/api/debate/room/init','teacher',{class:'1-13',topicId:'episode2026_1_01',durationMinutes:5});assert.equal(first.status,200);const firstId=first.data.room.roomId;
   assert.equal((await call('/api/debate/join','one',{roomId:firstId,teamId:'pro'})).status,403);
   assert.equal((await call('/api/debate/join','two',{roomId:firstId,teamId:'con'})).status,403);
   assert.equal((await call('/api/debate/join','one',{roomId:firstId,teamId:'con'})).status,200);
   assert.equal((await call('/api/debate/join','outsider',{roomId:firstId,teamId:'con'})).status,403);
-  const open=await call('/api/teacher/battle-plan','teacher',{class:'1-13',topicId:'episode2026_1_02',mode:'open',capacity:1,assignments:[]});assert.equal(open.status,200);
+  const open=await call('/api/teacher/battle-plan','teacher',{class:'1-13',topicId:'episode2026_1_02',mode:'open',capacity:2,assignments:[]});assert.equal(open.status,200);
   const second=await call('/api/debate/room/init','teacher',{class:'1-13',topicId:'episode2026_1_02',durationMinutes:5});assert.equal(second.status,200);const secondId=second.data.room.roomId;
   assert.equal((await call('/api/debate/join','two',{roomId:secondId,teamId:'pro'})).status,200);
   assert.equal((await call('/api/debate/join','one',{roomId:secondId,teamId:'con'})).status,409);

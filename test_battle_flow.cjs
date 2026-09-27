@@ -17,10 +17,18 @@ test('two students receive live messages; room scope, membership, team and finis
   assert.equal((await call('/api/debate/join','unbadged',{roomId,teamId:'pro'})).data.eligible,false);
   assert.equal((await call('/api/debate/message','one',{roomId,content:'입장 전'})).status,403);
   assert.equal((await call('/api/debate/join','one',{roomId,teamId:'pro'})).status,200);
+  assert.equal((await call('/api/debate/join','two',{roomId})).status,400);
+  assert.equal((await call('/api/debate/join','two',{roomId,teamId:'pro'})).status,409);
   assert.equal((await call('/api/debate/join','two',{roomId,teamId:'con'})).status,200);
+  assert.equal((await call('/api/debate/join','one',{roomId,teamId:'con'})).status,409);
   const response=await fetch(app.origin+'/api/debate/stream/'+roomId,{headers:{cookie:'test_uid=two'},signal:abort.signal});assert.equal(response.status,200);reader=response.body.getReader();await reader.read();
   const sent=await call('/api/debate/message','one',{roomId,teamId:'con',authorName:'위조',messageType:'claim',content:'피해와 기록의 가치를 함께 살펴야 합니다.'});assert.equal(sent.status,200);assert.equal(sent.data.message.teamId,'pro');assert.equal(sent.data.message.authorName,'가상학생1');
   const received=await Promise.race([reader.read(),new Promise((_,reject)=>setTimeout(()=>reject(Error('No SSE message')),1500))]);assert.match(new TextDecoder().decode(received.value),/event: message/);
+  const left=await call('/api/debate/leave','one',{roomId});assert.equal(left.status,200);assert.equal(left.data.room.participants.teamA.length,0);assert.equal(left.data.room.messages.length,1);
+  assert.equal((await call('/api/debate/message','one',{roomId,content:'퇴장 후 발언'})).status,403);
+  assert.equal((await call('/api/debate/leave','outsider',{roomId})).status,403);
+  assert.equal((await call('/api/debate/join','one',{roomId,teamId:'pro'})).status,200);
+  assert.equal((await call('/api/debate/available?summary=1','teacher')).data.rooms[0].messageCount,1);
   assert.equal((await call('/api/debate/ai-summary','one',{roomId})).data.code,'DEBATE_SUMMARY_NOT_READY');
   assert.equal((await call('/api/debate/finish','one',{roomId})).status,403);
   assert.equal((await call('/api/debate/finish','teacher',{roomId})).status,200);
