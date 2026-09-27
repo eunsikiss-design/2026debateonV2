@@ -442,6 +442,14 @@ class StorageService {
     const store = this._read();
     if (!store.debateRooms) store.debateRooms = {};
 
+    const activeRooms=Object.values(store.debateRooms).filter(room=>room.schoolId===roomData.schoolId&&
+      Number(room.grade)===Number(roomData.grade)&&Number(room.classId)===Number(roomData.classId)&&
+      room.status==='active'&&Date.parse(room.endsAt)>Date.now());
+    if(activeRooms.some(room=>room.topicId===roomData.topicId))
+      throw Object.assign(new Error('이 논제로 진행 중인 토론방이 이미 있습니다.'),{status:409});
+    if(activeRooms.length>=10)
+      throw Object.assign(new Error('한 학급에서 동시에 열 수 있는 토론방은 최대 10개입니다.'),{status:409});
+
     const roomId = roomData.roomId || `room_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
     const existing = store.debateRooms[roomId];
     if(existing) throw Object.assign(new Error('기존 토론 기록은 덮어쓸 수 없습니다. 새 토론을 시작하세요.'),{status:409});

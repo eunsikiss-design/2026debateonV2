@@ -1,7 +1,7 @@
 (() => {
   const $=id=>document.getElementById(id);
   const topic=$('battle-plan-topic'),mode=$('battle-plan-mode'),capacity=$('battle-plan-capacity'),rows=$('battle-roster-rows');
-  let classValue='',students=[],loadedPlan=null,sequence=0;
+  let classValue='',students=[],loadedPlan=null,sequence=0,activeRoomCount=0;
   async function api(url,body){const response=await fetch(url,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw Error(result.message||result.error||'연결 오류');return result;}
   function status(message){$('battle-plan-status').textContent=message;}
   function selection(){return [...rows.querySelectorAll('tr')].flatMap(row=>{const checked=row.querySelector('input[type=checkbox]');return checked?.checked?[{studentNumber:row.dataset.studentNumber,team:row.querySelector('select').value}]:[];});}
@@ -22,7 +22,7 @@
   async function loadPlan(){const id=++sequence;if(!classValue||!topic.value)return;
     try{const result=await api(`/api/teacher/battle-plan?class=${encodeURIComponent(classValue)}&topicId=${encodeURIComponent(topic.value)}`);if(id!==sequence)return;loadedPlan=result.plan;mode.value=loadedPlan.mode;capacity.value=loadedPlan.capacity;renderRoster();status(`${students.length}명 명단 · ${loadedPlan.mode==='assigned'?'지정 배정':'자유 가입'} · 정원 ${loadedPlan.capacity}명`);}catch(error){status(error.message);}
   }
-  async function rooms(){if(!classValue)return;try{const result=await api('/api/debate/available?class='+encodeURIComponent(classValue)),list=$('battle-room-list');list.replaceChildren();if(!result.rooms.length){list.textContent='진행 중인 논제가 없습니다.';return;}
+  async function rooms(){if(!classValue)return;try{const result=await api('/api/debate/available?class='+encodeURIComponent(classValue)),list=$('battle-room-list');list.replaceChildren();activeRoomCount=result.rooms.length;$('battle-room-count').textContent=`활성 방 ${activeRoomCount}/10`;$('battle-room-open').disabled=activeRoomCount>=10;if(!result.rooms.length){list.textContent='진행 중인 논제가 없습니다.';return;}
     for(const room of result.rooms){const line=document.createElement('p'),link=document.createElement('a');link.href=`/stitch_screens/09_class_debate_battle.html?class=${encodeURIComponent(classValue)}&room=${encodeURIComponent(room.roomId)}`;link.textContent=room.title;line.append(link,` · ${room.plan?.mode==='assigned'?'교사 지정':'자유 가입'} · ${[...(room.participants?.teamA||[]),...(room.participants?.teamB||[])].length}/${room.plan?.capacity||'—'}명`);list.append(line);}
   }catch(error){status(error.message);}}
   document.addEventListener('teacher-students-loaded',async event=>{classValue=event.detail.classValue;const id=++sequence;status('학생 명단과 논제를 불러오고 있습니다.');
@@ -30,6 +30,7 @@
   });
   topic.addEventListener('change',loadPlan);mode.addEventListener('change',renderRoster);
   $('battle-plan-form').addEventListener('submit',async event=>{event.preventDefault();try{const assignments=mode.value==='assigned'?selection():[],result=await api('/api/teacher/battle-plan',{class:classValue,topicId:topic.value,mode:mode.value,capacity:Number(capacity.value),assignments});loadedPlan=result.plan;status('논제별 편성과 정원을 저장했습니다. 새로 여는 토론부터 적용됩니다.');}catch(error){status(error.message);}});
-  $('battle-room-open').addEventListener('click',async()=>{try{const result=await api('/api/debate/room/init',{class:classValue,topicId:topic.value,durationMinutes:Number($('battle-room-minutes').value)});status('토론을 열었습니다. 학생에게 배틀룸에서 논제를 선택하도록 안내하세요.');await rooms();location.href=`/stitch_screens/09_class_debate_battle.html?class=${encodeURIComponent(classValue)}&room=${encodeURIComponent(result.room.roomId)}`;}catch(error){status(error.message);}});
+  $('battle-room-open').addEventListener('click',async()=>{const button=$('battle-room-open');button.disabled=true;try{await api('/api/debate/room/init',{class:classValue,topicId:topic.value,durationMinutes:Number($('battle-room-minutes').value)});status('토론을 열었습니다. 아래 진행 중인 논제에서 관찰할 수 있습니다.');await rooms();}catch(error){status(error.message);await rooms();}finally{button.disabled=activeRoomCount>=10;}});
   $('teacher-account-form').addEventListener('submit',async event=>{event.preventDefault();const field=$('teacher-account-password'),message=$('teacher-account-result');message.textContent='발급 중입니다.';try{const result=await api('/api/teacher/provision-test-admins',{password:field.value});field.value='';message.textContent=`발급 완료: ${result.accounts.join(', ')}`;}catch(error){message.textContent=error.message;}});
+  $('test-students-provision').addEventListener('click',async()=>{const button=$('test-students-provision'),message=$('test-students-provision-result');button.disabled=true;message.textContent='99개 계정을 발급하고 있습니다.';try{const result=await api('/api/teacher/provision-test-students',{});message.textContent=`발급 완료: ${result.accounts.length}개 · test01~test99`; }catch(error){message.textContent=error.message;}finally{button.disabled=false;}});
 })();

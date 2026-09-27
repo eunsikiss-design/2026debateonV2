@@ -69,8 +69,8 @@ async function profileFor(decoded) {
   if (role === 'teacher' && decoded.admin !== true) throw Object.assign(new Error('관리자 권한이 없습니다.'), { code:'ADMIN_REQUIRED' });
   return { uid: decoded.uid, email: decoded.email || null, name: data.name || decoded.name || null, role,
     schoolId: require('./appSchool').id(), grade: Number(data.grade ?? decoded.grade) || null,
-    classId: Number(data.classId ?? decoded.classId) || null, studentNumber: data.studentNumber || null,
-    authProvider: data.authProvider || decoded.firebase?.sign_in_provider || decoded.sourceProvider || 'unknown',
+    classId: Number(data.classId ?? decoded.classId) || null, studentNumber: data.studentNumber || decoded.studentNumber || null,
+    authProvider: data.authProvider || (isTestStudentToken(decoded) ? 'test' : decoded.firebase?.sign_in_provider || decoded.sourceProvider || 'unknown'),
     onboardingComplete: role === 'teacher' || data.onboardingComplete === true,
     privacyConsentAt: data.privacyConsentAt || null };
 }
@@ -92,6 +92,48 @@ async function signInAdmin(username, password) {
     email, password, returnSecureToken: true
   });
   return createSession(idToken);
+}
+function testStudentNumberForUid(uid) {
+  const match = /^debateon-test(0[1-9]|[1-9][0-9])$/.exec(String(uid || ''));
+  return match ? `113${match[1]}` : null;
+}
+function isTestStudentToken(decoded) {
+  return decoded?.testAccount === true && decoded?.role === 'student' &&
+    decoded?.studentNumber === testStudentNumberForUid(decoded.uid);
+}
+async function signInTestStudent(username, password) {
+  const match = /^test(0[1-9]|[1-9][0-9])$/.exec(String(username || ''));
+  if (!match || !password) throw new Error('Invalid test student credentials');
+  const idToken = await exchangeIdentityToolkit('accounts:signInWithPassword', {
+    email: `${username}@debateon-test.example`, password, returnSecureToken: true
+  });
+  const decoded = await getAuth(getApp()).verifyIdToken(idToken, true);
+  if (!isTestStudentToken(decoded)) throw new Error('Invalid test student account');
+  return createSession(idToken);
+}
+async function provisionTestStudents() {
+  const auth = getAuth(getApp()), schoolId = require('./appSchool').id(), accounts = [];
+  for (let start = 1; start <= 99; start += 5) {
+    const batch = Array.from({ length: Math.min(5, 100 - start) }, (_, offset) => start + offset);
+    const created = await Promise.all(batch.map(async number => {
+      const suffix = String(number).padStart(2, '0'), username = `test${suffix}`;
+      const uid = `debateon-${username}`, email = `${username}@debateon-test.example`;
+      let existing;
+      try { existing = await auth.getUserByEmail(email); }
+      catch (error) { if (error.code !== 'auth/user-not-found') throw error; }
+      if (existing && existing.uid !== uid) throw new Error(`${username} 계정이 이미 다른 사용자에 연결되어 있습니다.`);
+      if (!existing) await auth.createUser({ uid, email, password: username, emailVerified: false });
+      else await auth.updateUser(uid, { password: username, disabled: false, emailVerified: false });
+      await auth.setCustomUserClaims(uid, { role: 'student', testAccount: true, studentNumber: `113${suffix}`, schoolId, grade: 1, classId: 13 });
+      try {
+        await getFirestore(getApp()).collection('users').doc(uid).set({ email, role: 'student', authProvider: 'test', studentNumber: `113${suffix}`,
+          schoolId, grade: 1, classId: 13, updatedAt: new Date().toISOString() }, { merge: true });
+      } catch (error) { if (!/PERMISSION_DENIED|disabled/i.test(String(error?.message))) throw error; }
+      return username;
+    }));
+    accounts.push(...created);
+  }
+  return accounts;
 }
 async function provisionTeacherBatch(password) {
   if (typeof password !== 'string' || password.length < 8 || password.length > 128) throw Object.assign(new Error('교사 계정 비밀번호는 8~128자로 입력하세요.'),{status:400});
@@ -142,7 +184,7 @@ async function createSession(idToken) {
   return { session, profile, maxAgeSeconds: Math.floor(SESSION_MAX_AGE_MS/1000) };
 }
 function requireVerifiedEmail(decoded, profile) {
-  if (profile?.role === 'student' && decoded?.firebase?.sign_in_provider === 'password' && decoded.email_verified !== true)
+  if (profile?.role === 'student' && decoded?.firebase?.sign_in_provider === 'password' && decoded.email_verified !== true && !isTestStudentToken(decoded))
     throw Object.assign(new Error('이메일 인증 링크를 확인한 뒤 다시 로그인해 주세요.'), { code:'EMAIL_VERIFICATION_REQUIRED', status:403 });
 }
 async function completeStudentProfile(user, input) {
@@ -181,5 +223,5 @@ function sameClass(user, schoolId, grade, classId) {
 }
 function safeProfile(user) { const { uid,email,name,role,schoolId,grade,classId,studentNumber,authProvider,onboardingComplete,privacyConsentAt }=user;return {uid,email,name,role,schoolId,grade,classId,studentNumber,authProvider,onboardingComplete,privacyConsentAt}; }
 
-module.exports={COOKIE_NAME,isConfigured,serverConfigured,clientConfigured,publicConfig,cookie,createSession,signInAdmin,provisionTeacherBatch,createSocialSession,completeStudentProfile,authenticate,sameClass,safeProfile,requireVerifiedEmail};
+module.exports={COOKIE_NAME,isConfigured,serverConfigured,clientConfigured,publicConfig,cookie,createSession,signInAdmin,signInTestStudent,provisionTestStudents,testStudentNumberForUid,provisionTeacherBatch,createSocialSession,completeStudentProfile,authenticate,sameClass,safeProfile,requireVerifiedEmail};
 

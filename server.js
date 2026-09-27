@@ -177,6 +177,17 @@ const server = http.createServer(async (req, res) => {
     if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED'});return;}
     try{const body=await parseRequestBody(req);const created=await firebaseAuth.signInAdmin(body.username,body.password);res.setHeader('Set-Cookie',firebaseAuth.cookie(created.session,created.maxAgeSeconds));sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(created.profile)});}catch{sendJSON(res,401,{success:false,error:'INVALID_ADMIN_CREDENTIALS',message:'관리자 아이디 또는 비밀번호를 확인하세요.'});}return;
   }
+  if (pathname === '/api/auth/test-student' && req.method === 'POST') {
+    if(!firebaseAuth.isConfigured()){sendJSON(res,503,{success:false,error:'AUTH_NOT_CONFIGURED'});return;}
+    try {
+      const body=await parseRequestBody(req),created=await firebaseAuth.signInTestStudent(body.username,body.password);
+      const restored=restoreStoredStudentProfile(created.profile);
+      if(restored.onboardingComplete)storageService.recordStudentVisit(restored.uid);
+      res.setHeader('Set-Cookie',firebaseAuth.cookie(created.session,created.maxAgeSeconds));
+      sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(restored)});
+    }catch{sendJSON(res,401,{success:false,error:'INVALID_TEST_CREDENTIALS',message:'테스트 아이디 또는 비밀번호를 확인하세요.'});}
+    return;
+  }
   const socialStart = pathname.match(/^\/api\/auth\/(naver|kakao)\/start$/);
   if (socialStart && req.method === 'GET') {
     try{const started=socialAuth.start(socialStart[1]);res.setHeader('Set-Cookie',started.cookie);res.writeHead(302,{Location:started.url});res.end();}catch{sendJSON(res,503,{success:false,error:'SOCIAL_PROVIDER_NOT_CONFIGURED',message:'간편가입 제공자 설정이 아직 완료되지 않았습니다.'});}return;
@@ -228,6 +239,8 @@ const server = http.createServer(async (req, res) => {
       if(!studentRoster.students.length){sendJSON(res,503,{success:false,error:'ROSTER_NOT_CONFIGURED',message:'학생 명단이 아직 등록되지 않았습니다.'});return;}
       const body=await parseRequestBody(req);
       if(body.privacyConsent!==true){sendJSON(res,400,{success:false,error:'PRIVACY_CONSENT_REQUIRED',message:'개인정보 이용 동의가 필요합니다.'});return;}
+      const testNumber=firebaseAuth.testStudentNumberForUid?.(req.auth.uid);
+      if(testNumber&&String(body.studentNumber)!==testNumber){sendJSON(res,403,{success:false,error:'TEST_STUDENT_NUMBER_FIXED',message:'테스트 계정에 지정된 학번으로 가입해 주세요.'});return;}
       const verified=studentRoster.verify(body.studentNumber,body.name),claimed=storageService.findUserByStudentNumber(verified.studentNumber);
       if(claimed&&claimed.uid!==req.auth.uid){sendJSON(res,409,{success:false,error:'STUDENT_NUMBER_ALREADY_REGISTERED',message:'이미 가입에 사용된 학번입니다. 교사에게 문의해 주세요.'});return;}
       const now=new Date().toISOString(),profileData={name:verified.verifiedName,
@@ -514,6 +527,13 @@ const server = http.createServer(async (req, res) => {
     try{const body=await parseRequestBody(req),accounts=await firebaseAuth.provisionTeacherBatch(body.password);
       sendJSON(res,200,{success:true,accounts});
     }catch(error){sendJSON(res,error.status||500,{success:false,error:error.status?error.message:'교사 계정 발급에 실패했습니다.'});}return;
+  }
+  if(req.method==='POST'&&pathname==='/api/teacher/provision-test-students'){
+    if(!process.env.ADMIN_EMAIL||req.auth.email?.toLowerCase()!==process.env.ADMIN_EMAIL.toLowerCase()){
+      sendJSON(res,403,{success:false,error:'PRIMARY_ADMIN_REQUIRED'});return;
+    }
+    try{const accounts=await firebaseAuth.provisionTestStudents();sendJSON(res,200,{success:true,accounts});}
+    catch{sendJSON(res,500,{success:false,error:'TEST_STUDENT_PROVISION_FAILED',message:'테스트 학생 계정 발급에 실패했습니다.'});}return;
   }
 
   if (pathname === '/api/teacher/battle-plan' && ['GET','POST'].includes(req.method)) {

@@ -11,3 +11,9 @@ test('teacher and social identity flows retain their own approval path',()=>{
  assert.doesNotThrow(()=>requireVerifiedEmail(token('password',false),{role:'teacher'}));
  for(const provider of ['google.com','custom'])assert.doesNotThrow(()=>requireVerifiedEmail(token(provider,false),{role:'student'}));
 });
+test('only fixed class 13 test identities can bypass email verification',()=>{
+ const valid={uid:'debateon-test01',role:'student',testAccount:true,studentNumber:'11301',firebase:{sign_in_provider:'password'},email_verified:false};
+ assert.doesNotThrow(()=>requireVerifiedEmail(valid,{role:'student'}));
+ assert.throws(()=>requireVerifiedEmail({...valid,studentNumber:'11302'},{role:'student'}),e=>e.code==='EMAIL_VERIFICATION_REQUIRED');
+ assert.throws(()=>requireVerifiedEmail({...valid,uid:'debateon-test100'},{role:'student'}),e=>e.code==='EMAIL_VERIFICATION_REQUIRED');
+});
