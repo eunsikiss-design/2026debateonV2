@@ -115,8 +115,13 @@ async function createSocialSession({ provider, providerUserId, email, name }) {
 async function createSession(idToken) {
   const decoded = await getAuth(getApp()).verifyIdToken(idToken, true);
   const profile = await profileFor(decoded);
+  requireVerifiedEmail(decoded, profile);
   const session = await getAuth(getApp()).createSessionCookie(idToken, { expiresIn: SESSION_MAX_AGE_MS });
   return { session, profile, maxAgeSeconds: Math.floor(SESSION_MAX_AGE_MS/1000) };
+}
+function requireVerifiedEmail(decoded, profile) {
+  if (profile?.role === 'student' && decoded?.firebase?.sign_in_provider === 'password' && decoded.email_verified !== true)
+    throw Object.assign(new Error('이메일 인증 링크를 확인한 뒤 다시 로그인해 주세요.'), { code:'EMAIL_VERIFICATION_REQUIRED', status:403 });
 }
 async function completeStudentProfile(user, input) {
   if (!user?.uid || user.role !== 'student') throw Object.assign(new Error('학생 계정이 필요합니다.'), { code:'STUDENT_REQUIRED' });
@@ -131,6 +136,7 @@ async function authenticate(req, findStoredProfile) {
   if (!token) return null;
   const decoded = await getAuth(getApp()).verifySessionCookie(token, true);
   const stored = typeof findStoredProfile === 'function' ? findStoredProfile(decoded.uid) : null;
+  requireVerifiedEmail(decoded, stored || {role:decoded.role || 'student'});
   if (stored?.role === 'student' && stored.onboardingComplete === true) {
     return {
       uid: decoded.uid,
@@ -153,5 +159,5 @@ function sameClass(user, schoolId, grade, classId) {
 }
 function safeProfile(user) { const { uid,email,name,role,schoolId,grade,classId,studentNumber,authProvider,onboardingComplete,privacyConsentAt }=user;return {uid,email,name,role,schoolId,grade,classId,studentNumber,authProvider,onboardingComplete,privacyConsentAt}; }
 
-module.exports={COOKIE_NAME,isConfigured,serverConfigured,clientConfigured,publicConfig,cookie,createSession,signInAdmin,createSocialSession,completeStudentProfile,authenticate,sameClass,safeProfile};
+module.exports={COOKIE_NAME,isConfigured,serverConfigured,clientConfigured,publicConfig,cookie,createSession,signInAdmin,createSocialSession,completeStudentProfile,authenticate,sameClass,safeProfile,requireVerifiedEmail};
 
