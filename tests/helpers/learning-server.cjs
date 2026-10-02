@@ -13,6 +13,7 @@ function build(file,coach,options={}){
  services.studentGrowthReport=require('../../services/studentGrowthReport');
  services.learningDraftStore=require('../../services/learningDraftStore');
  services.activitySheets=require('../../services/activitySheets');
+ services.growthSheets=require('../../services/growthSheets');
  services.appSchool=require('../../services/appSchool');
  services.schoolRecordSheets=options.schoolRecordSheets||require('../../services/schoolRecordSheets');
  let handler;const env={APP_ORIGIN:'http://127.0.0.1:3000',...(options.env||{})};

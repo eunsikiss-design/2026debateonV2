@@ -16,14 +16,24 @@
  for(const item of $('rubric-grid').children)item.querySelector('span').textContent=descriptions[item.querySelector('strong').textContent]||'';
  $('rubric-grid').before(node('p','앱의 관찰·피드백 기준입니다. 학교가 확정한 수행평가 배점표는 아직 등록되지 않았습니다. 원문·수정 과정·토론 발언·교사 관찰을 근거로 검토하며, 저장 횟수나 AI 뱃지를 성적으로 환산하지 않습니다.'));
  async function request(url,options){const r=await fetch(url,options),d=await r.json();if(!r.ok)throw Error(d.message||'조회하지 못했습니다.');return d;}
+ async function loadGrowthSync(holder,selected,retry=false){
+  holder.replaceChildren(node('h3','학생 역량 분석 시트'),node('p','분석 결과의 전송 상태를 확인하고 있습니다.'));
+  try{const d=await request('/api/teacher/growth-sheets'+(retry?'':'?class='+encodeURIComponent(selected)),retry?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({class:selected})}:undefined);if(selected!==classValue)return;
+   holder.replaceChildren(node('h3','학생 역량 분석 시트'),node('p',`연동 탭: ${d.sheetTitle} (시험 계정: ${d.testSheetTitle}) · 전송 완료 ${d.syncedCount}명 · 대기 ${d.pendingCount}명 · 분석 기록 없음 ${d.students.filter(s=>s.status==='empty').length}명`),node('p','학생이 저장한 역량 분석의 다섯 영역별 피드백과 확인된 변화를 공유합니다. 원문이 바뀐 분석은 이전 내용을 숨기고 재분석 필요로 표시합니다. 이 내용은 교사의 최종 평가가 아닙니다.'));
+   if(d.spreadsheetUrl){const link=node('a','역량 분석 스프레드시트 열기');link.href=d.spreadsheetUrl;link.target='_blank';link.rel='noopener';holder.append(link);}
+   const button=node('button','역량 분석 지금 전송 · 실패 재시도');button.type='button';button.className='neon-button';button.disabled=!d.connected;button.onclick=()=>loadGrowthSync(holder,selected,true);holder.append(button);
+   for(const s of d.students.filter(s=>s.entryCount||s.status==='pending'))holder.append(node('p',`${s.studentNumber} ${s.name} · 분석 ${s.entryCount}건 · ${s.status==='synced'?'전송 완료':'전송 대기'}${s.message?' · '+s.message:''}`));
+  }catch(error){holder.replaceChildren(node('h3','학생 역량 분석 시트'),node('p',error.message));}
+ }
  async function loadSync(retry=false){
   const selected=classValue;syncDetails.replaceChildren(node('p','활동 시트의 전송 상태를 확인하고 있습니다.'));
   try{const d=await request('/api/teacher/activity-sheets'+(retry?'':'?class='+encodeURIComponent(selected)),retry?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({class:selected})}:undefined);if(classValue!==selected)return;sync=d;
    $('metric-sync').textContent=d.pendingCount;
    $('sync-state').textContent=`학생 활동 ${d.connected?'시트 연결됨':'시트 연결 전'} · 전송 완료 ${d.syncedCount}명 · 대기 ${d.pendingCount}명`;
-   syncDetails.replaceChildren(node('p','최신 초안·각 저장본·완료 글·스피치 전사·토론 발언을 학생 활동 탭에 약 1분 간격으로 전송합니다. 원문은 앱에 먼저 저장되며, 실패한 전송은 재시도합니다. 세특은 교사가 검토 완료한 내용만 별도 세특 탭에 저장합니다.'));
+   syncDetails.replaceChildren(node('p','최신 초안·각 저장본·완료 글·스피치 전사·토론 발언을 학생 활동 탭에 약 1분 간격으로 전송합니다. 저장된 역량 분석은 별도 탭에 전송합니다. 원문과 분석은 앱에 먼저 저장되며, 실패한 전송은 재시도합니다. 세특은 교사가 검토 완료한 내용만 별도 세특 탭에 저장합니다.'));
    if(d.spreadsheetUrl){const link=node('a','연결된 Google 스프레드시트 열기');link.href=d.spreadsheetUrl;link.target='_blank';link.rel='noopener';syncDetails.append(link);}
    const button=node('button','지금 전송 · 실패 재시도');button.className='neon-button';button.disabled=!d.connected;button.onclick=()=>loadSync(true);syncDetails.append(button);
+   const growthBox=node('section');growthBox.className='growth-sheet-sync';syncDetails.append(growthBox);loadGrowthSync(growthBox,selected);
    const filters=node('div'),list=node('div');filters.className='record-toolbar';list.setAttribute('aria-live','polite');syncDetails.append(filters,list);
    const show=state=>{const items=d.students.filter(s=>!state||s.status===state);list.replaceChildren();if(!items.length)list.append(node('p','해당 학생이 없습니다.'));for(const s of items){const line=node('p',`${s.studentNumber} ${s.name} · ${s.entryCount}건 · ${s.status==='synced'?'전송 완료':s.status==='empty'?'저장된 활동 없음':'전송 대기'}${s.syncedAt?' · 마지막 성공 '+new Date(s.syncedAt).toLocaleString('ko-KR'):''}${s.message?' · '+s.message:''} `),b=node('button','기록 확인');b.className='neon-button';b.onclick=()=>review(s);line.append(b);list.append(line);}};
    for(const [label,state] of [[`전체 ${d.students.length}명`,null],[`전송 완료 ${d.syncedCount}명`,'synced'],[`전송 대기 ${d.pendingCount}명`,'pending'],[`활동 없음 ${d.students.filter(s=>s.status==='empty').length}명`,'empty']]){const b=node('button',label);b.onclick=()=>show(state);filters.append(b);}show(null);

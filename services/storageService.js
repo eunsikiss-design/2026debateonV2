@@ -310,6 +310,8 @@ class StorageService {
 
   getActivitySheetSync(uid){return this._read().activitySheetSync?.[uid]||null;}
   saveActivitySheetSync(uid,state){const db=this._read();db.activitySheetSync||={};db.activitySheetSync[uid]=state;this._write(db);return state;}
+  getGrowthSheetSync(uid){return this._read().growthSheetSync?.[uid]||null;}
+  saveGrowthSheetSync(uid,state){const db=this._read();db.growthSheetSync||={};db.growthSheetSync[uid]=state;this._write(db);return state;}
 
   getRecordSheetPendingCount(schoolId) {
     const store=this._read(),id=store.recordSheetConfigs?.['school:'+schoolId]?.spreadsheetId;
@@ -344,6 +346,20 @@ class StorageService {
 
   getStudentGrowthAnalysis(student, topicId='') {
     return this._read().studentGrowthAnalyses?.[JSON.stringify([student.schoolId,student.uid,topicId])] || null;
+  }
+  getStudentGrowthAnalyses(student) {
+    const saved=this._read().studentGrowthAnalyses||{};
+    return Object.entries(saved).flatMap(([key,analysis])=>{
+      try{const [schoolId,uid,topicId]=JSON.parse(key);return schoolId===student.schoolId&&uid===student.uid?[{topicId,analysis}]:[];}catch{return [];}
+    });
+  }
+  getGrowthAnalysisIndex(schoolId) {
+    const index=Object.create(null);
+    for(const [key,analysis] of Object.entries(this._read().studentGrowthAnalyses||{}))try{
+      const [storedSchool,uid,topicId]=JSON.parse(key);
+      if(storedSchool===schoolId)(index[uid]||=[]).push({topicId,analysis});
+    }catch{}
+    return index;
   }
 
   saveStudentGrowthAnalysis(student, topicId, analysis) {

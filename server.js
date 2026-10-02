@@ -36,6 +36,8 @@ let recordSheetsInstance;
 function recordSheets(){return recordSheetsInstance ||= new (require('./services/schoolRecordSheets').SchoolRecordSheets)(storageService);}
 let activitySheetsInstance;
 function activitySheets(){return activitySheetsInstance ||= new (require('./services/activitySheets').ActivitySheets)(storageService,learningService,recordSheets());}
+let growthSheetsInstance;
+function growthSheets(){return growthSheetsInstance ||= new (require('./services/growthSheets').GrowthSheets)(storageService,learningService,recordSheets());}
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const ROOT = path.resolve(__dirname);
@@ -1121,6 +1123,10 @@ const server = http.createServer(async (req, res) => {
     try{const body=req.method==='POST'?await parseRequestBody(req):{},scope=teacherClass(req.auth,body.class||queryParams.get('class'));res.setHeader('Cache-Control','no-store');sendJSON(res,200,{success:true,...await (req.method==='POST'?activitySheets().syncAll(scope):activitySheets().status(scope))});}
     catch(e){sendJSON(res,e.status||500,{success:false,message:e.status?e.message:'활동 연동 상태를 확인하지 못했습니다.'});}return;
   }
+  if(pathname==='/api/teacher/growth-sheets'&&['GET','POST'].includes(req.method)){
+    try{const body=req.method==='POST'?await parseRequestBody(req):{},scope=teacherClass(req.auth,body.class||queryParams.get('class'));res.setHeader('Cache-Control','no-store');sendJSON(res,200,{success:true,...await (req.method==='POST'?growthSheets().syncAll(scope):growthSheets().status(scope))});}
+    catch(e){sendJSON(res,e.status||500,{success:false,message:e.status?e.message:'역량 분석 연동 상태를 확인하지 못했습니다.'});}return;
+  }
   if(pathname==='/api/teacher/record-sheets'&&['GET','PUT','DELETE'].includes(req.method)){
     try{
       res.setHeader('Cache-Control','no-store');
@@ -1209,7 +1215,7 @@ const server = http.createServer(async (req, res) => {
 
 const HOST = process.env.HOST || '0.0.0.0';
 server.listen(PORT, HOST, () => {
-  const sync=()=>activitySheets().tick().catch(()=>console.warn('Activity sheet sync deferred; records retained.'));
+  const sync=()=>{activitySheets().tick().catch(()=>console.warn('Activity sheet sync deferred; records retained.'));growthSheets().tick().catch(()=>console.warn('Growth sheet sync deferred; analyses retained.'));};
   setTimeout(sync,3000).unref();setInterval(sync,60000).unref();
   console.log(`=======================================================`);
   console.log(`[DebateOn] AI Coach Server listening on ${HOST}:${PORT}`);
