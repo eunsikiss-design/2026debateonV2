@@ -19,7 +19,7 @@
  async function loadGrowthSync(holder,selected,retry=false){
   holder.replaceChildren(node('h3','학생 역량 분석 시트'),node('p','분석 결과의 전송 상태를 확인하고 있습니다.'));
   try{const d=await request('/api/teacher/growth-sheets'+(retry?'':'?class='+encodeURIComponent(selected)),retry?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({class:selected})}:undefined);if(selected!==classValue)return;
-   holder.replaceChildren(node('h3','학생 역량 분석 시트'),node('p',`연동 탭: ${d.sheetTitle} (시험 계정: ${d.testSheetTitle}) · 전송 완료 ${d.syncedCount}명 · 대기 ${d.pendingCount}명 · 분석 기록 없음 ${d.students.filter(s=>s.status==='empty').length}명`),node('p','학생이 저장한 역량 분석의 다섯 영역별 피드백과 확인된 변화를 공유합니다. 원문이 바뀐 분석은 이전 내용을 숨기고 재분석 필요로 표시합니다. 이 내용은 교사의 최종 평가가 아닙니다.'));
+   holder.replaceChildren(node('h3','학생 역량 분석 시트'),node('p',`연동 탭: ${d.sheetTitle} · 전송 완료 ${d.syncedCount}명 · 대기 ${d.pendingCount}명 · 분석 기록 없음 ${d.students.filter(s=>s.status==='empty').length}명`),node('p',`학생이 저장한 역량 분석의 다섯 영역별 피드백과 확인된 변화를 공유합니다. 시험 계정 기록이 있으면 ${d.testSheetTitle} 탭을 별도로 만듭니다. 원문이 바뀐 분석은 이전 내용을 숨기고 재분석 필요로 표시합니다. 이 내용은 교사의 최종 평가가 아닙니다.`));
    if(d.spreadsheetUrl){const link=node('a','역량 분석 스프레드시트 열기');link.href=d.spreadsheetUrl;link.target='_blank';link.rel='noopener';holder.append(link);}
    const button=node('button','역량 분석 지금 전송 · 실패 재시도');button.type='button';button.className='neon-button';button.disabled=!d.connected;button.onclick=()=>loadGrowthSync(holder,selected,true);holder.append(button);
    for(const s of d.students.filter(s=>s.entryCount||s.status==='pending'))holder.append(node('p',`${s.studentNumber} ${s.name} · 분석 ${s.entryCount}건 · ${s.status==='synced'?'전송 완료':'전송 대기'}${s.message?' · '+s.message:''}`));
