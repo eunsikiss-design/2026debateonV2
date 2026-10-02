@@ -5,7 +5,7 @@
   const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
   function status(message){$('battle-plan-status').textContent=message;}
   function selection(){return [...rows.querySelectorAll('tr')].flatMap(row=>row.querySelector('input[type=checkbox]')?.checked?[{studentNumber:row.dataset.studentNumber,team:row.querySelector('select').value}]:[]);}
-  function counts(){const chosen=selection();$('battle-assignment-count').textContent=mode.value==='assigned'?'지정 '+chosen.length+'명 · 찬성 '+chosen.filter(p=>p.team==='pro').length+'명 · 반대 '+chosen.filter(p=>p.team==='con').length+'명':'자유 가입 · 찬반 인원 차이 최대 1명 · 전체 정원 '+capacity.value+'명';}
+  function counts(){const chosen=selection();$('battle-assignment-count').textContent=mode.value==='assigned'?'지정 '+chosen.length+'명 · 찬성 '+chosen.filter(p=>p.team==='pro').length+'명 · 반대 '+chosen.filter(p=>p.team==='con').length+'명':mode.value==='random'?'학생 입장 시 찬반 균형을 맞춰 무작위 배정 · 전체 정원 '+capacity.value+'명':'학생이 찬반 선택 · 인원 차이 최대 1명 · 전체 정원 '+capacity.value+'명';}
   function renderRoster(chosen=selection()){
     rows.replaceChildren();const selected=new Map(chosen.map(item=>[item.studentNumber,item.team]));
     for(const student of students){
@@ -30,25 +30,27 @@
     const result=await api('/api/teacher/battle-plan',{class:classValue,topicId:topic.value,mode:mode.value,capacity:Number(capacity.value),assignments:assigned});loadedPlan=result.plan;return result.plan;
   }
   function renderRooms(rooms){
-    const list=$('battle-room-list');list.replaceChildren();activeRoomCount=rooms.length;$('battle-room-count').textContent='활성 방 '+activeRoomCount+'/10';$('battle-room-open').disabled=opening||activeRoomCount>=10;
-    if(!rooms.length){list.append(node('p','진행 중인 방이 없습니다. 아래에서 논제와 정원을 정해 방을 여세요.'));return;}
+    const list=$('battle-room-list');list.replaceChildren();const active=rooms.filter(room=>room.status==='active'&&Date.parse(room.endsAt)>Date.now());activeRoomCount=active.length;$('battle-room-count').textContent='활성 방 '+activeRoomCount+'/10 · 종료 기록 '+(rooms.length-active.length)+'건';$('battle-room-open').disabled=opening||activeRoomCount>=10;
+    if(!rooms.length){list.append(node('p','토론방이 없습니다. 아래에서 논제와 정원을 정해 방을 여세요.'));return;}
     for(const room of rooms){
       const card=node('article',undefined,'battle-monitor-card'),link=node('a',room.title);link.href='/stitch_screens/09_class_debate_battle.html?class='+encodeURIComponent(classValue)+'&room='+encodeURIComponent(room.roomId);
       const title=node('h4');title.append(link);card.append(title);
       const all=[...(room.participants?.teamA||[]),...(room.participants?.teamB||[])];
-      const meta=node('p',(room.plan?.mode==='assigned'?'교사 지정':'자유 가입')+' · '+all.length+'/'+room.plan?.capacity+'명 · 발언 '+(room.messageCount??room.messages?.length??0)+'건 · '),clock=node('span');clock.dataset.endsAt=room.endsAt;meta.append(clock);card.append(meta);
+      const isActive=room.status==='active'&&Date.parse(room.endsAt)>Date.now(),meta=node('p',(room.plan?.mode==='assigned'?'교사 지정':room.plan?.mode==='random'?'무작위 배정':'학생 선택')+' · '+all.length+'/'+room.plan?.capacity+'명 · 발언 '+(room.messageCount??room.messages?.length??0)+'건 · '),clock=node('span');if(isActive)clock.dataset.endsAt=room.endsAt;else clock.textContent='종료된 기록';meta.append(clock);card.append(meta);
       const teams=node('div',undefined,'battle-monitor-teams');
       for(const [key,label] of [['teamA','찬성'],['teamB','반대']]){const section=node('div'),members=room.participants?.[key]||[];section.append(node('strong',label+' '+members.length+'명'),node('p',members.length?members.map(p=>(p.studentNumber||'')+' '+p.name).join(', '):'참가자 대기'));teams.append(section);}
       card.append(teams);
-      if(!room.participants?.teamA?.length||!room.participants?.teamB?.length)card.append(node('p','양쪽 입장 참가자를 기다리고 있습니다.','battle-monitor-wait'));
-      const actions=node('div',undefined,'battle-monitor-actions'),observe=node('a','토론 관찰하기','neon-button');observe.href=link.href;
+      if(isActive&&(!room.participants?.teamA?.length||!room.participants?.teamB?.length))card.append(node('p','양쪽 입장 참가자를 기다리고 있습니다.','battle-monitor-wait'));
+      const ai=room.status==='completed'?room.aiReview:room.aiSummary;if(ai?.status==='ready')card.append(node('p',room.status==='completed'?'AI 종료 피드백을 확인할 수 있습니다.':'AI 쟁점 요약을 확인할 수 있습니다.','battle-monitor-ai'));
+      const actions=node('div',undefined,'battle-monitor-actions'),observe=node('a',isActive?'토론 관찰하기':'종료 기록 확인','neon-button');observe.href=link.href;
       const finish=node('button','이 토론 종료','neon-button');finish.type='button';finish.onclick=async()=>{finish.disabled=true;try{await api('/api/debate/finish',{roomId:room.roomId});await monitor();status('토론을 종료했습니다. 학생들의 발언 기록은 보존됩니다.');}catch(error){status(error.message);finish.disabled=false;}};
-      actions.append(observe,finish);card.append(actions);list.append(card);
+      actions.append(observe);
+      if(isActive){const remaining=Date.parse(room.endsAt)-Date.now();if(remaining>0&&remaining<=300000){const extra=node('button','10분 연장','neon-button');extra.type='button';extra.onclick=async()=>{extra.disabled=true;try{await api('/api/debate/extend',{roomId:room.roomId,minutes:10});await monitor();status('토론 시간을 10분 연장했습니다.');}catch(error){status(error.message);extra.disabled=false;}};actions.append(extra);}actions.append(finish);}card.append(actions);list.append(card);
     }
   }
   async function monitor(){
     if(!classValue||monitoring)return;monitoring=true;const scope=classValue;
-    try{const result=await api('/api/debate/available?summary=1&class='+encodeURIComponent(scope));if(scope!==classValue)return;const signature=scope+JSON.stringify(result.rooms);if(signature!==lastRoomSignature){lastRoomSignature=signature;renderRooms(result.rooms||[]);}document.querySelectorAll('[data-ends-at]').forEach(clock=>clock.textContent='남은 시간 '+Math.max(0,Math.ceil((Date.parse(clock.dataset.endsAt)-Date.now())/60000))+'분');$('battle-monitor-status').textContent='5초마다 갱신 · 마지막 확인 '+new Date().toLocaleTimeString('ko-KR');}
+    try{const result=await api('/api/debate/available?summary=1&includeFinished=1&class='+encodeURIComponent(scope));if(scope!==classValue)return;const signature=scope+JSON.stringify(result.rooms)+JSON.stringify((result.rooms||[]).map(room=>room.status==='active'&&Date.parse(room.endsAt)-Date.now()<=300000));if(signature!==lastRoomSignature){lastRoomSignature=signature;renderRooms(result.rooms||[]);}document.querySelectorAll('[data-ends-at]').forEach(clock=>clock.textContent='남은 시간 '+Math.max(0,Math.ceil((Date.parse(clock.dataset.endsAt)-Date.now())/60000))+'분');$('battle-monitor-status').textContent='5초마다 갱신 · 마지막 확인 '+new Date().toLocaleTimeString('ko-KR');}
     catch(error){$('battle-monitor-status').textContent='현황 갱신 실패 · '+error.message;}finally{monitoring=false;}
   }
   document.addEventListener('teacher-students-loaded',async event=>{

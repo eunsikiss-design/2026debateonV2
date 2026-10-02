@@ -430,7 +430,7 @@ class StorageService {
   saveBattlePlan(schoolId, grade, classId, topicId, input, teacherUid) {
     const mode = input.mode;
     const capacity = Number(input.capacity);
-    if (!['open','assigned'].includes(mode) || !Number.isInteger(capacity) || capacity < 2 || capacity > 99)
+    if (!['open','random','assigned'].includes(mode) || !Number.isInteger(capacity) || capacity < 2 || capacity > 99)
       throw Object.assign(new Error('참여 방식과 정원(2~99명)을 확인하세요.'),{status:400});
     const assignments = mode === 'assigned' ? input.assignments : [];
     if (!Array.isArray(assignments) || assignments.length > capacity || (mode === 'assigned' && !assignments.length))
@@ -523,6 +523,26 @@ class StorageService {
     return Object.values(this._read().debateRooms||{}).filter(room=>room.schoolId===schoolId&&Number(room.grade)===Number(grade)&&Number(room.classId)===Number(classId)&&room.status==='active'&&Date.parse(room.endsAt)>Date.now()).sort((a,b)=>Date.parse(b.startedAt)-Date.parse(a.startedAt)).map(room=>this.getDebateRoom(room.roomId));
   }
 
+  getRecentDebateRooms(schoolId, grade, classId, limit=10) {
+    return Object.values(this._read().debateRooms||{}).filter(room=>room.schoolId===schoolId&&Number(room.grade)===Number(grade)&&Number(room.classId)===Number(classId)&&room.status==='completed').sort((a,b)=>Date.parse(b.finishedAt||b.endsAt)-Date.parse(a.finishedAt||a.endsAt)).slice(0,limit).map(room=>this.getDebateRoom(room.roomId));
+  }
+
+  getExpiredDebateRoomIds() {
+    return Object.values(this._read().debateRooms||{}).filter(room=>room.status==='active'&&Date.parse(room.endsAt)<=Date.now()).map(room=>room.roomId);
+  }
+
+  extendDebateRoom(roomId, minutes, teacherUid) {
+    const extra=Number(minutes),store=this._read(),room=store.debateRooms?.[roomId],now=Date.now();
+    if(!room)throw Object.assign(Error('토론방을 찾을 수 없습니다.'),{status:404});
+    if(!Number.isInteger(extra)||extra<1||extra>30)throw Object.assign(Error('연장 시간은 1~30분으로 정해 주세요.'),{status:400});
+    const remaining=Date.parse(room.endsAt)-now;
+    if(room.status!=='active'||remaining<=0)throw Object.assign(Error('종료된 토론은 연장할 수 없습니다.'),{status:409});
+    if(remaining>5*60*1000)throw Object.assign(Error('종료 5분 전부터 연장할 수 있습니다.'),{status:409});
+    if((Date.parse(room.endsAt)-Date.parse(room.startedAt))/60000+extra>120)throw Object.assign(Error('총 토론 시간은 120분을 넘길 수 없습니다.'),{status:409});
+    room.endsAt=new Date(Date.parse(room.endsAt)+extra*60000).toISOString();room.extensionHistory||=[];room.extensionHistory.push({minutes:extra,teacherUid,at:new Date(now).toISOString()});
+    this._write(store);return this.getDebateRoom(roomId);
+  }
+
   joinDebateRoom(roomId, profile, teamId) {
     const store = this._read();
     if (!store.debateRooms?.[roomId]) throw Object.assign(new Error('교사가 아직 토론방을 열지 않았습니다.'), {status:404});
@@ -532,12 +552,18 @@ class StorageService {
       throw Object.assign(new Error('다른 학급 토론에는 참여할 수 없습니다.'),{status:403});
     if (room.status !== 'active' || Date.parse(room.endsAt) <= Date.now())
       throw Object.assign(new Error('종료된 토론입니다.'),{status:409});
-    if (profile.role !== 'student' || !['pro','con'].includes(teamId))
+    if (profile.role !== 'student' || !['pro','con'].includes(teamId) && room.plan?.mode!=='random')
       throw Object.assign(new Error('학생 계정으로 찬성 또는 반대를 선택하세요.'),{status:400});
     if (!room.participants) room.participants = { teamA: [], teamB: [] };
     const members=[...room.participants.teamA,...room.participants.teamB];
     const existing=members.find(item=>item.uid===profile.uid);
     const plan=room.plan||{mode:'open',capacity:99,assignments:[]};
+    if(plan.mode==='random'){
+      if(existing)return this.getDebateRoom(roomId);
+      const pro=members.filter(item=>item.team==='pro').length,con=members.filter(item=>item.team==='con').length;
+      const earlier=[...(room.participationHistory||[])].reverse().find(item=>item.uid===profile.uid);
+      teamId=pro===con?(earlier?.team|| (require('node:crypto').randomInt(2)===0?'pro':'con')):pro<con?'pro':'con';
+    }
     if (profile.role==='student') {
       if (plan.mode==='assigned') {
         const assigned=plan.assignments?.find(item=>item.studentNumber===String(profile.studentNumber));
@@ -549,7 +575,7 @@ class StorageService {
       const otherRoom=Object.values(fresh.debateRooms).find(item=>item.roomId!==roomId&&item.status==='active'&&Date.parse(item.endsAt)>Date.now()&&[...(item.participants?.teamA||[]),...(item.participants?.teamB||[])].some(member=>member.uid===profile.uid));
       if(otherRoom) throw Object.assign(new Error('이미 참여 중인 토론방에서 나간 뒤 다른 방에 입장하세요.'),{status:409});
       if(existing?.team===teamId) return this.getDebateRoom(roomId);
-      if(plan.mode!=='assigned') {
+      if(plan.mode==='open') {
         const others=members.filter(item=>item.uid!==profile.uid&&item.role==='student');
         const chosen=others.filter(item=>item.team===teamId).length,opposite=others.length-chosen;
         if(chosen>=Math.ceil(Number(plan.capacity||99)/2)||chosen+1>opposite+1)

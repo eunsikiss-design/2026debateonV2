@@ -31,6 +31,7 @@ const studentRoster = require('./services/studentRoster');
 const learningService = require('./services/learningService');
 const schoolRecords = require('./services/schoolRecordService');
 const studentReports = require('./services/studentReportService');
+const debateInsights = require('./services/debateInsights');
 let recordSheetsInstance;
 function recordSheets(){return recordSheetsInstance ||= new (require('./services/schoolRecordSheets').SchoolRecordSheets)(storageService);}
 let activitySheetsInstance;
@@ -39,6 +40,8 @@ function activitySheets(){return activitySheetsInstance ||= new (require('./serv
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const ROOT = path.resolve(__dirname);
 const debateStreams = new Map();
+const debateJobs = new Map();
+const debateRefreshTimers = new Map();
 const growthJobs = new Map();
 
 function restoreStoredStudentProfile(profile) {
@@ -88,16 +91,62 @@ function studentRecordPortfolio(teacher, studentId) {
 function broadcastDebate(roomId, event, payload) {
   const clients = debateStreams.get(roomId);
   if (!clients) return;
-  const frame = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
-  for (const response of clients) response.write(frame);
+  for (const client of clients) client.response.write(`event: ${event}\ndata: ${JSON.stringify(event==='room'?{...payload,room:presentDebateRoom(client.user,payload.room)}:payload)}\n\n`);
+}
+function presentDebateRoom(user,room){
+  if(user.role==='teacher'||!room?.aiReview?.students)return room;
+  return {...room,aiReview:{...room.aiReview,students:room.aiReview.students[user.uid]?{[user.uid]:room.aiReview.students[user.uid]}:{}}};
 }
 
 function scopedDebateRoom(user, roomId) {
-  const room=storageService.getDebateRoom(roomId);
+  let room=storageService.getDebateRoom(roomId);
   if(user.role==='teacher'){teacherClass(user,`${room.grade}-${room.classId}`);if(user.schoolId!==room.schoolId)throw Object.assign(new Error('담당 학교의 토론방만 이용할 수 있습니다.'),{status:403});}
   else if(!firebaseAuth.sameClass(user,room.schoolId,room.grade,room.classId))throw Object.assign(new Error('담당 학급의 토론방만 이용할 수 있습니다.'),{status:403});
+  if(room.status==='active'&&Date.parse(room.endsAt)<=Date.now())room=finishDebate(roomId);
+  if(room.status==='completed'&&room.aiReview?.status==='pending'&&!debateJobs.has(`${roomId}:final`)){queueDebateAnalysis(roomId,'final',{force:true});room=storageService.getDebateRoom(roomId);}
   return room;
 }
+
+function roomStatistics(room){return debateInsights.statistics(room);}
+function publishRoom(roomId){const room=storageService.getDebateRoom(roomId);broadcastDebate(roomId,'room',{room:{...room,statistics:roomStatistics(room),remainingSeconds:Math.max(0,Math.floor((Date.parse(room.endsAt)-Date.now())/1000))}});return room;}
+function queueDebateAnalysis(roomId,kind,{force=false}={}){
+  const key=`${roomId}:${kind}`;
+  if(debateJobs.has(key))return;
+  const room=storageService.getDebateRoom(roomId),stats=roomStatistics(room);
+  if(!stats.byTeam.pro.total||!stats.byTeam.con.total)return;
+  if(kind==='live'&&room.status!=='active')return;
+  if(kind==='final'&&room.status!=='completed')return;
+  const previous=kind==='live'?room.aiSummary:room.aiReview;
+  if(!force&&previous?.status==='ready'&&previous.messageCount===stats.total)return;
+  if(!force&&previous?.status==='unavailable'&&previous.messageCount===stats.total)return;
+  if(kind==='live'&&!force&&previous?.status==='ready'&&Date.now()-Date.parse(previous.generatedAt)<45000){
+    if(!debateRefreshTimers.has(roomId)){const delay=45000-(Date.now()-Date.parse(previous.generatedAt))+100,timer=setTimeout(()=>{debateRefreshTimers.delete(roomId);queueDebateAnalysis(roomId,'live');},Math.max(100,delay));timer.unref?.();debateRefreshTimers.set(roomId,timer);}return;
+  }
+  const field=kind==='live'?'aiSummary':'aiReview';
+  storageService.updateDebateRoom(roomId,{[field]:{status:'pending',messageCount:stats.total,requestedAt:new Date().toISOString()}});
+  publishRoom(roomId);
+  const job=debateInsights.analyze(geminiService,room,kind).then(result=>{
+    storageService.updateDebateRoom(roomId,{[field]:result});
+    publishRoom(roomId);
+  }).catch(()=>{
+    storageService.updateDebateRoom(roomId,{[field]:{status:'unavailable',messageCount:stats.total,message:'AI 분석을 완료하지 못했습니다. 실제 발언 기록을 확인해 주세요.'}});
+    publishRoom(roomId);
+  }).finally(()=>{debateJobs.delete(key);if(kind==='live'){const latest=storageService.getDebateRoom(roomId);if(latest.status==='active'&&roomStatistics(latest).total>stats.total)queueDebateAnalysis(roomId,'live');}});
+  debateJobs.set(key,job);
+}
+function finishDebate(roomId){
+  const room=storageService.getDebateRoom(roomId);
+  if(room.status==='completed'){if(room.aiReview?.status==='pending'&&!debateJobs.has(`${roomId}:final`))queueDebateAnalysis(roomId,'final',{force:true});return room;}
+  const stats=roomStatistics(room),messages=debateInsights.verified(room);
+  const evaluation={topic:room.title,status:'completed',finishedAt:new Date().toISOString(),evidenceMessageIds:messages.map(m=>m.messageId),statistics:stats,note:'발언 횟수는 수행평가 점수가 아닙니다. AI 피드백은 교사 검토용입니다.'};
+  const aiReview=stats.byTeam.pro.total&&stats.byTeam.con.total?{status:'pending',messageCount:stats.total}:{status:'insufficient',messageCount:stats.total,message:'찬성과 반대 양쪽의 실제 발언이 있어야 AI가 논점을 비교할 수 있습니다.'};
+  storageService.updateDebateRoom(roomId,{status:'completed',finishedAt:evaluation.finishedAt,evaluation,aiReview});
+  publishRoom(roomId);
+  if(aiReview.status==='pending')queueDebateAnalysis(roomId,'final');
+  return storageService.getDebateRoom(roomId);
+}
+function finishExpiredDebates(){for(const roomId of storageService.getExpiredDebateRoomIds?.()||[])try{finishDebate(roomId);}catch{ /* retry on the next tick */ }}
+if(typeof setInterval==='function'){const debateExpiryTimer=setInterval(finishExpiredDebates,10000);debateExpiryTimer.unref?.();}
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -220,7 +269,7 @@ const server = http.createServer(async (req, res) => {
       ].filter(Boolean));
       if(origin&&!allowedOrigins.has(origin)){sendJSON(res,403,{success:false,error:'ORIGIN_FORBIDDEN'});return;}
     }
-    if((pathname.startsWith('/api/teacher/')||pathname.startsWith('/api/sync/')||pathname==='/api/debate/room/init'||pathname==='/api/debate/finish')&&req.auth.role!=='teacher'){sendJSON(res,403,{success:false,error:'TEACHER_REQUIRED'});return;}
+    if((pathname.startsWith('/api/teacher/')||pathname.startsWith('/api/sync/')||pathname==='/api/debate/room/init'||pathname==='/api/debate/finish'||pathname==='/api/debate/extend')&&req.auth.role!=='teacher'){sendJSON(res,403,{success:false,error:'TEACHER_REQUIRED'});return;}
   }
   const queryParams = new URLSearchParams(urlParts[1] || '');
 
@@ -584,12 +633,16 @@ const server = http.createServer(async (req, res) => {
   // ==========================================
 
   if(req.method==='GET'&&pathname==='/api/debate/current') {
+    finishExpiredDebates();
     const room=storageService.getCurrentDebateRoom(req.auth.schoolId,req.auth.grade,req.auth.classId);
-    sendJSON(res,200,{success:true,room});return;
+    sendJSON(res,200,{success:true,room:room?presentDebateRoom(req.auth,room):null});return;
   }
   if(req.method==='GET'&&pathname==='/api/debate/available'){
     try{const scope=req.auth.role==='teacher'?teacherClass(req.auth,queryParams.get('class')):req.auth;
+      finishExpiredDebates();
       let rooms=storageService.getActiveDebateRooms(scope.schoolId,scope.grade,scope.classId);
+      if(queryParams.get('includeFinished')==='1')rooms.push(...storageService.getRecentDebateRooms(scope.schoolId,scope.grade,scope.classId));
+      rooms=rooms.map(room=>presentDebateRoom(req.auth,room));
       if(queryParams.get('summary')==='1')rooms=rooms.map(({messages,participationHistory,...room})=>({...room,messageCount:messages.length}));
       sendJSON(res,200,{success:true,rooms});
     }catch(error){sendJSON(res,error.status||500,{success:false,error:error.message});}return;
@@ -625,7 +678,7 @@ const server = http.createServer(async (req, res) => {
       const user = req.auth;
       const existingRoom=scopedDebateRoom(user,roomId);
       if(existingRoom.status!=='active'||new Date(existingRoom.endsAt)<=new Date()){sendJSON(res,409,{success:false,error:'종료된 토론입니다. 기록만 읽을 수 있습니다.'});return;}
-      if(!['pro','con'].includes(teamId)){sendJSON(res,400,{success:false,error:'입장을 선택하세요.'});return;}
+      if(existingRoom.plan?.mode!=='random'&&!['pro','con'].includes(teamId)){sendJSON(res,400,{success:false,error:'입장을 선택하세요.'});return;}
       const badges = storageService.getStudentBadges(userId);
       const settings = storageService.getClassSettings(schoolId, grade, classId);
       const required = settings.requiredBadgeCount ?? 1;
@@ -652,7 +705,7 @@ const server = http.createServer(async (req, res) => {
         success: true,
         eligible: true,
         user,
-        room: { ...room, id: room.roomId, remainingSeconds }
+        room: { ...room, id: room.roomId, remainingSeconds, statistics:roomStatistics(room) }
       });
     } catch (err) {
       sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
@@ -681,11 +734,11 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type':'text/event-stream; charset=utf-8', 'Cache-Control':'no-cache, no-transform',
       Connection:'keep-alive', 'X-Accel-Buffering':'no' });
     if (!debateStreams.has(roomId)) debateStreams.set(roomId, new Set());
-    const clients = debateStreams.get(roomId); clients.add(res);
+    const clients = debateStreams.get(roomId),client={response:res,user:req.auth};clients.add(client);
     const remainingSeconds = Math.max(0, Math.floor((new Date(room.endsAt) - Date.now()) / 1000));
-    res.write(`event: room\ndata: ${JSON.stringify({ room:{...room,remainingSeconds} })}\n\n`);
+    res.write(`event: room\ndata: ${JSON.stringify({ room:presentDebateRoom(req.auth,{...room,remainingSeconds,statistics:roomStatistics(room)}) })}\n\n`);
     const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 15000);
-    req.on('close', () => { clearInterval(heartbeat); clients.delete(res); if (!clients.size) debateStreams.delete(roomId); });
+    req.on('close', () => { clearInterval(heartbeat); clients.delete(client); if (!clients.size) debateStreams.delete(roomId); });
     return;
   }
 
@@ -699,7 +752,7 @@ const server = http.createServer(async (req, res) => {
 
       sendJSON(res, 200, {
         success: true,
-        room: { ...room, id: room.roomId, remainingSeconds },
+        room: presentDebateRoom(req.auth,{ ...room, id: room.roomId, remainingSeconds, statistics:roomStatistics(room) }),
         teacherObservations: req.auth.role==='teacher' ? observations : undefined
       });
     } catch (err) {
@@ -731,13 +784,14 @@ const server = http.createServer(async (req, res) => {
 
       // 지시서 제51·52조: 발언 안전 Moderation 필터링
       const toxicWords = ['바보', '멍청', '병신', '꺼져', '닥쳐', '미친', '새끼', '쓰레기', '노답'];
-      const foundToxic = toxicWords.find(w => trimmed.includes(w));
+      const normalizedSpeech=trimmed.toLowerCase().replace(/[\s.·_\-]+/g,'');
+      const foundToxic = toxicWords.find(w => trimmed.includes(w))||/(씨발|시발|씨바|개새끼|좆|ㅅㅂ|ㅂㅅ|ㅈㄹ)/.test(normalizedSpeech);
       if (foundToxic) {
         sendJSON(res, 200, {
           success: false,
           moderated: true,
           error: "MODERATION_BLOCKED",
-          guidance: "상대방의 사람이 아니라 주장이나 근거를 비판하도록 표현을 수정해 보세요. (지시서 제51·52조 발언 예절 준수)"
+          guidance: "비속어·욕설이 포함되어 발언이 게시되지 않았습니다. 사람 대신 주장과 근거를 비판하도록 표현을 수정해 주세요."
         });
         return;
       }
@@ -747,13 +801,16 @@ const server = http.createServer(async (req, res) => {
         '질문': 'question',
         '답변': 'answer',
         '반론': 'counter',
+        '논박': 'counter',
         '재반론': 'rebuttal',
         '재반박': 'rebuttal',
+        '재논박': 'rebuttal',
         '최종 발언': 'final',
         '최종발언': 'final'
       };
       const rawType = messageType || speechType || "claim";
       const normalizedType = typeMap[rawType] || rawType;
+      if(!debateInsights.TYPES.includes(normalizedType)){sendJSON(res,400,{success:false,error:'발언 유형을 다시 선택하세요.'});return;}
 
       const message = storageService.addDebateMessage(roomId, {
         authorUid,
@@ -770,6 +827,8 @@ const server = http.createServer(async (req, res) => {
       });
 
       broadcastDebate(roomId, 'message', { message:{ ...message, id:message.messageId, speechType:rawType } });
+      const updated=storageService.getDebateRoom(roomId),stats=roomStatistics(updated);
+      if(stats.byTeam.pro.total&&stats.byTeam.con.total)queueDebateAnalysis(roomId,'live');
       sendJSON(res, 200, { success: true, message: { ...message, id: message.messageId, speechType: rawType } });
     } catch (err) {
       sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
@@ -784,8 +843,14 @@ const server = http.createServer(async (req, res) => {
       const { roomId = "room_gangseo_1_3" } = body;
       const room = scopedDebateRoom(req.auth,roomId);
 
-      // A live model-backed summary is not available yet. Never return a canned verdict.
-      sendJSON(res, 503, { success: false, code: 'DEBATE_SUMMARY_NOT_READY', error: 'AI 쟁점 요약은 준비 중입니다. 실제 발언 기록을 확인해 주세요.' });
+      const stats=roomStatistics(room);
+      if(!stats.byTeam.pro.total||!stats.byTeam.con.total){sendJSON(res,503,{success:false,code:'DEBATE_SUMMARY_NOT_READY',error:'찬성과 반대 양쪽의 실제 발언이 있으면 쟁점을 요약합니다.'});return;}
+      if(room.status==='completed'){
+        if(req.auth.role==='teacher'&&room.aiReview?.status==='unavailable')queueDebateAnalysis(roomId,'final',{force:true});
+        const visible=presentDebateRoom(req.auth,storageService.getDebateRoom(roomId));sendJSON(res,200,{success:true,summary:visible.aiReview||visible.aiSummary});return;
+      }
+      queueDebateAnalysis(roomId,'live',{force:req.auth.role==='teacher'});
+      sendJSON(res,202,{success:true,summary:storageService.getDebateRoom(roomId).aiSummary});
     } catch (err) {
       sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
@@ -799,34 +864,17 @@ const server = http.createServer(async (req, res) => {
       const { roomId = "room_gangseo_1_3" } = body;
       const room = scopedDebateRoom(req.auth,roomId);
 
-      const verifiedMessages = (room.messages || []).filter(message => message.dataOrigin === 'verified');
-      const byTeam = teamId => verifiedMessages.filter(message => message.teamId === teamId);
-      const byStudent = new Map();
-      for (const message of verifiedMessages) {
-        if (!byStudent.has(message.authorUid)) byStudent.set(message.authorUid, []);
-        byStudent.get(message.authorUid).push(message);
-      }
-      const evaluation = {
-        topic: room.title, status: 'completed', finishedAt: new Date().toISOString(),
-        evidenceMessageIds: verifiedMessages.map(message => message.messageId),
-        teamAnalysis: {
-          teamA: { messageCount: byTeam('pro').length, questionCount: byTeam('pro').filter(message => message.messageType === 'question').length },
-          teamB: { messageCount: byTeam('con').length, questionCount: byTeam('con').filter(message => message.messageType === 'question').length }
-        },
-        studentAnalysis: Object.fromEntries([...byStudent].map(([uid,messages]) => [uid, {
-          messageCount:messages.length,
-          messageTypeCounts:messages.reduce((counts,message)=>(counts[message.messageType]=(counts[message.messageType]||0)+1,counts),{}),
-          evidenceMessageIds:messages.map(message=>message.messageId),
-          note:'AI 자동 판정이 아닌 실제 발언 근거 요약입니다. 교사 확인이 필요합니다.'
-        }]))
-      };
-
-      storageService.updateDebateRoom(roomId, { status: "completed", evaluation });
-      broadcastDebate(roomId,'room',{room:{...room,status:'completed',evaluation}});
-      sendJSON(res, 200, { success: true, evaluation });
+      const completed=finishDebate(roomId);
+      sendJSON(res,200,{success:true,evaluation:completed.evaluation,aiReview:completed.aiReview});
     } catch (err) {
       sendJSON(res, err.status || 500, { success: false, error: err.status ? err.message : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." });
     }
+    return;
+  }
+
+  if(req.method==='POST'&&pathname==='/api/debate/extend'){
+    try{const body=await parseRequestBody(req);scopedDebateRoom(req.auth,body.roomId);const room=storageService.extendDebateRoom(body.roomId,body.minutes,req.auth.uid);publishRoom(body.roomId);sendJSON(res,200,{success:true,room:{...room,statistics:roomStatistics(room)}});}
+    catch(error){sendJSON(res,error.status||500,{success:false,error:error.status?error.message:'토론 시간을 연장하지 못했습니다.'});}
     return;
   }
 

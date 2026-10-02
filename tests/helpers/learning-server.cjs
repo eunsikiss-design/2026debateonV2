@@ -8,6 +8,7 @@ function build(file,coach,options={}){
  const auth=options.firebaseAuth||{isConfigured:()=>true,serverConfigured:()=>true,clientConfigured:()=>true,authenticate:async req=>users[/test_uid=([a-zA-Z0-9_-]+)/.exec(req.headers.cookie||'')?.[1]]||users[/test_role=(student|teacher)/.exec(req.headers.cookie||'')?.[1]],safeProfile:u=>u,sameClass:(teacher,schoolId,grade,classId)=>teacher.schoolId===schoolId&&teacher.grade===grade&&teacher.classId===classId};
  const services={schoolRecordService:require('../../services/schoolRecordService'),storageService:storage,learningService:learning,geminiService:coach||{evaluateBasicPractice:async()=>{throw Error('No coaching fixture configured');}},firebaseAuth:auth,socialAuth:{},studentRoster:options.studentRoster||{students:[],registrationStatus:()=>[]},knowledgeService:{cards:[],getEvidenceCards:()=>[],getStats:()=>({}),getGlossary:()=>[]},sheetSyncQueue:{enqueue(){},getQueueStatus:()=>({queueLength:0})}};
  services.studentReportService=require('../../services/studentReportService');
+ services.debateInsights=require('../../services/debateInsights');
  services.studentGrowthService=require('../../services/studentGrowthService');
  services.studentGrowthReport=require('../../services/studentGrowthReport');
  services.learningDraftStore=require('../../services/learningDraftStore');
