@@ -33,10 +33,25 @@ test('all activity types connect; duplicate saves, empty outlines, teacher priva
 test('AI citations must be verbatim and changes must cite both verified versions',()=>{
  const sources=[{id:'before',text:'참정권은 국민의 권리입니다.'},{id:'after',text:'참정권을 보장하면서 대표성을 높이는 조건도 검토합니다.'}],pair={beforeId:'before',afterId:'after'},r={sources,comparisons:[pair]},result=valid(r);
  assert.equal(growth.validate(result,r).axes.length,5);
- assert.throws(()=>growth.validate({...result,axes:result.axes.map((a,i)=>i? a:{...a,evidence:[{sourceId:'someone-else',quote:'참정권은 국민의 권리입니다.'}]})},r));
+ const unverified=growth.validate({...result,axes:result.axes.map((a,i)=>i? a:{...a,evidence:[{sourceId:'someone-else',quote:'참정권은 국민의 권리입니다.'}]})},r);
+ assert.equal(unverified.source,'gemini-partial');assert.equal(unverified.axes[0].status,'insufficient');assert.deepEqual(unverified.axes[0].evidence,[]);
  const change={...pair,finding:'조건을 추가했습니다.',nextStep:'조건을 구체화해 보세요.',evidence:[{sourceId:'before',quote:sources[0].text}]};
- assert.throws(()=>growth.validate({...result,changes:[change]},r));change.evidence.push({sourceId:'after',quote:sources[1].text});assert.equal(growth.validate({...result,changes:[change]},r).changes.length,1);
- assert.throws(()=>growth.validate({...result,changes:[{...change,beforeId:'other'}]},r));
+ assert.deepEqual(growth.validate({...result,changes:[change]},r).changes,[]);change.evidence.push({sourceId:'after',quote:sources[1].text});assert.equal(growth.validate({...result,changes:[change]},r).changes.length,1);
+ assert.deepEqual(growth.validate({...result,changes:[{...change,beforeId:'other'}]},r).changes,[]);
+ const lineBreak={sources:[{id:'before',text:'참정권은\n국민의 권리입니다.'}],comparisons:[]};
+ const normalized=valid(lineBreak);normalized.axes[0].evidence[0].quote='참정권은 국민의 권리입니다.';
+ const repaired=growth.validate(normalized,lineBreak);
+ assert.equal(repaired.axes[0].evidence[0].quote,'참정권은\n국민의 권리입니다.');
+});
+
+test('student growth uses the responsive coach model before the lighter fallback',async()=>{
+ const service=require('./services/geminiService'),prior={key:service.apiKey,analysis:service.analysisModel,coach:service.coachModel,light:service.lightModel,call:service._callGeminiAPIWithPrompt};
+ const report={sources:[{id:'one',kind:'basic',text:'학생이 직접 쓴 주장과 이유입니다.'}],comparisons:[]};
+ try{
+  service.apiKey='fixture';service.analysisModel='slow-analysis';service.coachModel='responsive-coach';service.lightModel='light-fallback';
+  service._callGeminiAPIWithPrompt=async input=>{assert.equal(input.modelName,'responsive-coach');assert.equal(input.fallbackModel,'light-fallback');return valid(report);};
+  assert.equal((await service.analyzeStudentGrowth(report)).source,'gemini-api');
+ }finally{Object.assign(service,{apiKey:prior.key,analysisModel:prior.analysis,coachModel:prior.coach,lightModel:prior.light, _callGeminiAPIWithPrompt:prior.call});}
 });
 test('analysis persists across sessions, is cached, and invalidates when source content changes',async()=>{
  let calls=0;const h=setup('persist',{analyzeStudentGrowth:async r=>{calls++;return growth.validate(valid(r),r);}}),s=h.users.student;

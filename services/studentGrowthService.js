@@ -38,10 +38,28 @@ function fallback(report){return {source:'source-review',notice:'AI 분석을 �
 function validate(result,{sources,comparisons}){
  if(!Array.isArray(result?.axes)||result.axes.length!==AXES.length)throw Error('Missing competency axes');
  const text=(s,max=1000)=>{if(typeof s!=='string'||!s.trim()||s.length>max)throw Error('Invalid growth text');return s.trim();};
- const refs=entries=>{if(!Array.isArray(entries)||!entries.length||entries.length>5)throw Error('Missing growth citations');return entries.map(ref=>{const s=sources.find(s=>s.id===ref.sourceId),quote=text(ref.quote,500);if(!s||quote.length<4||!s.text.includes(quote))throw Error('Unverified growth quote');return {sourceId:s.id,quote};});};
- const axes=AXES.map(axis=>{const matches=result.axes.filter(a=>a.key===axis.key);if(matches.length!==1)throw Error('Invalid axis key');const a=matches[0];if(!['observed','insufficient'].includes(a.status))throw Error('Invalid axis status');return {key:axis.key,label:axis.label,status:a.status,finding:text(a.finding),nextStep:text(a.nextStep),evidence:a.status==='observed'?refs(a.evidence):[]};});
- if(!Array.isArray(result.changes)||result.changes.length>5)throw Error('Invalid growth changes');
- const changes=result.changes.map(change=>{const pair=comparisons.find(p=>p.beforeId===change.beforeId&&p.afterId===change.afterId);if(!pair)throw Error('Unverified comparison pair');const evidence=refs(change.evidence);if(![pair.beforeId,pair.afterId].every(id=>evidence.some(e=>e.sourceId===id)))throw Error('Both versions must be cited');return {...pair,finding:text(change.finding),nextStep:text(change.nextStep),evidence};});
- return {source:'gemini-api',notice:'학생 원문을 근거로 한 소크라AI의 학습 피드백입니다. 인용이 원문과 일치하는지 확인했으며, 해석의 타당성과 최종 평가는 교사가 확인합니다. 점수·등급을 부여하지 않습니다.',axes,changes};
+ const refs=entries=>{if(!Array.isArray(entries)||!entries.length||entries.length>5)throw Error('Missing growth citations');return entries.map(ref=>{
+  const s=sources.find(source=>source.id===ref.sourceId),quote=text(ref.quote,500);
+  if(!s||quote.length<4)throw Error('Unverified growth quote');
+  // Gemini occasionally substitutes spaces for line breaks. Return only the exact source span.
+  const pattern=quote.split(/\s+/u).map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('\\s+');
+  const matched=s.text.match(new RegExp(pattern,'u'))?.[0];
+  if(!matched||matched.length>500)throw Error('Unverified growth quote');
+  return {sourceId:s.id,quote:matched};
+ });};
+ let partial=false;
+ const axes=AXES.map(axis=>{try{
+  const matches=result.axes.filter(a=>a.key===axis.key);if(matches.length!==1)throw Error('Invalid axis key');
+  const a=matches[0];if(!['observed','insufficient'].includes(a.status))throw Error('Invalid axis status');
+  return {key:axis.key,label:axis.label,status:a.status,finding:text(a.finding),nextStep:text(a.nextStep),evidence:a.status==='observed'?refs(a.evidence):[]};
+ }catch{partial=true;return {...axis,status:'insufficient',finding:'이 역량의 원문 근거를 확인하지 못했습니다.',nextStep:axis.question,evidence:[]};}});
+ const changes=[];
+ if(!Array.isArray(result.changes)||result.changes.length>5)partial=true;
+ else for(const change of result.changes)try{
+  const pair=comparisons.find(p=>p.beforeId===change.beforeId&&p.afterId===change.afterId);if(!pair)throw Error('Unverified comparison pair');
+  const evidence=refs(change.evidence);if(![pair.beforeId,pair.afterId].every(id=>evidence.some(e=>e.sourceId===id)))throw Error('Both versions must be cited');
+  changes.push({...pair,finding:text(change.finding),nextStep:text(change.nextStep),evidence});
+ }catch{partial=true;}
+ return {source:partial?'gemini-partial':'gemini-api',notice:partial?'일부 인용이 원문과 일치하지 않아 해당 항목을 추가 확인으로 표시했습니다. 확인된 원문 근거만 보여 줍니다. 교사의 최종 평가는 아닙니다.':'학생 원문을 근거로 한 소크라AI의 학습 피드백입니다. 인용이 원문과 일치하는지 확인했으며, 해석의 타당성과 최종 평가는 교사가 확인합니다. 점수·등급을 부여하지 않습니다.',axes,changes};
 }
 module.exports={AXES,collect,batch,fallback,validate};

@@ -228,10 +228,10 @@ ${learningContext ? "원문 발췌가 없어도 제공된 생각을 여는 사�
   async analyzeStudentGrowth(report) {
     const growth=require('./studentGrowthService');
     if(!report.sources?.length)throw new Error('학생 원문이 필요합니다.');
-    if(this.apiKey&&(this.analysisModel||this.coachModel)){
+    if(this.apiKey&&(this.coachModel||this.analysisModel)){
       const {PROMPT,SCHEMA}=require('../prompts/studentGrowthAnalysis');
       try{
-        const result=await this._callGeminiAPIWithPrompt({modelName:this.analysisModel||this.coachModel,fallbackModel:this.lightModel,systemPrompt:PROMPT,responseSchema:SCHEMA,userPrompt:JSON.stringify({sources:report.sources,comparisons:report.comparisons})});
+        const result=await this._callGeminiAPIWithPrompt({modelName:this.coachModel||this.analysisModel,fallbackModel:this.lightModel,systemPrompt:PROMPT,responseSchema:SCHEMA,userPrompt:JSON.stringify({sources:report.sources,comparisons:report.comparisons})});
         return growth.validate(result,report);
       }catch{console.warn('Student growth analysis unavailable or citations invalid; keeping source records.');}
     }

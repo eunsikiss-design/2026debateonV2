@@ -4,6 +4,25 @@ const {hasDraftContent}=require('./learningDraftStore');
 const HEADERS=['연동 키','학년','반','학번','이름','주제','활동','기록 종류','저장 버전','학생 원문','피드백·분석','저장 시각','연동 시각'];
 const hash=value=>crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const modeLabel={basic:'기초 연습',advanced:'심화 논술',speech:'스피치',debate:'토론 발언',observation:'교사 관찰'};
+function feedbackText(session,mode){
+ const result=session.evaluation||{diagnosis:session.diagnosis,feedback:session.feedback};
+ const lines=[],add=(label,value)=>{if(typeof value==='string'&&value.trim())lines.push(`${label}: ${value.trim()}`);};
+ if(result.assessmentLimited)lines.push('AI 분석을 완료하지 못해 기본 도움말을 표시했습니다.');
+ if(mode==='basic'){
+  const notes=result.feedback||{};
+  if(typeof notes==='string')add('피드백',notes);
+  else{add('잘한 점',notes.praise||result.diagnosis?.strengths?.[0]);add('다음 연습',notes.nextChallenge||result.diagnosis?.weaknesses?.[0]);add('생각할 질문',notes.question);}
+  add('글을 다듬는 방법',result.scaffold?.scaffoldGuidance);
+ }else if(mode==='advanced'){
+  for(const strength of Array.isArray(result.strengths)?result.strengths:[])add('잘한 점',strength);
+  add('다듬을 점',result.focusImprovement);add('다음 질문',result.socraticQuestion);
+  const rubric={claimReasoning:'주장과 이유',conceptApplication:'개념 활용',rebuttalAlternative:'반론과 대안',expressionClarity:'표현'};
+  for(const [key,label] of Object.entries(rubric))add(label,result.rubricAssessment?.[key]?.comment);
+ }else if(mode==='speech'){
+  add('잘한 점',result.praise);add('다음 연습',result.growthPoint);add('생각할 질문',result.nextSpeechChallenge);
+ }
+ return lines.join('\n');
+}
 function activities(storage,student,drafts){
  const entries=[];
  for(const [topicId,modes] of Object.entries(drafts||{}))for(const mode of ['basic','advanced','speech']){
@@ -18,7 +37,7 @@ function activities(storage,student,drafts){
   const mode=s.mode==='advanced_essay'?'advanced':s.mode==='speech_timer'?'speech':'basic';
   const text=mode==='advanced'?s.studentDraft:mode==='speech'?s.transcript:[s.claim,s.reason,s.rebuttal].filter(Boolean).join('\n\n');
   if(!text?.trim())continue;
-  entries.push({id:'record:'+s.sessionId,topicId:s.topicId,mode,kind:'활동 완료',version:s.attemptCount||1,text,feedback:JSON.stringify(s.evaluation||{analysis:s.analysis||{},diagnosis:s.diagnosis||{},feedback:s.feedback||{}}),updatedAt:s.createdAt||s.submittedAt});
+  entries.push({id:'record:'+s.sessionId,topicId:s.topicId,mode,kind:'활동 완료',version:s.attemptCount||1,text,feedback:feedbackText(s,mode),updatedAt:s.createdAt||s.submittedAt});
  }
  const evidence=storage.getStudentRecordEvidence(student);
  for(const m of evidence.messages||[])entries.push({id:'debate:'+m.roomId+':'+m.messageId,topicId:m.topicId,mode:'debate',kind:'토론 발언',text:m.content,updatedAt:m.createdAt||m.timestamp});
@@ -67,4 +86,4 @@ class ActivitySheets{
  }
  async tick(){for(const schoolId of new Set(this.storage.getUsers().filter(u=>u.role==='student'&&u.onboardingComplete).map(u=>u.schoolId)))if(this.storage.getRecordSheetConfig(schoolId))await this.syncAll({schoolId});}
 }
-module.exports={ActivitySheets,activities,HEADERS};
+module.exports={ActivitySheets,activities,feedbackText,HEADERS};

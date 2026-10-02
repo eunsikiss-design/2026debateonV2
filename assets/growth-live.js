@@ -1,7 +1,7 @@
 (() => {
  const $=id=>document.getElementById(id),el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
  const names={basic:'기초 연습',advanced:'심화 논술',speech:'스피치',debate:'토론배틀'};
- let user,report,busy=false,loadedAt=0;
+ let user,report,busy=false,loadedAt=0;const automaticAttempts=new Set();
  const exporter=window.GrowthExport.mount({getReport:()=>report,getUser:()=>user,isBusy:()=>busy});
  async function api(url,body){const response=await fetch(url,{cache:'no-store',...(body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})});const data=await response.json();if(!response.ok)throw Error(data.message||data.error||'기록을 불러오지 못했습니다.');return data;}
  const date=value=>Number.isFinite(Date.parse(value))?new Date(value).toLocaleString('ko-KR'):'저장 시각 미확인';
@@ -23,7 +23,7 @@
   renderRecords();controls();
  }
  async function analyze(force=false){if(busy||!report?.summary.recordCount)return;busy=true;controls();status('저장한 원문을 근거로 소크라AI가 분석하고 있습니다.');try{report=await api(endpoint(true),{force});render();status(report.analysis.source==='gemini-api'?'원문 근거와 다음 연습을 분석하고 저장했습니다.':report.analysis.notice);}catch(error){status(error.message+' 원문 기록은 그대로 유지됩니다.');}finally{busy=false;controls();}}
- async function load(){if(busy||!user)return;busy=true;controls();status('저장된 활동 기록을 불러오고 있습니다.');try{report=await api(endpoint());loadedAt=Date.now();render();status(report.analysis?'저장된 분석과 활동 원문을 불러왔습니다.':report.summary.recordCount?'활동 기록을 불러왔습니다.':'저장된 학생 원문이 없습니다.');}catch(error){report=null;status(error.message);return;}finally{busy=false;controls();}if(report.summary.recordCount&&!report.analysis)await analyze();}
+ async function load(){if(busy||!user)return;busy=true;controls();status('저장된 활동 기록을 불러오고 있습니다.');try{report=await api(endpoint());loadedAt=Date.now();render();status(report.analysis?'저장된 분석과 활동 원문을 불러왔습니다.':report.summary.recordCount?'활동 기록을 불러왔습니다.':'저장된 학생 원문이 없습니다.');}catch(error){report=null;status(error.message);return;}finally{busy=false;controls();}const key=report?.topicId+':'+report?.fingerprint;if(report?.summary.recordCount&&report.analysis?.source!=='gemini-api'&&!automaticAttempts.has(key)){automaticAttempts.add(key);await analyze();}}
  $('growth-refresh').onclick=load;$('growth-topic').onchange=load;$('growth-analyze').onclick=()=>analyze(true);$('growth-kind').onchange=()=>report&&renderRecords();
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-loadedAt>30000)load();});window.addEventListener('pageshow',event=>{if(event.persisted)load();});
  (async()=>{try{const data=await api('/api/auth/me');if(data.user.role!=='student'){status('교사 계정에서는 학생별 검토에서 학생을 선택해 분석해 주세요.');const link=el('a','학생별 검토 열기','neon-button');link.href='/stitch_screens/10_teacher_dashboard.html?panel=students';$('growth-status').after(link);controls();return;}user=data.user;await load();}catch(error){status('로그인 상태를 확인해 주세요. '+error.message);const link=el('a','학생 로그인','neon-button');link.href='/stitch_screens/04_login_signup.html';$('growth-status').after(link);controls();}})();
