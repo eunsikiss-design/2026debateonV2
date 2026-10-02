@@ -50,10 +50,49 @@
   const stateCopy=element('div');const stateHeading=element('strong','','CHECKING CONNECTION');const stateMessage=element('span','','학습 서비스 상태를 확인하고 있습니다.');stateCopy.append(stateHeading,stateMessage);
   const retry=element('button','','다시 확인');retry.type='button';state.append(stateCopy,retry);intro.after(state);
   let checking=false;let signedIn=false;let reconnectTimer;let automaticRetries=0;
+  const badgeArt={badge_reasoning:'/assets/badges/reasoning.svg',badge_advanced_essay:'/assets/badges/essay.svg',badge_speech_master:'/assets/badges/speech.svg'};
+  const badgeBar=element('div','hud-badge-bar');badgeBar.hidden=true;badgeBar.setAttribute('aria-label','확인한 내 뱃지');header?.append(badgeBar);
+  const badgeOverlay=element('div','badge-award-overlay');badgeOverlay.hidden=true;
+  const badgeDialog=element('section','badge-award-dialog');badgeDialog.setAttribute('role','dialog');badgeDialog.setAttribute('aria-modal','true');badgeDialog.setAttribute('aria-labelledby','badge-award-title');badgeDialog.setAttribute('aria-describedby','badge-award-description');
+  const badgeEyebrow=element('span','badge-award-eyebrow','NEW ACHIEVEMENT');
+  const badgeImage=element('img','badge-award-image');badgeImage.alt='';badgeImage.width=160;badgeImage.height=160;
+  const badgeTitle=element('h2','','뱃지를 획득했습니다!');badgeTitle.id='badge-award-title';
+  const badgeName=element('strong','badge-award-name');const badgeDescription=element('p','');badgeDescription.id='badge-award-description';
+  const badgeError=element('p','badge-award-error');badgeError.setAttribute('role','alert');badgeError.hidden=true;
+  const badgeConfirm=element('button','badge-award-confirm','확인하고 내 뱃지에 추가');badgeConfirm.type='button';
+  badgeDialog.append(badgeEyebrow,badgeImage,badgeTitle,badgeName,badgeDescription,badgeError,badgeConfirm);badgeOverlay.append(badgeDialog);document.body.append(badgeOverlay);
+  let studentBadgeUid=null,currentBadge=null,badgeRequest=null,refreshBadgesAgain=false,returnFocus=null;
+  function closeBadge(){const wasConfirmed=Boolean(currentBadge?.acknowledgedAt);badgeOverlay.hidden=true;document.body.classList.remove('badge-modal-open');currentBadge=null;returnFocus?.focus?.();returnFocus=null;if(wasConfirmed)refreshBadges();}
+  function openBadge(badge,earned){
+    currentBadge=badge;returnFocus=document.activeElement;badgeEyebrow.textContent=earned?'NEW ACHIEVEMENT':'MY BADGE';badgeTitle.textContent=earned?'뱃지를 획득했습니다!':'내 뱃지';badgeName.textContent=badge.badgeName||'활동 뱃지';badgeDescription.textContent=badge.description||'학습 활동을 완료해 획득한 뱃지입니다.';
+    badgeImage.src=badgeArt[badge.badgeType]||badgeArt.badge_reasoning;badgeConfirm.textContent=earned?'확인하고 내 뱃지에 추가':'닫기';badgeConfirm.disabled=false;badgeError.hidden=true;badgeOverlay.hidden=false;document.body.classList.add('badge-modal-open');badgeConfirm.focus();
+  }
+  function renderBadges(badges){
+    badgeBar.replaceChildren();const confirmed=badges.filter(b=>b.acknowledgedAt).reverse();badgeBar.hidden=!confirmed.length;
+    if(confirmed.length){badgeBar.append(element('span','hud-badge-label','내 뱃지'));for(const badge of confirmed){const button=element('button','hud-badge-item');button.type='button';button.title=badge.badgeName||'활동 뱃지';button.setAttribute('aria-label',`${badge.badgeName||'활동 뱃지'} 보기`);const image=element('img');image.src=badgeArt[badge.badgeType]||badgeArt.badge_reasoning;image.alt='';image.width=34;image.height=34;button.append(image,element('span','',badge.badgeName||'활동 뱃지'));button.addEventListener('click',()=>openBadge(badge,false));badgeBar.append(button);}}
+    if(!currentBadge){const unconfirmed=badges.find(b=>!b.acknowledgedAt);if(unconfirmed)openBadge(unconfirmed,true);}
+  }
+  async function refreshBadges(){
+    if(!signedIn||!studentBadgeUid)return;
+    if(badgeRequest){refreshBadgesAgain=true;return badgeRequest;}
+    badgeRequest=(async()=>{const response=await fetch('/api/student/badges',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw Error('뱃지 목록을 불러오지 못했습니다.');const data=await response.json();if(data.success&&studentBadgeUid)renderBadges(data.badges||[]);})();
+    try{await badgeRequest;}catch(error){if(!badgeOverlay.hidden){badgeError.textContent=error.message;badgeError.hidden=false;}}finally{badgeRequest=null;if(refreshBadgesAgain){refreshBadgesAgain=false;refreshBadges();}}
+  }
+  badgeConfirm.addEventListener('click',async()=>{
+    if(!currentBadge)return;
+    if(currentBadge.acknowledgedAt){closeBadge();return;}
+    badgeConfirm.disabled=true;badgeError.hidden=true;
+    try{const response=await fetch('/api/student/badges',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({badgeId:currentBadge.id})});const data=await response.json();if(!response.ok||!data.success)throw Error(data.error||'뱃지를 확인하지 못했습니다.');closeBadge();renderBadges(data.badges||[]);}
+    catch(error){badgeError.textContent=error.message;badgeError.hidden=false;badgeConfirm.disabled=false;}
+  });
+  badgeOverlay.addEventListener('keydown',event=>{if(event.key==='Escape'&&currentBadge?.acknowledgedAt)closeBadge();if(event.key==='Tab'){event.preventDefault();badgeConfirm.focus();}});
+  window.addEventListener('badge-awarded',event=>{if(event.detail?.badge&&!currentBadge)openBadge(event.detail.badge,true);refreshBadges();});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshBadges();});
   function showIdentity(user) {
     if(!identity)return;const provider=String(user.authProvider||'계정').replace('.com','');
     identity.replaceChildren(element('strong','',user.role==='teacher'?'교사 관리자':`학번 ${user.studentNumber||'미등록'}`),element('span','',`${user.name||'이름 미등록'} (${user.email||`이메일 미제공 · ${provider}`})`));
     const logout=element('button','hud-account-switch','로그아웃');logout.type='button';logout.addEventListener('click',async()=>{logout.disabled=true;try{await window.LearningDrafts?.flushAll();const response=await fetch('/api/auth/logout',{method:'POST'});if(!response.ok)throw Error('로그아웃하지 못했습니다. 다시 시도해 주세요.');localStorage.removeItem('debateon_user');location.href=routes.auth;}catch(e){logout.disabled=false;logout.textContent='저장 확인 후 로그아웃 재시도';alert(e.message);}});identity.append(logout);identity.hidden=false;
+    if(user.role==='student'){studentBadgeUid=user.uid;refreshBadges();}else{studentBadgeUid=null;badgeBar.hidden=true;closeBadge();}
   }
   async function checkConnection() {
     if(checking)return;checking=true;retry.disabled=true;state.setAttribute('aria-busy','true');

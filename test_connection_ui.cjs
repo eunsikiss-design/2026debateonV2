@@ -3,7 +3,7 @@ function run(fail=false){
  const nodes=[],timers=[];
  function node(){const n={children:[],hidden:false,textContent:'',classList:{add(){}},append(...v){this.children.push(...v)},replaceChildren(...v){this.children=v},prepend(){},after(){},setAttribute(){},removeAttribute(){},handlers:{},addEventListener(type,fn){this.handlers[type]=fn;},querySelector(){return node()}};nodes.push(n);return n;}
  const header=node(),notice=node(),main=node(),body=node();body.dataset={screen:'basic'};
- const document={body,createElement:node,querySelector:s=>s==='body > header'?header:s==='main'?main:notice,querySelectorAll:()=>[]};
+ const document={body,createElement:node,querySelector:s=>s==='body > header'?header:s==='main'?main:notice,querySelectorAll:()=>[],addEventListener(){}};
  const source=fs.readFileSync('assets/cyber-ui.js','utf8').split("  const toast=")[0]+'})();';
  const context={document,window:{addEventListener(){}},navigator:{onLine:true},AbortSignal,location:{},localStorage:{removeItem(){}},
  fetch:async url=>{if(url==='/api/auth/me'&&fail)throw Error('network');return {ok:true,json:async()=>url==='/api/health'?{authentication:'firebase_session'}:{user:{name:'검증학생',studentNumber:'10325',email:'test@example.test',role:'student',onboardingComplete:true}}}},

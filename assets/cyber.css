@@ -47,6 +47,17 @@ body > header {position:sticky!important;top:0!important;width:100%;padding:0!im
 .hud-actions {display:flex;align-items:center;gap:8px}
 .hud-identity {display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 10px;min-width:0;padding:7px 10px;border:1px solid var(--hud-border);border-radius:var(--radius-sm);color:var(--text-secondary);font-size:10px;line-height:1.35}
 .hud-identity strong {color:var(--text-primary);font-size:11px}.hud-account-switch {min-height:30px;min-width:auto;padding:3px 7px;border:0;border-radius:6px;background:rgb(var(--rgb-cyan)/.08);color:var(--neon-cyan);font:10px var(--font-body)}
+.hud-badge-bar{max-width:1200px;margin:0 auto;padding:2px 18px 10px;display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:thin}
+.hud-badge-bar[hidden],.badge-award-overlay[hidden],.badge-award-error[hidden]{display:none!important}
+.hud-badge-label{flex:none;font:11px var(--font-tech);color:#f5d17b;white-space:nowrap}
+.hud-badge-item{min-width:0;flex:none;display:inline-flex;align-items:center;gap:5px;max-width:180px;min-height:44px;padding:3px 9px 3px 4px;border:1px solid rgb(250 205 111/.34);border-radius:999px;background:#1b1b26;color:#f6e6c4;font-size:11px;font-weight:700}
+.hud-badge-item img{width:34px;height:34px;flex:none}.hud-badge-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge-modal-open{overflow:hidden}
+.badge-award-overlay{position:fixed;inset:0;z-index:var(--z-modal);display:grid;place-items:center;padding:20px;background:rgb(2 8 18/.84);backdrop-filter:blur(8px)}
+.badge-award-dialog{width:min(100%,420px);max-height:calc(100dvh - 40px);overflow:auto;text-align:center;padding:28px 24px 24px;border:1px solid #9adddf;border-radius:20px;background:radial-gradient(circle at 50% 5%,#21465a 0,#112333 40%,#101722 85%);box-shadow:0 22px 70px rgb(0 0 0/.52),0 0 32px rgb(55 216 226/.22)}
+.badge-award-eyebrow{display:block;color:#84edf2;font:11px var(--font-tech);letter-spacing:2px}.badge-award-image{display:block;width:min(42vw,160px);height:min(42vw,160px);margin:14px auto 8px;filter:drop-shadow(0 8px 15px rgb(0 0 0/.35))}
+.badge-award-dialog h2{margin:5px 0 2px;color:#fff;font-size:25px;line-height:1.3}.badge-award-name{display:block;color:#f6d990;font-size:18px}.badge-award-dialog p{margin:10px auto 18px;color:#cad7e5;line-height:1.7;font-size:14px}.badge-award-dialog .badge-award-error{color:#ffb0bf}
+.badge-award-confirm{width:100%;min-height:48px;padding:10px;border:1px solid #7deaf2;border-radius:10px;background:#3cdae7;color:#071620;font-size:15px;font-weight:800}
 .hud-battle,.neon-button {display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:8px 12px;border:1px solid rgb(var(--rgb-cyan)/.5);border-radius:var(--radius-sm);background:rgb(var(--rgb-cyan)/.06);color:var(--neon-cyan);font-size:12px;font-weight:700;text-decoration:none}
 .hud-battle:hover,.neon-button:hover {box-shadow:var(--glow-active);background:rgb(var(--rgb-cyan)/.1)}
 .legacy-header {display:none!important}

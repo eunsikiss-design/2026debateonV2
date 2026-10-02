@@ -283,6 +283,21 @@ const server = http.createServer(async (req, res) => {
   // 2. Current verified session.
   if (req.method === 'GET' && pathname === '/api/auth/me') {if(req.auth.role==='student'&&req.auth.onboardingComplete)storageService.recordStudentVisit(req.auth.uid);res.setHeader('Cache-Control','private, no-store');sendJSON(res,200,{success:true,user:firebaseAuth.safeProfile(req.auth)});return; }
 
+  if (pathname === '/api/student/badges' && ['GET','POST'].includes(req.method)) {
+    res.setHeader('Cache-Control','private, no-store');
+    if(req.auth.role!=='student'){sendJSON(res,403,{success:false,error:'STUDENT_REQUIRED'});return;}
+    try {
+      if(req.method==='POST'){
+        const {badgeId}=await parseRequestBody(req);
+        if(typeof badgeId!=='string'||!badgeId.trim()){sendJSON(res,400,{success:false,error:'BADGE_ID_REQUIRED'});return;}
+        const badge=storageService.acknowledgeBadge(req.auth.uid,badgeId);
+        if(!badge){sendJSON(res,404,{success:false,error:'BADGE_NOT_FOUND'});return;}
+      }
+      sendJSON(res,200,{success:true,badges:storageService.getStudentBadges(req.auth.uid).sort((a,b)=>Date.parse(a.earnedAt)-Date.parse(b.earnedAt))});
+    }catch(error){sendJSON(res,error.status||500,{success:false,error:error.status?error.message:'뱃지 기록을 불러오지 못했습니다.'});}
+    return;
+  }
+
   if (req.method === 'POST' && pathname === '/api/auth/onboarding') {
     try {
       if(req.auth.role!=='student'){sendJSON(res,403,{success:false,error:'STUDENT_REQUIRED',message:'학생 계정에서만 가입할 수 있습니다.'});return;}

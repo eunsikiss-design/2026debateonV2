@@ -227,6 +227,17 @@ class StorageService {
     return store.studentBadges.filter(b => b.userId === userId);
   }
 
+  acknowledgeBadge(userId, badgeId) {
+    const store = this._read();
+    const badge = store.studentBadges.find(b => b.userId === userId && b.id === badgeId);
+    if (!badge) return null;
+    if (!badge.acknowledgedAt) {
+      badge.acknowledgedAt = new Date().toISOString();
+      this._write(store);
+    }
+    return badge;
+  }
+
   awardBadge(userId, badgeData) {
     const store = this._read();
     // 중복 뱃지 확인 (동일한 세션 또는 동일 뱃지 타입)

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title">
+  <title id="title">주장과 근거 연결 뱃지</title>
+  <defs>
+    <linearGradient id="rim" x2="1" y2="1"><stop stop-color="#c9fbff"/><stop offset=".48" stop-color="#27dce9"/><stop offset="1" stop-color="#087588"/></linearGradient>
+    <linearGradient id="face" x2="0" y2="1"><stop stop-color="#153946"/><stop offset="1" stop-color="#08151f"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <circle cx="80" cy="80" r="68" fill="#20d8e8" opacity=".25" filter="url(#glow)"/>
+  <path d="M80 5 130 24 155 80 130 136 80 155 30 136 5 80 30 24Z" fill="url(#rim)"/>
+  <path d="M80 13 124 30 146 80 124 130 80 147 36 130 14 80 36 30Z" fill="url(#face)" stroke="#8ff7ff" stroke-width="1.5"/>
+  <circle cx="80" cy="80" r="51" fill="none" stroke="#42d5e1" stroke-opacity=".45" stroke-width="2"/>
+  <path d="m48 51 27 29-27 29m64-58L85 80l27 29" fill="none" stroke="#8ef8ff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="48" cy="51" r="9" fill="#d2feff"/><circle cx="48" cy="109" r="9" fill="#d2feff"/><circle cx="112" cy="51" r="9" fill="#d2feff"/><circle cx="112" cy="109" r="9" fill="#d2feff"/>
+  <circle cx="80" cy="80" r="14" fill="#0a2430" stroke="#9af8ff" stroke-width="5"/><circle cx="80" cy="80" r="5" fill="#c9fdff"/>
+  <path d="M53 125h54" stroke="#62dce7" stroke-opacity=".7" stroke-width="2"/>
+</svg>
