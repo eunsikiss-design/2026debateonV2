@@ -348,7 +348,8 @@ const server = http.createServer(async (req, res) => {
         const mode=s.mode==='advanced_essay'?'advanced':s.mode==='speech_timer'?'speech':s.mode==='basic'||s.mode==='basic_practice'||!s.mode?'basic':null;
         if(!mode)continue;
         const content=mode==='basic'?{stance:s.stance||'pro',claim:s.claim||'',reason:s.reason||'',rebuttal:s.rebuttal||''}:mode==='advanced'?{studentDraft:s.studentDraft||'',writingPlan:s.writingPlan||null}:{transcript:s.transcript||'',outline:s.outline||null,durationSeconds:s.durationSeconds||0};
-        entries.push({kind:'record',mode,topicId:s.topicId,topicTitle:s.topicTitle||titles.get(s.topicId)||s.topicId,updatedAt:s.createdAt||s.submittedAt,sessionId:s.sessionId,content});
+        const feedback=s.evaluation||{analysis:s.analysis||{},diagnosis:s.diagnosis||{},feedback:s.feedback||{}};
+        entries.push({kind:'record',mode,topicId:s.topicId,topicTitle:s.topicTitle||titles.get(s.topicId)||s.topicId,updatedAt:s.createdAt||s.submittedAt,sessionId:s.sessionId,content,feedback});
       }
       entries.sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
       res.setHeader('Cache-Control','no-store');sendJSON(res,200,{success:true,entries});

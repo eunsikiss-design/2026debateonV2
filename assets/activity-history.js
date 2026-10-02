@@ -2,16 +2,41 @@
   document.addEventListener('DOMContentLoaded', () => {
     const main=document.querySelector('main');if(!main)return;
     const panel=document.createElement('section');panel.className='learning-panel activity-history';panel.setAttribute('aria-label','내 활동 기록');
-    panel.innerHTML='<div class="activity-history-head"><div><span class="learning-kicker">MY RECORDS</span><h2>내 활동 기록</h2><p>주제별 기초 연습 글, 심화 논술 글, 스피치 전사문을 다시 볼 수 있습니다. 저장 버튼으로 남긴 1차·2차 저장본은 보존됩니다. 자동 저장은 최신 초안을 갱신합니다.</p></div><div class="activity-history-controls"><label for="activity-history-scope">조회 범위</label><select id="activity-history-scope"><option value="current">현재 주제</option><option value="all">전체 주제</option></select><button id="activity-history-refresh" type="button">새로고침</button></div></div><p id="activity-history-status" class="learning-status" role="status"></p><div id="activity-history-list"></div>';
+    panel.innerHTML='<div class="activity-history-head"><div><span class="learning-kicker">MY RECORDS</span><h2>내 활동 기록</h2><p>주제별 기초 연습 글, 심화 논술 글, 스피치 전사문과 활동 완료 때 받은 피드백을 다시 볼 수 있습니다. 저장 버튼으로 남긴 1차·2차 저장본은 보존됩니다. 자동 저장은 최신 초안을 갱신합니다.</p></div><div class="activity-history-controls"><label for="activity-history-scope">조회 범위</label><select id="activity-history-scope"><option value="current">현재 주제</option><option value="all">전체 주제</option></select><button id="activity-history-refresh" type="button">새로고침</button></div></div><p id="activity-history-status" class="learning-status" role="status"></p><div id="activity-history-list"></div>';
     main.append(panel);
     const scope=panel.querySelector('#activity-history-scope'),status=panel.querySelector('#activity-history-status'),list=panel.querySelector('#activity-history-list');let ticket=0;
     const label={basic:'기초 연습',advanced:'심화 논술',speech:'스피치'};
     function paragraph(parent,title,value){if(!value)return;const item=document.createElement('div');item.className='activity-history-field';const strong=document.createElement('strong');strong.textContent=title;const text=document.createElement('p');text.textContent=value;item.append(strong,text);parent.append(item);}
+    function feedback(parent,entry){
+      if(entry.kind!=='record'||!entry.feedback)return;
+      const result=entry.feedback,box=document.createElement('section');box.className='activity-history-feedback';
+      if(entry.mode==='basic'){
+        const notes=result.feedback||{};
+        paragraph(box,'잘한 점',notes.praise||result.diagnosis?.strengths?.[0]);
+        paragraph(box,'다음 연습',notes.nextChallenge||result.diagnosis?.weaknesses?.[0]);
+        paragraph(box,'생각할 질문',notes.question);
+        paragraph(box,'글을 다듬는 방법',result.scaffold?.scaffoldGuidance);
+      }
+      if(entry.mode==='advanced'){
+        paragraph(box,'잘한 점',result.strengths?.[0]);
+        paragraph(box,'다듬을 점',result.focusImprovement);
+        paragraph(box,'다음 질문',result.socraticQuestion);
+      }
+      if(entry.mode==='speech'){
+        paragraph(box,'잘한 점',result.praise);
+        paragraph(box,'다음 연습',result.growthPoint);
+        paragraph(box,'생각할 질문',result.nextSpeechChallenge);
+      }
+      if(!box.children.length)return;
+      const title=document.createElement('h3');title.textContent='저장된 소크라AI 피드백';box.prepend(title);
+      const notice=document.createElement('p');notice.className='learning-status';notice.textContent=result.assessmentLimited?'AI 응답 대신 저장된 기본 도움말입니다. 교사의 최종 평가는 아닙니다.':'이 활동을 완료할 때 받은 피드백입니다. 교사의 최종 평가는 아닙니다.';box.append(notice);
+      parent.append(box);
+    }
     function render(entry){const details=document.createElement('details');details.className='activity-history-item';const summary=document.createElement('summary');const title=document.createElement('strong');title.textContent=entry.topicTitle||entry.topicId;const meta=document.createElement('span');const date=new Date(entry.updatedAt);meta.textContent=`${label[entry.mode]||entry.mode} · ${entry.kind==='draft'?'작성 중인 초안':entry.kind==='snapshot'?entry.version+'차 저장본':'활동 완료 기록'} · ${Number.isNaN(date.getTime())?'':date.toLocaleString('ko-KR')}`;summary.append(title,meta);details.append(summary);const body=document.createElement('div');body.className='activity-history-body';const c=entry.content||{};
       if(entry.mode==='basic'){paragraph(body,'나의 입장',c.stance==='con'?'반대':'찬성');paragraph(body,'주장',c.claim);paragraph(body,'이유',c.reason);paragraph(body,'다른 의견',c.rebuttal);}
       if(entry.mode==='advanced')paragraph(body,'논술 글',c.studentDraft||c.paragraphs?.join('\n\n'));
       if(entry.mode==='speech'){paragraph(body,'말하기에 사용할 글',c.sourceText);paragraph(body,'말하기 개요',[c.outline?.claim||c.claim,c.outline?.reason||c.reason,c.outline?.condition||c.condition].filter(Boolean).join('\n'));paragraph(body,'말한 내용(음성 전사문)',c.transcript);if(entry.kind==='record'&&c.durationSeconds)paragraph(body,'말한 시간',`${c.durationSeconds}초`);}
-      if(!body.children.length)paragraph(body,'내용','저장된 내용이 없습니다.');details.append(body);return details;
+      if(!body.children.length)paragraph(body,'내용','저장된 내용이 없습니다.');feedback(body,entry);details.append(body);return details;
     }
     async function load(){const id=window.TopicCatalog?.current?.topicId;if(scope.value==='current'&&!id)return;const own=++ticket;status.textContent='활동 기록을 불러오고 있습니다.';try{const query=scope.value==='current'?'?topicId='+encodeURIComponent(id):'';const response=await fetch('/api/learning/history'+query,{cache:'no-store'}),data=await response.json();if(!response.ok)throw Error(data.error||'활동 기록을 불러오지 못했습니다.');if(own!==ticket)return;list.replaceChildren(...data.entries.map(render));status.textContent=data.entries.length?`${data.entries.length}개의 초안과 활동 기록이 있습니다.`:'아직 저장한 기록이 없습니다. 글을 쓰거나 스피치를 마치면 이곳에 표시됩니다.';}catch(error){if(own===ticket)status.textContent=error.message;}}
     scope.addEventListener('change',load);panel.querySelector('#activity-history-refresh').addEventListener('click',load);window.addEventListener('curriculum-topic-change',load);window.addEventListener('activity-record-saved',load);window.TopicCatalog?.ready.then(load);
