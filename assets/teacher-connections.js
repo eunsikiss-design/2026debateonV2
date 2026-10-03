@@ -14,7 +14,7 @@
  $('teacher-class-select').addEventListener('change',()=>document.dispatchEvent(new CustomEvent('teacher-registration-filter',{detail:'class'})));
  const descriptions={주장:'논제에 대한 입장을 분명히 밝히고 적용 범위를 설명하는가?',근거:'확인 가능한 자료나 사례를 제시하고 출처와 한계를 검토하는가?','논리 연결':'근거가 주장을 뒷받침하는 이유를 설명하는가?','개념 활용':'교과 개념을 정확히 이해하고 사례에 적용하는가?','상대 이해':'다른 입장의 이유와 우려를 왜곡 없이 설명하는가?',반론:'상대 주장의 근거나 전제를 구체적으로 검토하는가?',재반론:'제기된 반론에 답하며 자기 주장을 수정하거나 조건을 보완하는가?',표현:'글·전사문의 문장이 명료하고 논리적으로 이어지는가? 음성 전달력은 전사문만으로 판단하지 않습니다.'};
  for(const item of $('rubric-grid').children)item.querySelector('span').textContent=descriptions[item.querySelector('strong').textContent]||'';
- $('rubric-grid').before(node('p','앱의 관찰·피드백 기준입니다. 학교가 확정한 수행평가 배점표는 아직 등록되지 않았습니다. 원문·수정 과정·토론 발언·교사 관찰을 근거로 검토하며, 저장 횟수나 AI 뱃지를 성적으로 환산하지 않습니다.'));
+ $('rubric-grid').before(node('p','원문·수정 과정·토론 발언·교사 관찰을 근거로 평가 기준을 적용하세요. 저장 횟수나 AI 뱃지를 성적으로 환산하지 않습니다.'));
  async function request(url,options){const r=await fetch(url,options),d=await r.json();if(!r.ok)throw Error(d.message||'조회하지 못했습니다.');return d;}
  async function loadGrowthSync(holder,selected,retry=false){
   holder.replaceChildren(node('h3','학생 역량 분석 시트'),node('p','분석 결과의 전송 상태를 확인하고 있습니다.'));

@@ -40,6 +40,39 @@ class LearningService {
  scope(user){if(!user?.schoolId)fail('학교 정보가 없어 핵심 단어를 불러올 수 없습니다.',403,'SCHOOL_REQUIRED');return crypto.createHash('sha256').update(String(user.schoolId)).digest('hex');}
  config(user){const db=this.read(),saved=db.schools[this.scope(user)];return saved||migrateCatalogue(mergeDictionary({revision:0,keywords:structuredClone(defaults)}));}
  keywords(user){return structuredClone(this.config(user));}
+ rubric(user,grade,classId){
+  if(user?.role!=='teacher')fail('교사만 수행평가 기준을 볼 수 있습니다.',403,'TEACHER_REQUIRED');
+  const key=`${grade}-${classId}`,saved=this.config(user).rubrics?.[key];
+  return structuredClone(saved||{revision:0,elements:[],updatedAt:null,updatedBy:null});
+ }
+ saveRubric(user,grade,classId,input){
+  if(user?.role!=='teacher')fail('교사만 수행평가 기준을 저장할 수 있습니다.',403,'TEACHER_REQUIRED');
+  const db=this.read(),scope=this.scope(user),current=db.schools[scope]||migrateCatalogue(mergeDictionary({revision:0,keywords:structuredClone(defaults)}));
+  const key=`${grade}-${classId}`,previous=current.rubrics?.[key]||{revision:0,elements:[]};
+  if(!Number.isInteger(input?.revision)||input.revision!==previous.revision)fail('다른 교사가 기준을 변경했습니다. 새로고침 후 확인해 주세요.',409,'REVISION_CONFLICT');
+  if(!Array.isArray(input.elements)||input.elements.length>30)fail('평가 요소는 최대 30개까지 입력할 수 있습니다.');
+  const names=new Set(),elements=input.elements.map((raw,index)=>{
+   const name=String(raw?.name||'').trim(),maxPoints=Number(raw?.maxPoints);
+   if(!name||name.length>100||names.has(name.normalize('NFC')))fail(`${index+1}번째 평가 요소의 이름을 확인하세요. 같은 이름은 한 번만 사용할 수 있습니다.`);
+   if(!Number.isInteger(maxPoints)||maxPoints<1||maxPoints>100)fail(`${name}: 배점은 1~100점의 정수로 입력하세요.`);
+   if(!Array.isArray(raw.levels)||raw.levels.length<2||raw.levels.length>10)fail(`${name}: 수행 수준을 2~10개 입력하세요.`);
+   names.add(name.normalize('NFC'));
+   const levelNames=new Set(),points=new Set(),levels=raw.levels.map((level,levelIndex)=>{
+    const label=String(level?.name||'').trim(),description=String(level?.description||'').trim(),score=Number(level?.points);
+    if(!label||label.length>60||levelNames.has(label.normalize('NFC'))||!description||description.length>1000)fail(`${name}: ${levelIndex+1}번째 수행 수준의 이름과 설명을 확인하세요.`);
+    if(!Number.isInteger(score)||score<0||score>maxPoints||points.has(score))fail(`${name}: 수행 수준별 점수는 0~${maxPoints}점의 서로 다른 정수여야 합니다.`);
+    levelNames.add(label.normalize('NFC'));points.add(score);
+    return {name:label,description,points:score};
+   });
+   if(!points.has(maxPoints))fail(`${name}: 배점 ${maxPoints}점에 해당하는 수행 수준이 필요합니다.`);
+   return {id:typeof raw.id==='string'&&/^rubric_[a-f0-9-]{36}$/.test(raw.id)?raw.id:`rubric_${crypto.randomUUID()}`,name,maxPoints,levels};
+  });
+  const rubric={revision:previous.revision+1,elements,updatedAt:new Date().toISOString(),updatedBy:user.uid};
+  db.schools[scope]={...current,rubrics:{...current.rubrics,[key]:rubric},updatedAt:rubric.updatedAt,updatedBy:user.uid};
+  fs.mkdirSync(path.dirname(this.file),{recursive:true});const temp=this.file+'.'+crypto.randomUUID()+'.tmp';
+  try{fs.writeFileSync(temp,JSON.stringify(db,null,2),{encoding:'utf8',mode:0o600});fs.renameSync(temp,this.file);}finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
+  return structuredClone(rubric);
+ }
  mutate(user,method,id,input={}){
   if(user?.role!=='teacher')fail('교사만 핵심 단어를 변경할 수 있습니다.',403,'TEACHER_REQUIRED');
   const db=this.read(),scope=this.scope(user),current=db.schools[scope]||migrateCatalogue(mergeDictionary({revision:0,keywords:structuredClone(defaults)}));

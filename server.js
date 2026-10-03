@@ -527,6 +527,19 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if(pathname==='/api/teacher/rubric'&&['GET','PUT'].includes(req.method)){
+    res.setHeader('Cache-Control','private, no-store');
+    try{
+      const body=req.method==='PUT'?await parseRequestBody(req):null;
+      const scope=teacherClass(req.auth,req.method==='GET'?queryParams.get('class'):body.class);
+      const rubric=req.method==='GET'
+        ?learningService.rubric(req.auth,scope.grade,scope.classId)
+        :learningService.saveRubric(req.auth,scope.grade,scope.classId,body);
+      sendJSON(res,200,{success:true,class:`${scope.grade}-${scope.classId}`,rubric});
+    }catch(error){sendJSON(res,error.status||400,{success:false,message:error.message});}
+    return;
+  }
+
   // 7. 교사용 학급 설정: GET /api/teacher/class-settings & POST
   if (pathname === '/api/teacher/class-settings') {
     if (req.method === 'GET') {
@@ -1189,7 +1202,7 @@ const server = http.createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
   const reqUrl = pathname === '/' ? '/stitch_screens/04_login_signup.html' : pathname;
   const screenNames = new Set(['index.html','04_login_signup.html','05_ai_basic_practice.html','06_ai_advanced_practice.html','07_competency_report.html','08_speech_timer_training.html','09_class_debate_battle.html','10_teacher_dashboard.html','11_evidence_library.html','12_evidence_review.html','13_learning_hub.html','14_user_guide.html']);
-  const allowed = reqUrl === '/index.html' || ['/assets/growth-export.js','/assets/growth-live.js','/assets/teacher-connections.js','/assets/teacher-records.js','/assets/teacher-battle-planner.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/activity-history.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
+  const allowed = reqUrl === '/index.html' || ['/assets/growth-export.js','/assets/growth-live.js','/assets/teacher-rubric.js','/assets/teacher-connections.js','/assets/teacher-records.js','/assets/teacher-battle-planner.js','/assets/speech-outline.js','/assets/learning-drafts.js','/assets/activity-history.js','/assets/teacher-lesson-editor.js','/assets/basic-learning.js','/assets/advanced-writing.js','/assets/writing-plan.js', '/assets/learning-ui.js','/assets/teacher-learning.js','/assets/topic-catalog.js','/assets/cyber-ui.js','/assets/cyber-theme.js','/assets/auth-client.js','/assets/teacher-dashboard.js','/assets/speech-live.js','/assets/battle-live.js','/assets/evidence-library.js','/assets/evidence-review.js'].includes(reqUrl) ||
     (reqUrl.startsWith('/stitch_screens/') && screenNames.has(reqUrl.slice('/stitch_screens/'.length))) ||
     (/^\/assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_.-]+\.(?:png|jpg|jpeg|svg|webp|ico|css|woff2?)$/.test(reqUrl));
   if (!allowed || reqUrl.includes('..') || reqUrl.includes('\\')) { res.writeHead(404); res.end('Not Found'); return; }
